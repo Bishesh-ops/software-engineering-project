@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 
 enum class TokenType
 {
@@ -168,6 +169,9 @@ private:
 
     // Helper for distinguishing keywords from identifiers
     TokenType checkKeyword(const std::string &value) const;
+
+    //lookup table to map keywords
+    static const std::unordered_map<std::string, TokenType> keywords_;
 };
 
 #endif
