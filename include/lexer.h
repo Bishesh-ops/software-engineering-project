@@ -7,6 +7,7 @@
 
 enum class TokenType
 {
+    // we are going to start with 32 keywords
     KW_AUTO,
     KW_BREAK,
     KW_CASE,
@@ -47,7 +48,7 @@ enum class TokenType
     STRING_LITERAL,
     CHAR_LITERAL,
 
-    // Operators and Punctuators (Common C Operators)
+    // 19 Operators and Punctuators (Common C Operators)
     OP_ASSIGN, // =
     OP_EQ,     // ==
     OP_NE,     // !=
@@ -68,7 +69,28 @@ enum class TokenType
     OP_OR,     // ||
     OP_NOT,    // !
 
-    // Delimiters
+    // Bitwise Operators
+    OP_BIT_AND,  // &
+    OP_BIT_OR,   // |
+    OP_BIT_XOR,  // ^
+    OP_BIT_NOT,  // ~
+
+    // Compound Assignment Operators
+    OP_PLUS_ASSIGN,   // +=
+    OP_MINUS_ASSIGN,  // -=
+    OP_STAR_ASSIGN,   // *=
+    OP_SLASH_ASSIGN,  // /=
+    OP_MOD_ASSIGN,    // %=
+    OP_AND_ASSIGN,    // &=
+    OP_OR_ASSIGN,     // |=
+    OP_XOR_ASSIGN,    // ^=
+    OP_LSHIFT_ASSIGN, // <<=
+    OP_RSHIFT_ASSIGN, // >>=
+
+    // Ternary/Conditional
+    OP_QUESTION, // ?
+
+    // 11 Delimiters
     LPAREN,    // (
     RPAREN,    // )
     LBRACE,    // {
