@@ -4,6 +4,9 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <unordered_map>
+
+using namespace std;
 
 enum class TokenType
 {
@@ -108,18 +111,18 @@ enum class TokenType
     UNKNOWN    // For lexical errors
 };
 
-std::string token_type_to_string(TokenType);
+string token_type_to_string(TokenType);
 
 struct Token
 {
     TokenType type;
-    std::string value; // Stores the raw text
+    string value; // Stores the raw text
     int line;          // 1-based line number
     int column;        // 1-based column number where the token starts
 
-    Token(TokenType type, const std::string &value, int line, int column);
+    Token(TokenType type, const string &value, int line, int column);
 
-    std::string to_string() const;
+    string to_string() const;
 };
 
 /**
@@ -132,7 +135,7 @@ public:
        Constructs a Lexer for a given C source string.
        The complete string containing the source code.
      */
-    Lexer(const std::string &source);
+    Lexer(const string &source);
 
     /*
        Returns the next recognized token, advancing the internal position.
@@ -144,11 +147,11 @@ public:
        Collects all tokens from the source until EOF is reached.
        A vector of all recognized Tokens.
      */
-    std::vector<Token> lexAll();
+    vector<Token> lexAll();
 
 private:
     // Lexer State
-    const std::string source_; // The source code being tokenized
+    const string source_; // The source code being tokenized
     size_t current_pos_;       // Index into source_ for the current character
 
     // Location tracking (updated by advance() and skipWhitespace())
@@ -167,7 +170,10 @@ private:
     Token scanStringLiteral(int start_line, int start_column);
 
     // Helper for distinguishing keywords from identifiers
-    TokenType checkKeyword(const std::string &value) const;
+    TokenType checkKeyword(const string &value) const;
+
+    //lookup table to map keywords
+    static const unordered_map<string, TokenType> keywords_;
 };
 
 #endif
