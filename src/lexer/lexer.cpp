@@ -44,6 +44,42 @@ void Lexer::skipWhitespace()
     }
 }
 
+bool Lexer::skipComment(bool is_multiline)
+{
+    if (!is_multiline) {
+        // Single-line comment: consume until newline or EOF
+        // Don't consume the newline - let getNextToken() handle it for line tracking
+        while (peek() != '\n' && peek() != '\0') {
+            advance();
+        }
+        return true; // Single-line comments are always valid
+    } else {
+        // Multi-line comment: consume until */ or EOF
+        while (true) {
+            char c = peek();
+
+            // Check for EOF - unterminated comment
+            if (c == '\0') {
+                return false; // Error: unterminated multi-line comment
+            }
+
+            // Check for closing */
+            if (c == '*') {
+                advance(); // consume *
+                if (peek() == '/') {
+                    advance(); // consume /
+                    return true; // Successfully closed comment
+                }
+                // Just a * not followed by /, continue
+            } else {
+                // Regular character (advance handles \n and line tracking)
+                advance();
+            }
+        }
+    }
+}
+
+
 Token Lexer::getNextToken()
 {
     skipWhitespace();
@@ -96,7 +132,6 @@ Token Lexer::getNextToken()
         c == ']' || c == ';' || c == ',' || c == '.') {
         return scanDelimiter(start_line, start_column);
     }
-
 
     advance();
     return Token(TokenType::UNKNOWN, std::string(1, c), start_line, start_column);
@@ -462,9 +497,28 @@ Token Lexer::scanOperator(int start_line, int start_column)
                 return Token(TokenType::OP_STAR_ASSIGN, "*=", start_line, start_column);
               }
             return Token(TokenType::OP_STAR, "*", start_line, start_column);
+        
 
+        //handles comments too
         case '/':
             advance();
+            // Check for comments first
+            if (peek() == '/') {
+                // Single-line comment
+                advance(); // consume second /
+                skipComment(false); // false = single-line
+                return getNextToken(); // recursively get next real token
+            }
+            if (peek() == '*') {
+                // Multi-line comment
+                advance(); // consume *
+                if (!skipComment(true)) { // true = multi-line
+                    // Unterminated multi-line comment
+                    return Token(TokenType::UNKNOWN, "/* unterminated comment", start_line, start_column);
+                }
+                return getNextToken(); // recursively get next real token
+            }
+            // Not a comment, handle division operators
             if (peek() == '=') {
                 advance();
                 return Token(TokenType::OP_SLASH_ASSIGN, "/=", start_line, start_column);

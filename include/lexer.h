@@ -162,7 +162,7 @@ private:
     char peek() const;
     char advance();
     void skipWhitespace();
-    void skipComment();
+    bool skipComment(bool is_multiline);
 
     // Token Scanning Functions
     Token scanIdentifierOrKeyword(int start_line, int start_column);
