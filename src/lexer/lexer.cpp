@@ -14,7 +14,6 @@ char Lexer::peek() const
     return source_[current_pos_];
 }
 
-
 char Lexer::advance()
 {
     if ( current_pos_ >= source_.length()) {
@@ -80,8 +79,28 @@ Token Lexer::getNextToken()
         return scanCharLiteral(start_line, start_column);
     }
 
+    //check for string literals
+    if (c == '"') {
+        return scanStringLiteral(start_line, start_column);
+    }
+
+    // Check for operators
+    if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%' ||
+        c == '<' || c == '>' || c == '!' || c == '~' || c == '&' ||
+        c == '|' || c == '^' || c == '=' || c == '?' || c == ':') {
+        return scanOperator(start_line, start_column);
+    }
+
+    // Check for delimiters
+    if (c == '(' || c == ')' || c == '{' || c == '}' || c == '[' ||
+        c == ']' || c == ';' || c == ',' || c == '.') {
+        return scanDelimiter(start_line, start_column);
+    }
+
+
     advance();
     return Token(TokenType::UNKNOWN, std::string(1, c), start_line, start_column);
+        
 }
 
 std::vector<Token> Lexer::lexAll()
@@ -346,3 +365,234 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
     return Token(TokenType::CHAR_LITERAL, std::string(1, actual_char), start_line, start_column);
 }
 
+Token Lexer::scanStringLiteral(int start_line, int start_column)
+{
+    advance(); //opening "
+
+    std::string processed_value;
+
+    while (peek() != '"')
+    {
+        //checking for unterminated string
+        if (peek() == '\n' || peek() == '\0')
+        {
+            return Token(TokenType::UNKNOWN,
+                        std::string("\"") + processed_value,
+                        start_line, start_column);
+        }
+        //escape sequences
+        if(peek() == '\\')
+        {
+            advance();
+            if (peek() == '\0') {
+                return Token(TokenType::UNKNOWN,
+                            std::string("\"") + processed_value + "\\",
+                            start_line, start_column);
+            }
+            char escape_char = peek();
+            advance();
+
+            //mapping the esc sequences to actual chars
+            switch (escape_char) {
+                case 'n': processed_value += '\n'; break;
+                case 't': processed_value += '\t'; break;
+                case 'r': processed_value += '\r'; break;
+                case 'b': processed_value += '\b'; break;
+                case 'f': processed_value += '\f'; break;
+                case 'v': processed_value += '\v'; break;
+                case '0': processed_value += '\0'; break;
+                case '\\': processed_value += '\\'; break;
+                case '"': processed_value += '"'; break;
+                case '\'': processed_value += '\''; break;
+                default:
+                    processed_value += '\\';
+                    processed_value += escape_char;
+                    break;
+            }
+        }
+        //regular character
+        else 
+        {
+            processed_value += peek();
+            advance();
+        }
+    }
+    advance(); // closing "
+
+    return Token(TokenType::STRING_LITERAL, processed_value, start_line, start_column);
+}
+
+Token Lexer::scanOperator(int start_line, int start_column)
+{
+    char c = peek();
+    //we look ahead first
+    switch (c) {
+        case '+':
+            advance();
+            if (peek() == '+') {
+                advance();
+                return Token(TokenType::OP_INC, "++", start_line, start_column);
+            }
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_PLUS_ASSIGN, "+=", start_line, start_column);
+            }
+            return Token(TokenType::OP_PLUS, "+", start_line, start_column);
+
+        case '-':
+            advance();
+            if (peek() == '-') {
+                advance();
+                return Token(TokenType::OP_DEC, "--", start_line, start_column);
+            }
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_MINUS_ASSIGN, "-=", start_line, start_column);
+            }
+            if (peek() == '>') {
+                advance();
+                return Token(TokenType::ARROW, "->", start_line, start_column);
+            }
+            return Token(TokenType::OP_MINUS, "-", start_line, start_column);
+
+        case '*':
+            advance();
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_STAR_ASSIGN, "*=", start_line, start_column);
+              }
+            return Token(TokenType::OP_STAR, "*", start_line, start_column);
+
+        case '/':
+            advance();
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_SLASH_ASSIGN, "/=", start_line, start_column);
+            }
+            return Token(TokenType::OP_SLASH, "/", start_line, start_column);
+
+        case '%':
+            advance();
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_MOD_ASSIGN, "%=", start_line, start_column);
+            }
+            return Token(TokenType::OP_MOD, "%", start_line, start_column);
+
+        case '<':
+            advance();
+            if (peek() == '<') {
+                advance();
+                if (peek() == '=') {
+                    advance();
+                    return Token(TokenType::OP_LSHIFT_ASSIGN, "<<=", start_line, start_column);
+                }
+                return Token(TokenType::OP_LSHIFT, "<<", start_line, start_column);
+            }
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_LE, "<=", start_line, start_column);
+            }
+            return Token(TokenType::OP_LT, "<", start_line, start_column);
+
+        case '>':
+            advance();
+            if (peek() == '>') {
+                advance();
+                if (peek() == '=') {
+                    advance();
+                    return Token(TokenType::OP_RSHIFT_ASSIGN, ">>=", start_line, start_column);
+                }
+                return Token(TokenType::OP_RSHIFT, ">>", start_line, start_column);
+            }
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_GE, ">=", start_line, start_column);
+            }
+            return Token(TokenType::OP_GT, ">", start_line, start_column);
+
+        case '=':
+            advance();
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_EQ, "==", start_line, start_column);
+            }
+            return Token(TokenType::OP_ASSIGN, "=", start_line, start_column);
+
+        case '!':
+            advance();
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_NE, "!=", start_line, start_column);
+            }
+            return Token(TokenType::OP_NOT, "!", start_line, start_column);
+
+        case '&':
+            advance();
+            if (peek() == '&') {
+                advance();
+                return Token(TokenType::OP_AND, "&&", start_line, start_column);
+            }
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_AND_ASSIGN, "&=", start_line, start_column);
+            }
+            return Token(TokenType::OP_BIT_AND, "&", start_line, start_column);
+
+        case '|':
+            advance();
+            if (peek() == '|') {
+                advance();
+                return Token(TokenType::OP_OR, "||", start_line, start_column);
+            }
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_OR_ASSIGN, "|=", start_line, start_column);
+            }
+            return Token(TokenType::OP_BIT_OR, "|", start_line, start_column);
+
+        case '^':
+            advance();
+            if (peek() == '=') {
+                advance();
+                return Token(TokenType::OP_XOR_ASSIGN, "^=", start_line, start_column);
+            }
+            return Token(TokenType::OP_BIT_XOR, "^", start_line, start_column);
+
+        case '~':
+            advance();
+            return Token(TokenType::OP_BIT_NOT, "~", start_line, start_column);
+
+        case '?':
+            advance();
+            return Token(TokenType::OP_QUESTION, "?", start_line, start_column);
+
+        case ':':
+            advance();
+            return Token(TokenType::COLON, ":", start_line, start_column);
+
+        default:
+            advance();
+            return Token(TokenType::UNKNOWN, std::string(1, c), start_line, start_column);
+    }
+}
+
+Token Lexer::scanDelimiter(int start_line, int start_column)
+{
+    char c = peek();
+    advance();
+
+    switch (c) {
+        case '(': return Token(TokenType::LPAREN, "(", start_line, start_column);
+        case ')': return Token(TokenType::RPAREN, ")", start_line, start_column);
+        case '{': return Token(TokenType::LBRACE, "{", start_line, start_column);
+        case '}': return Token(TokenType::RBRACE, "}", start_line, start_column);
+        case '[': return Token(TokenType::LBRACKET, "[", start_line, start_column);
+        case ']': return Token(TokenType::RBRACKET, "]", start_line, start_column);
+        case ';': return Token(TokenType::SEMICOLON, ";", start_line, start_column);
+        case ',': return Token(TokenType::COMMA, ",", start_line, start_column);
+        case '.': return Token(TokenType::DOT, ".", start_line, start_column);
+
+        default: return Token(TokenType::UNKNOWN, std::string(1, c), start_line, start_column);
+    }
+}

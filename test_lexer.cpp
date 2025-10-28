@@ -6,8 +6,12 @@ using namespace std;
 int main()
 {
     // Lexer lexer("int main if myVariable integer elseif float Bjse _jeoi");
-    Lexer lexer("'a' 'Z' '\\n' '\\t' '\\\\' '\\'' '' 'abc' 'x");
+    Lexer lexer("'a' 'Z' '\\n' '\\t' '\\\\' '\\'' '' 'abc' 'x'");
     //Lexer lexer("int x = 42;")
+
+    // Lexer lexer("\"hello\" \"line1\\nline2\" \"unterminated");
+    // Lexer lexer("+ - * / % < > ! ~ & | ^ = ? : ( ) { } [ ] ; : , .");
+
     auto tokens = lexer.lexAll();
 
     for (const auto& token : tokens)
