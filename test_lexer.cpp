@@ -5,8 +5,8 @@ using namespace std;
 
 int main()
 {
-    // Lexer lexer("int main if myVariable integer elseif float Bjse _jeoi");
-    Lexer lexer("int x = 42;");
+    //Lexer lexer("int main if myVariable str char < > <= >= integer elseif float Bjse _jeoi");
+     Lexer lexer("int x = 0.921;");
     auto tokens = lexer.lexAll();
 
     for (const auto& token : tokens) 
