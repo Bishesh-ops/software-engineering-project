@@ -167,6 +167,7 @@ private:
     // Token Scanning Functions
     Token scanIdentifierOrKeyword(int start_line, int start_column);
     Token scanNumber(int start_line, int start_column);
+    Token scanCharLiteral(int start_line, int start_column);
     Token scanStringLiteral(int start_line, int start_column);
 
     // Helper for distinguishing keywords from identifiers
