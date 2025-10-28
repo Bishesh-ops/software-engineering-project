@@ -65,7 +65,7 @@ Token Lexer::getNextToken()
         return Token(TokenType::EOF_TOKEN, "", start_line, start_column);
     }
 
-    //a check for identifiers 
+    //a check for identifiers
     if (std::isalpha(c) || c == '_') {
         return scanIdentifierOrKeyword(start_line, start_column);
     }
@@ -75,7 +75,11 @@ Token Lexer::getNextToken()
         return scanNumber(start_line, start_column);
     }
 
-    // Currently only handles simple single-character tokens and errors here.
+    //check for character literals
+    if (c == '\'') {
+        return scanCharLiteral(start_line, start_column);
+    }
+
     advance();
     return Token(TokenType::UNKNOWN, std::string(1, c), start_line, start_column);
 }
@@ -269,3 +273,76 @@ Token Lexer::scanIdentifierOrKeyword(int start_line, int start_column)
     TokenType type = checkKeyword(text);
     return Token(type, text, start_line, start_column);   
 }
+
+//reads a character literal with escape sequence support
+Token Lexer::scanCharLiteral(int start_line, int start_column)
+{
+    advance(); //consume opening '
+
+    //empty literal: ''
+    if (peek() == '\'') {
+        advance();
+        return Token(TokenType::UNKNOWN, "''", start_line, start_column);
+    }
+
+    //unterminated at newline or EOF
+    if (peek() == '\n' || peek() == '\0') {
+        return Token(TokenType::UNKNOWN, "'", start_line, start_column);
+    }
+
+    char actual_char;
+
+    //handle escape sequences
+    if (peek() == '\\') {
+        advance(); //consume backslash
+
+        if (peek() == '\0') {
+            return Token(TokenType::UNKNOWN, "'\\", start_line, start_column);
+        }
+
+        char escape_char = peek();
+        advance();
+
+        //map escape sequences to actual characters
+        switch (escape_char) {
+            case 'n': actual_char = '\n'; break;
+            case 't': actual_char = '\t'; break;
+            case 'r': actual_char = '\r'; break;
+            case '\\': actual_char = '\\'; break;
+            case '\'': actual_char = '\''; break;
+            case '0': actual_char = '\0'; break;
+            default:
+                //invalid escape sequence
+                return Token(TokenType::UNKNOWN, std::string("'\\") + escape_char, start_line, start_column);
+        }
+    } else {
+        //regular character
+        actual_char = peek();
+        advance();
+    }
+
+    //check for closing quote
+    if (peek() != '\'') {
+        //multi-character or unterminated
+        if (peek() == '\n' || peek() == '\0') {
+            return Token(TokenType::UNKNOWN, std::string("'") + actual_char, start_line, start_column);
+        }
+        //multi-character literal - consume rest until ' or newline/EOF
+        std::string error_text = std::string("'") + actual_char;
+        while (peek() != '\'' && peek() != '\n' && peek() != '\0') {
+            error_text += peek();
+            advance();
+        }
+        if (peek() == '\'') {
+            error_text += peek();
+            advance();
+        }
+        return Token(TokenType::UNKNOWN, error_text, start_line, start_column);
+    }
+
+    advance(); //consume closing '
+
+    //valid character literal - store the actual character as value
+    return Token(TokenType::CHAR_LITERAL, std::string(1, actual_char), start_line, start_column);
+}
+
