@@ -94,7 +94,6 @@ std::vector<Token> Lexer::lexAll()
 }
 
 // Scans for all number literals (integer, hex, octal, float)
-// Scans for all number literals (integer, hex, octal, float)
 Token Lexer::scanNumber(int start_line, int start_column)
 {
     std::string text;
