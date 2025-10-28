@@ -7,10 +7,22 @@ Token::Token(TokenType type, const std::string &value, int line, int column)
 std::string Token::to_string() const
 {
     std::ostringstream oss;
-    oss << "Token(" << token_type_to_string(type)
-        << ", \"" << value << "\", "
-        << "line: " << line << ", column: " 
-        << column << ")";
+    oss << "Token(" << token_type_to_string(type) << ", \"";
+
+    // Escape control characters for display - slight overhead on printing fix later
+    for (char c : value) {
+        switch (c) {
+            case '\n': oss << "\\n"; break;
+            case '\t': oss << "\\t"; break;
+            case '\r': oss << "\\r"; break;
+            case '\0': oss << "\\0"; break;
+            case '\\': oss << "\\\\"; break;
+            case '"': oss << "\\\""; break;
+            default: oss << c; break;
+        }
+    }
+
+    oss << "\", line: " << line << ", column: " << column << ")";
     return oss.str();
 }
 

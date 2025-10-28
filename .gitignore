@@ -41,3 +41,5 @@
 *.dwo
 
 a
+test_lexer.cpp
+
