@@ -179,3 +179,42 @@ Root Level
   5. Optimizer - IR → Optimized IR (optional)
   6. Code Generator - IR → Target code (bytecode/assembly/C)
   7. VM/Execution - Run the generated code
+
+
+  Building and Running the Project (Using Make)
+
+    This project uses a `Makefile` to automate the build process.  
+    You can build, test, and clean the project easily from the terminal.
+
+  Requirements
+    Make sure you have:
+    - **g++ (C++17 or higher)**
+    - **GNU Make** (available in most development environments)
+    - **PowerShell**, **Git Bash**, or a **Linux/macOS Terminal**
+
+  Common Commands
+
+    | Command | Description |
+    |----------|-------------|
+    | `make` | Builds the compiler and all dependencies |
+    | `make test` | Builds and runs the lexer test executable |
+    | `make clean` | Deletes all compiled files and build directories (`build/` and `bin/`) |
+
+  Example Usage
+
+```bash
+# Build the project
+make
+
+# Run the lexer tests
+make test
+
+# Clean all build artifacts
+make clean
+
+```
+
+After a successful build:
+
+  build/obj/   -> Compiled object files (.o)
+  bin/         -> Executables (.exe)
