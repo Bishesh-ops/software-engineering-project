@@ -53,6 +53,5 @@ $(OBJ_DIR)/test_lexer.o: test_lexer.cpp
 # Uses Windows-native commands for cleanup
 clean:
 	@echo Cleaning up build directories...
-	@if exist "build" rmdir /s /q "build"
-	@if exist "bin" rmdir /s /q "bin"
+	@rm -rf build bin
 	@echo Cleanup complete.
