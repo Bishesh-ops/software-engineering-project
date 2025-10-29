@@ -32,8 +32,8 @@ test: all
 
 # Uses Windows-native commands for directories
 dirs:
-	@if not exist "$(OBJ_DIR:\=\\)" mkdir "$(OBJ_DIR:\=\\)"
-	@if not exist "$(BIN_DIR:\=\\)" mkdir "$(BIN_DIR:\=\\)"
+	@mkdir -p $(OBJ_DIR)
+	@mkdir -p $(BIN_DIR)
 
 # --- Linking ---
 $(BIN_DIR)/$(TEST_EXE): $(ALL_OBJS)
