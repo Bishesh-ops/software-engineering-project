@@ -40,8 +40,8 @@
 # debug information files
 *.dwo
 
-a
-test_lexer.cpp
+.vscode
+
 
 .vscode
 

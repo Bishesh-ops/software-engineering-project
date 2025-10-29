@@ -1,19 +1,4 @@
 # Software-Engineering-Project
-Root Level
-
-  - Makefile / CMakeLists.txt - Build system configurations to compile the project
-  - .gitignore - Specifies which files Git should ignore (build artifacts, temporary files)
-
-  docs/
-
-  Documentation for your compiler:
-  - language-spec.md - Formal specification of your C subset (syntax, semantics, grammar)
-  - architecture.md - High-level design, component interactions, data flow
-  - user-guide.md - How to use the compiler (command-line options, usage examples)
-  - developer-guide.md - How to contribute, coding standards, build instructions
-  - diagrams/ - Visual representations (flowcharts, UML diagrams)
-  - project-report.pdf - Final academic submission document
-
   include/
 
   Public header files (.h) - declares classes, functions, and interfaces:
@@ -179,3 +164,42 @@ Root Level
   5. Optimizer - IR → Optimized IR (optional)
   6. Code Generator - IR → Target code (bytecode/assembly/C)
   7. VM/Execution - Run the generated code
+
+
+  Building and Running the Project (Using Make)
+
+    This project uses a `Makefile` to automate the build process.  
+    You can build, test, and clean the project easily from the terminal.
+
+  Requirements
+    Make sure you have:
+    - **g++ (C++17 or higher)**
+    - **GNU Make** (available in most development environments)
+    - **PowerShell**, **Git Bash**, or a **Linux/macOS Terminal**
+
+  Common Commands
+
+    | Command | Description |
+    |----------|-------------|
+    | `make` | Builds the compiler and all dependencies |
+    | `make test` | Builds and runs the lexer test executable |
+    | `make clean` | Deletes all compiled files and build directories (`build/` and `bin/`) |
+
+  Example Usage
+
+```bash
+# Build the project
+make
+
+# Run the lexer tests
+make test
+
+# Clean all build artifacts
+make clean
+
+```
+
+After a successful build:
+
+  build/obj/   -> Compiled object files (.o)
+  bin/         -> Executables (.exe)

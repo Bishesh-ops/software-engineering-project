@@ -4,12 +4,13 @@
 Token::Token(TokenType type, const std::string &value, int line, int column)
     : type(type), value(value), line(line), column(column) {}
 
+// Creates a human-readable string representation (for debugging).
 std::string Token::to_string() const
 {
     std::ostringstream oss;
     oss << "Token(" << token_type_to_string(type) << ", \"";
 
-    // Escape control characters for display - slight overhead on printing fix later
+    // Escape control characters for clean printing
     for (char c : value) {
         switch (c) {
             case '\n': oss << "\\n"; break;
@@ -26,6 +27,7 @@ std::string Token::to_string() const
     return oss.str();
 }
 
+// Converts a TokenType enum to its string representation (for debugging).
 std::string token_type_to_string(TokenType type)
 {
     switch(type) {
@@ -74,7 +76,7 @@ std::string token_type_to_string(TokenType type)
         case TokenType::OP_ASSIGN:  return "OP_ASSIGN";   // =
         case TokenType::OP_EQ:      return "OP_EQ";       // ==
         case TokenType::OP_NE:      return "OP_NE";       // !=
-        case TokenType::OP_LT:      return "OP_LT";       // 
+        case TokenType::OP_LT:      return "OP_LT";       // <
         case TokenType::OP_LE:      return "OP_LE";       // <=
         case TokenType::OP_GT:      return "OP_GT";       // >
         case TokenType::OP_GE:      return "OP_GE";       // >=
@@ -85,7 +87,7 @@ std::string token_type_to_string(TokenType type)
         case TokenType::OP_MOD:     return "OP_MOD";      // %
         case TokenType::OP_INC:     return "OP_INC";      // ++
         case TokenType::OP_DEC:     return "OP_DEC";      // --
-        case TokenType::OP_LSHIFT:  return "OP_LSHIFT";   // 
+        case TokenType::OP_LSHIFT:  return "OP_LSHIFT";   // <<
         case TokenType::OP_RSHIFT:  return "OP_RSHIFT";   // >>
         case TokenType::OP_AND:     return "OP_AND";      // &&
         case TokenType::OP_OR:      return "OP_OR";       // ||
@@ -125,10 +127,14 @@ std::string token_type_to_string(TokenType type)
         case TokenType::DOT:       return "DOT";          // .
         case TokenType::ARROW:     return "ARROW";        // ->
         
+        // Preprocessor Tokens
+        case TokenType::HASH:        return "HASH";
+        case TokenType::DOUBLE_HASH: return "DOUBLE_HASH";
+
         // Special Tokens
         case TokenType::EOF_TOKEN: return "EOF_TOKEN";
         case TokenType::UNKNOWN:   return "UNKNOWN";
 
-        default: return "UNKNOWN";
+        default: return "UNKNOWN"; // Should be unreachable
     }
 }
