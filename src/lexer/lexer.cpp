@@ -38,43 +38,103 @@ void Lexer::skipWhitespace()
 {
     while (true)
     {
-        while (true)
+        char current_char = peek();
+        // Skips spaces, tabs, AND carriage returns (\r)
+        if (current_char == ' ' || current_char == '\t' || current_char == '\r')
         {
-            char current_char = peek();
-            // Skips spaces, tabs, AND carriage returns (\r)
-            if (current_char == ' ' || current_char == '\t' || current_char == '\r')
-            {
-                advance();
-            }
-            else
-            {
-                break;
-            }
+            advance();
+        }
+        else
+        {
+            break;
         }
     }
 }
 
-// TODO: Implement comment skipping logic here.
-// This should handle:
-// 1. Single-line comments: // ... until \n
-// 2. Multi-line comments: /* ... */
+// Skips C-style comments (// and /* */)
 void Lexer::skipComment()
 {
+    // Check for single-line comment //
+    if (peek() == '/')
+    {
+        advance(); // Consume the second /
+        while (peek() != '\n' && peek() != '\0')
+        {
+            advance(); // Consume characters until newline or EOF
+        }
+        return;
+    }
+
+    // Check for multi-line comment /* */
+    if (peek() == '*')
+    {
+        advance(); // Consume the '*'
+        while (true)
+        {
+            if (peek() == '\0')
+            {
+                // Unterminated multi-line comment
+                return;
+            }
+            if (peek() == '*')
+            {
+                advance(); // Consume '*'
+                if (peek() == '/')
+                {
+                    advance(); // Consume '/' - comment ended
+                    return;
+                }
+            }
+            else
+            {
+                advance(); // Consume any other character
+            }
+        }
+    }
+    // If we get here, it means the caller consumed a '/' but the next char
+    // wasn't another '/' or a '*'. The caller should handle putting it back.
 }
 
 Token Lexer::getNextToken()
 {
-    // --- 1. Preparation ---
-    skipWhitespace();
+    // --- 1. Preparation: Skip whitespace, newlines, and comments ---
+    while (true)
+    { // Loop to handle multiple whitespace/comments in a row
+        skipWhitespace();
 
-    // Consume any standalone newlines
-    while (peek() == '\n')
-    {
-        advance();
-        skipWhitespace(); // Skip any indentation on the new line
+        // Consume any standalone newlines
+        while (peek() == '\n')
+        {
+            advance();
+            skipWhitespace(); // Skip indentation on the new line
+        }
+
+        // Check for and skip comments
+        if (peek() == '/')
+        {
+            advance(); // Consume the first '/'
+            if (peek() == '/' || peek() == '*')
+            {
+                // It's a comment, skip it and restart the loop
+                skipComment();
+                continue; // Go back to skipWhitespace/newlines
+            }
+            else
+            {
+                // It's just a division operator, "put back" the '/'
+                // by decrementing position and column
+                current_pos_--;
+                current_column_--;
+                // Now break the loop and proceed to token classification for '/'
+                break;
+            }
+        }
+        else
+        {
+            // Not whitespace, newline, or comment start - ready for token
+            break;
+        }
     }
-
-    // TODO: Call skipComment() here in a loop
 
     // Store token start position *after* skipping whitespace/comments
     int start_line = current_line_;
@@ -97,7 +157,8 @@ Token Lexer::getNextToken()
     }
 
     // Number Literals: 123, 0.5, 0x1A, .123
-    if (std::isdigit(c))
+    // Check for digit OR '.' followed by a digit
+    if (std::isdigit(c) || (c == '.' && current_pos_ + 1 < source_.length() && std::isdigit(source_[current_pos_ + 1])))
     {
         return scanNumber(start_line, start_column);
     }
@@ -126,7 +187,7 @@ Token Lexer::getNextToken()
         return Token(TokenType::HASH, "#", start_line, start_column);
     }
 
-    // Operators
+    // Operators (Includes '/' which is only reached if not a comment)
     if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%' ||
         c == '<' || c == '>' || c == '!' || c == '~' || c == '&' ||
         c == '|' || c == '^' || c == '=' || c == '?' || c == ':')
@@ -260,7 +321,7 @@ Token Lexer::scanNumber(int start_line, int start_column)
     }
     else
     {
-        // Integer suffixes (U, L, LL) - order can be U, L, LL, UL, LU, etc. Unsigned Long in C is like that
+        // Integer suffixes (U, L, LL) - order can be U, L, LL, UL, LU, etc.
         bool has_u = false;
         bool has_l = false;
 
@@ -577,7 +638,7 @@ Token Lexer::scanOperator(int start_line, int start_column)
         return Token(TokenType::OP_STAR, "*", start_line, start_column);
 
     case '/':
-        // TODO: Add check for comments (// and /*) here
+        // We only reach here if it wasn't a comment (handled in getNextToken)
         if (peek() == '=')
         {
             advance();
