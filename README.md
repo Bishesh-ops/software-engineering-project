@@ -1,19 +1,4 @@
 # Software-Engineering-Project
-Root Level
-
-  - Makefile / CMakeLists.txt - Build system configurations to compile the project
-  - .gitignore - Specifies which files Git should ignore (build artifacts, temporary files)
-
-  docs/
-
-  Documentation for your compiler:
-  - language-spec.md - Formal specification of your C subset (syntax, semantics, grammar)
-  - architecture.md - High-level design, component interactions, data flow
-  - user-guide.md - How to use the compiler (command-line options, usage examples)
-  - developer-guide.md - How to contribute, coding standards, build instructions
-  - diagrams/ - Visual representations (flowcharts, UML diagrams)
-  - project-report.pdf - Final academic submission document
-
   include/
 
   Public header files (.h) - declares classes, functions, and interfaces:
