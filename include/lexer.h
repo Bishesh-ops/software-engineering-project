@@ -8,9 +8,10 @@
 
 using namespace std;
 
+// Defines all possible token types the lexer can produce.
 enum class TokenType
 {
-    // we are going to start with 32 keywords
+    // C89 Keywords (32)
     KW_AUTO,
     KW_BREAK,
     KW_CASE,
@@ -51,7 +52,7 @@ enum class TokenType
     STRING_LITERAL,
     CHAR_LITERAL,
 
-    // 19 Operators and Punctuators (Common C Operators)
+    // Operators (Logical, Arithmetic, Bitwise)
     OP_ASSIGN, // =
     OP_EQ,     // ==
     OP_NE,     // !=
@@ -71,8 +72,6 @@ enum class TokenType
     OP_AND,    // &&
     OP_OR,     // ||
     OP_NOT,    // !
-
-    // Bitwise Operators
     OP_BIT_AND,  // &
     OP_BIT_OR,   // |
     OP_BIT_XOR,  // ^
@@ -93,7 +92,7 @@ enum class TokenType
     // Ternary/Conditional
     OP_QUESTION, // ?
 
-    // 11 Delimiters
+    // Delimiters and Separators
     LPAREN,    // (
     RPAREN,    // )
     LBRACE,    // {
@@ -106,76 +105,61 @@ enum class TokenType
     DOT,       // .
     ARROW,     // ->
 
+    // Preprocessor Tokens
+    HASH,       // #
+    DOUBLE_HASH, // ##
+
     // Special Tokens
     EOF_TOKEN, // End of File
-    UNKNOWN    // For lexical errors
+    UNKNOWN    // Lexical error
 };
 
 string token_type_to_string(TokenType);
 
+// Represents a single lexical unit (token) found in the source code.
 struct Token
 {
     TokenType type;
-    string value; // Stores the raw text
-    int line;          // 1-based line number
-    int column;        // 1-based column number where the token starts
+    string value; // The raw text (lexeme)
+    int line;     // 1-based line number
+    int column;   // 1-based column number where the token starts
 
     Token(TokenType type, const string &value, int line, int column);
-
     string to_string() const;
 };
 
-/**
- * @brief Reads C source code and converts it into a stream of Tokens.
- */
+// Performs lexical analysis (tokenization) on a C source string.
 class Lexer
 {
 public:
-    /*
-       Constructs a Lexer for a given C source string.
-       The complete string containing the source code.
-     */
     Lexer(const string &source);
-
-    /*
-       Returns the next recognized token, advancing the internal position.
-       The next Token in the stream.
-     */
     Token getNextToken();
-
-    /*
-       Collects all tokens from the source until EOF is reached.
-       A vector of all recognized Tokens.
-     */
     vector<Token> lexAll();
 
 private:
-    // Lexer State
-    const string source_; // The source code being tokenized
-    size_t current_pos_;       // Index into source_ for the current character
-
-    // Location tracking (updated by advance() and skipWhitespace())
+    // --- Lexer State ---
+    const string source_;
+    size_t current_pos_;
     int current_line_;
     int current_column_;
 
-    // Core Lexing Primitives
+    // --- Core Lexing Primitives ---
     char peek() const;
     char advance();
     void skipWhitespace();
-    void skipComment();
+    void skipComment(); // Not yet implemented
 
-    // Token Scanning Functions
+    // --- Token Scanning Functions ---
     Token scanIdentifierOrKeyword(int start_line, int start_column);
     Token scanNumber(int start_line, int start_column);
     Token scanCharLiteral(int start_line, int start_column);
     Token scanStringLiteral(int start_line, int start_column);
     Token scanOperator(int start_line, int start_column);
     Token scanDelimiter(int start_line, int start_column);
-
-    // Helper for distinguishing keywords from identifiers
+    
     TokenType checkKeyword(const string &value) const;
 
-    //lookup table to map keywords
+    // C keyword lookup table
     static const unordered_map<string, TokenType> keywords_;
 };
 
