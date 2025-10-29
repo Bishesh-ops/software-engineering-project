@@ -1,9 +1,11 @@
 #include "lexer.h"
 #include <sstream>
 
-// Constructor updated to include filename parameter 'fname'
-Token::Token(TokenType type, const string &value, const string &fname, int line, int column)
-    : type(type), value(value), filename(fname), line(line), column(column) {} // <-- FIXED: Added fname parameter
+Token::Token(TokenType type, std::string_view value, int line, int column)
+    : type(type), value(value), processed_value(), line(line), column(column) {}
+
+Token::Token(TokenType type, std::string_view value, std::string processed, int line, int column)
+    : type(type), value(value), processed_value(std::move(processed)), line(line), column(column) {}
 
 // Creates a human-readable string representation (for debugging).
 std::string Token::to_string() const
@@ -11,32 +13,21 @@ std::string Token::to_string() const
     std::ostringstream oss;
     oss << "Token(" << token_type_to_string(type) << ", \"";
 
+    // Use processed_value if available (for char/string literals), otherwise use value
+    const std::string& display_value = processed_value.empty()
+        ? std::string(value)
+        : processed_value;
+
     // Escape control characters for clean printing
-    for (char c : value)
-    {
-        switch (c)
-        {
-        case '\n':
-            oss << "\\n";
-            break;
-        case '\t':
-            oss << "\\t";
-            break;
-        case '\r':
-            oss << "\\r";
-            break;
-        case '\0':
-            oss << "\\0";
-            break;
-        case '\\':
-            oss << "\\\\";
-            break;
-        case '"':
-            oss << "\\\"";
-            break;
-        default:
-            oss << c;
-            break;
+    for (char c : display_value) {
+        switch (c) {
+            case '\n': oss << "\\n"; break;
+            case '\t': oss << "\\t"; break;
+            case '\r': oss << "\\r"; break;
+            case '\0': oss << "\\0"; break;
+            case '\\': oss << "\\\\"; break;
+            case '"': oss << "\\\""; break;
+            default: oss << c; break;
         }
     }
 

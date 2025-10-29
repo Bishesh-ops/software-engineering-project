@@ -30,8 +30,8 @@ test: all
 	@echo --- Test Complete ---
 
 dirs:
-	@if not exist "$(OBJ_DIR:\=\\)" mkdir "$(OBJ_DIR:\=\\)"
-	@if not exist "$(BIN_DIR:\=\\)" mkdir "$(BIN_DIR:\=\\)"
+	@mkdir -p $(OBJ_DIR)
+	@mkdir -p $(BIN_DIR)
 
 # --- Linking ---
 $(BIN_DIR)/$(TEST_EXE): $(ALL_OBJS)
@@ -50,5 +50,5 @@ $(OBJ_DIR)/test_lexer.o: test_lexer.cpp
 # --- Cleanup ---
 clean:
 	@echo Cleaning up build directories...
-	@if exist "$(OBJ_DIR:\=\\)" rmdir /s /q "$(OBJ_DIR:\=\\)"
-	@if exist "$(BIN_DIR:\=\\)" rmdir /s /q "$(BIN_DIR:\=\\)"
+	@rm -rf build bin
+	@echo Cleanup complete.
