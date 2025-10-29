@@ -40,8 +40,9 @@
 # debug information files
 *.dwo
 
+# IDE files
 .vscode
 
-
-.vscode
-
+# Build directories
+build/
+bin/

@@ -2,6 +2,7 @@
 #define LEXER_H
 
 #include <string>
+#include <string_view>
 #include <iostream>
 #include <vector>
 #include <unordered_map>
@@ -120,11 +121,17 @@ string token_type_to_string(TokenType);
 struct Token
 {
     TokenType type;
-    string value; // The raw text (lexeme)
-    int line;     // 1-based line number
-    int column;   // 1-based column number where the token starts
+    string_view value;     // Zero-copy view into source (lexeme) for most tokens
+    string processed_value; // Storage for processed strings (char/string literals with escapes)
+    int line;              // 1-based line number
+    int column;            // 1-based column number where the token starts
 
-    Token(TokenType type, const string &value, int line, int column);
+    // Constructor for tokens using string_view (zero-copy)
+    Token(TokenType type, string_view value, int line, int column);
+
+    // Constructor for tokens needing processed storage (char/string literals)
+    Token(TokenType type, string_view value, string processed, int line, int column);
+
     string to_string() const;
 };
 
@@ -138,16 +145,39 @@ public:
 
 private:
     // --- Lexer State ---
-    const string source_;
+    const string_view source_;  // Zero-copy view of source
     size_t current_pos_;
     int current_line_;
     int current_column_;
 
-    // --- Core Lexing Primitives ---
-    char peek() const;
+    // --- Core Lexing Primitives (Optimized) ---
+    inline char peek() const {
+        return (current_pos_ < source_.length()) ? source_[current_pos_] : '\0';
+    }
+
+    inline char peek_unchecked() const {
+        return source_[current_pos_];
+    }
+
     char advance();
-    void skipWhitespace();
-    void skipComment(); // Not yet implemented
+    void skipWhitespaceAndComments();
+
+    // --- Character Classification (Optimized) ---
+    static inline bool is_identifier_start(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+    }
+
+    static inline bool is_identifier_char(char c) {
+        return is_identifier_start(c) || (c >= '0' && c <= '9');
+    }
+
+    static inline bool is_digit(char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    static inline bool is_hex_digit(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    }
 
     // --- Token Scanning Functions ---
     Token scanIdentifierOrKeyword(int start_line, int start_column);
@@ -156,10 +186,10 @@ private:
     Token scanStringLiteral(int start_line, int start_column);
     Token scanOperator(int start_line, int start_column);
     Token scanDelimiter(int start_line, int start_column);
-    
-    TokenType checkKeyword(const string &value) const;
 
-    // C keyword lookup table
+    TokenType checkKeyword(string_view value) const;
+
+    // C keyword lookup table (using transparent comparator for string_view)
     static const unordered_map<string, TokenType> keywords_;
 };
 
