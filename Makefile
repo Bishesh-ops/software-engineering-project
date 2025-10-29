@@ -27,7 +27,7 @@ all: dirs $(BIN_DIR)/$(TEST_EXE)
 # UPDATED: Removed PowerShell timing command, just runs the executable
 test: all
 	@echo --- Running Lexer Test ---
-	@.\\$(BIN_DIR)\\$(TEST_EXE)
+	@./$(BIN_DIR)/$(TEST_EXE)
 	@echo --- Test Complete ---
 
 # Uses Windows-native commands for directories

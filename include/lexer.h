@@ -147,29 +147,30 @@ public:
 
 private:
     // --- Lexer State ---
-    const std::string_view source_; // Use string_view for the source
+    const std::string source_; // Store the source string (not a view)
+    const std::string_view source_view_; // View into the stored source
     size_t current_pos_;
     int current_line_;
     int current_column_;
     std::string current_filename_; // Track current filename
     int error_count_;
-    static const int MAX_ERRORS = 10;
+    static const int MAX_ERRORS = 100; // Increased for better error recovery
 
     // --- Core Lexing Primitives (Optimized) ---
     // Peek with bounds check
     inline char peek() const
     {
-        return (current_pos_ < source_.length()) ? source_[current_pos_] : '\0';
+        return (current_pos_ < source_view_.length()) ? source_view_[current_pos_] : '\0';
     }
     // Peek without bounds check (use only when sure it's safe)
     inline char peek_unchecked() const
     {
-        return source_[current_pos_];
+        return source_view_[current_pos_];
     }
     // Peek ahead N characters with bounds check
     inline char peek(size_t n) const
     {
-        return (current_pos_ + n < source_.length()) ? source_[current_pos_ + n] : '\0';
+        return (current_pos_ + n < source_view_.length()) ? source_view_[current_pos_ + n] : '\0';
     }
 
     char advance();

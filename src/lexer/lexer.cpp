@@ -3,9 +3,10 @@
 #include <stdexcept> // For exception handling
 #include <cctype>    // For std::isdigit, std::isalpha, etc.
 
-// Constructor: Initializes string_view source_ from the input string
+// Constructor: Stores the source string and creates a view into it
 Lexer::Lexer(const std::string &source, const std::string &initial_filename)
-    : source_(source), // Initialize string_view directly
+    : source_(source), // Store a copy of the source string
+      source_view_(source_), // Create a view into the stored string
       current_pos_(0),
       current_line_(1),
       current_column_(1),
@@ -18,12 +19,12 @@ Lexer::Lexer(const std::string &source, const std::string &initial_filename)
 
 char Lexer::advance()
 {
-    if (current_pos_ >= source_.length())
+    if (current_pos_ >= source_view_.length())
     {
         return '\0';
     }
 
-    char current_char = source_[current_pos_]; // Use string_view access
+    char current_char = source_view_[current_pos_]; // Use string_view access
     current_pos_++;
     current_column_++;
 
@@ -119,7 +120,7 @@ bool Lexer::handleLineDirective()
     {
         advance();
     }
-    string_view identifier = source_.substr(kw_start_pos, current_pos_ - kw_start_pos);
+    string_view identifier = source_view_.substr(kw_start_pos, current_pos_ - kw_start_pos);
 
     if (identifier != "line")
     {
@@ -197,10 +198,8 @@ bool Lexer::handleLineDirective()
 // --- Main Tokenization Function ---
 Token Lexer::getNextToken()
 {
-    if (error_count_ >= MAX_ERRORS)
-    {
-        return Token(TokenType::EOF_TOKEN, source_.substr(current_pos_), current_filename_, current_line_, current_column_);
-    }
+    // Remove hard stop on MAX_ERRORS - just track errors but continue tokenizing
+    // This allows better error recovery and complete tokenization
 
     // --- 1. Skip whitespace, newlines, and comments ---
     while (true)
@@ -239,7 +238,7 @@ Token Lexer::getNextToken()
     // --- 2. Check for EOF ---
     if (c == '\0')
     {
-        return Token(TokenType::EOF_TOKEN, source_.substr(current_pos_), start_filename, start_line, start_column);
+        return Token(TokenType::EOF_TOKEN, source_view_.substr(current_pos_), start_filename, start_line, start_column);
     }
 
     // --- 3. Handle '#' Directives Specially ---
@@ -255,13 +254,13 @@ Token Lexer::getNextToken()
         else if (peek() == '#')
         {
             advance(); // Consume second '#'
-            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
             return Token(TokenType::DOUBLE_HASH, val, start_filename, start_line, start_column);
         }
         else
         {
             // Single hash (e.g., #define)
-            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
             return Token(TokenType::HASH, val, start_filename, start_line, start_column);
         }
     }
@@ -303,7 +302,7 @@ Token Lexer::getNextToken()
     else
     {
         advance(); // Consume the unknown character
-        string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+        string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
         result_token = Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
     }
 
@@ -344,7 +343,7 @@ Token Lexer::scanIdentifierOrKeyword(int start_line, int start_column)
         advance();
     }
 
-    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
+    string_view value = source_view_.substr(start_pos, current_pos_ - start_pos);
     TokenType type = checkKeyword(value);
     return Token(type, value, start_filename, start_line, start_column);
 }
@@ -366,7 +365,7 @@ Token Lexer::scanNumber(int start_line, int start_column)
             advance();
             if (!is_hex_digit(peek()))
             { // Error: 0x must have digits
-                string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+                string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
                 return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
             }
             while (is_hex_digit(peek()))
@@ -399,7 +398,7 @@ Token Lexer::scanNumber(int start_line, int start_column)
         advance();
         if (!is_digit(peek()))
         { // Error: '.' must have digits
-            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
             return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
         while (is_digit(peek()))
@@ -427,7 +426,7 @@ Token Lexer::scanNumber(int start_line, int start_column)
         }
         if (peek() == 'e' || peek() == 'E')
         {
-            char prev_char = (current_pos_ > start_pos) ? source_[current_pos_ - 1] : '\0';
+            char prev_char = (current_pos_ > start_pos) ? source_view_[current_pos_ - 1] : '\0';
             if (is_digit(prev_char) || prev_char == '.')
             {
                 type = TokenType::FLOAT_LITERAL;
@@ -442,7 +441,7 @@ Token Lexer::scanNumber(int start_line, int start_column)
                     {
                         advance();
                     }
-                    string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+                    string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
                     return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
                 }
                 while (is_digit(peek()))
@@ -494,12 +493,12 @@ Token Lexer::scanNumber(int start_line, int start_column)
         {
             advance();
         }
-        string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+        string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
         return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
     }
 
     // Valid number
-    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
+    string_view value = source_view_.substr(start_pos, current_pos_ - start_pos);
     return Token(type, value, start_filename, start_line, start_column);
 }
 
@@ -513,11 +512,13 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
     if (peek() == '\'')
     {
         advance();
-        return Token(TokenType::UNKNOWN, source_.substr(start_pos, current_pos_ - start_pos), start_filename, start_line, start_column);
+        error_count_++; // Empty char literal is an error
+        return Token(TokenType::UNKNOWN, source_view_.substr(start_pos, current_pos_ - start_pos), start_filename, start_line, start_column);
     }
     if (peek() == '\n' || peek() == '\0')
     {
-        return Token(TokenType::UNKNOWN, source_.substr(start_pos, current_pos_ - start_pos), start_filename, start_line, start_column);
+        error_count_++; // Unterminated char literal
+        return Token(TokenType::UNKNOWN, source_view_.substr(start_pos, current_pos_ - start_pos), start_filename, start_line, start_column);
     }
 
     char actual_char;
@@ -526,7 +527,8 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
         advance(); // Consume backslash
         if (peek() == '\0')
         {
-            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            error_count_++; // Unterminated escape
+            string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
             return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
         char escape_char = advance();
@@ -551,7 +553,8 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
             actual_char = '\0';
             break;
         default: // Invalid escape
-            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            error_count_++; // Invalid escape sequence
+            string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
             return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
         processed_value += actual_char; // Store processed char
@@ -564,6 +567,7 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
 
     if (peek() != '\'')
     { // Error: multi-char or unterminated
+        error_count_++; // Multi-char or unterminated literal
         while (peek() != '\'' && peek() != '\n' && peek() != '\0')
         {
             advance();
@@ -572,12 +576,12 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
         {
             advance();
         }
-        string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+        string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
         return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
     }
 
     advance(); // Consume closing '
-    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
+    string_view value = source_view_.substr(start_pos, current_pos_ - start_pos);
     // Use the constructor that stores the processed char
     return Token(TokenType::CHAR_LITERAL, value, processed_value, start_filename, start_line, start_column);
 }
@@ -594,7 +598,8 @@ Token Lexer::scanStringLiteral(int start_line, int start_column)
     {
         if (peek() == '\n' || peek() == '\0')
         { // Unterminated string
-            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            error_count_++; // Unterminated string literal
+            string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
             return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
         if (peek() == '\\')
@@ -602,7 +607,8 @@ Token Lexer::scanStringLiteral(int start_line, int start_column)
             advance(); // Consume '\'
             if (peek() == '\0')
             { // Unterminated escape
-                string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+                error_count_++; // Unterminated escape in string
+                string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
                 return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
             }
             char escape_char = advance(); // Consume char after backslash
@@ -650,7 +656,7 @@ Token Lexer::scanStringLiteral(int start_line, int start_column)
         }
     }
     advance(); // Consume closing "
-    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
+    string_view value = source_view_.substr(start_pos, current_pos_ - start_pos);
     // Use constructor with processed value
     return Token(TokenType::STRING_LITERAL, value, std::move(processed_value), start_filename, start_line, start_column);
 }
@@ -708,7 +714,7 @@ Token Lexer::scanOperator(int start_line, int start_column)
         break;
     }
 
-    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
+    string_view value = source_view_.substr(start_pos, current_pos_ - start_pos);
     TokenType op_type = TokenType::UNKNOWN;
 
     // Map operator string to type (using string conversion for lookup)
@@ -736,7 +742,7 @@ Token Lexer::scanDelimiter(int start_line, int start_column)
     string start_filename = current_filename_;
     size_t start_pos = current_pos_;
     char c = advance();
-    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
+    string_view value = source_view_.substr(start_pos, current_pos_ - start_pos);
     TokenType type = TokenType::UNKNOWN;
 
     switch (c)
