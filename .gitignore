@@ -43,6 +43,4 @@
 # IDE files
 .vscode
 
-# Build directories
-build/
-bin/
+Makefile
