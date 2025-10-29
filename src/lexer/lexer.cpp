@@ -38,15 +38,18 @@ void Lexer::skipWhitespace()
 {
     while (true)
     {
-        char current_char = peek();
-        // Only skips spaces and tabs. Newlines are handled in getNextToken().
-        if (current_char == ' ' || current_char == '\t')
+        while (true)
         {
-            advance();
-        }
-        else
-        {
-            break;
+            char current_char = peek();
+            // Skips spaces, tabs, AND carriage returns (\r)
+            if (current_char == ' ' || current_char == '\t' || current_char == '\r')
+            {
+                advance();
+            }
+            else
+            {
+                break;
+            }
         }
     }
 }
