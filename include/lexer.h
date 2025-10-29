@@ -52,61 +52,61 @@ enum class TokenType
     STRING_LITERAL,
     CHAR_LITERAL,
 
-    // Operators (Logical, Arithmetic, Bitwise)
-    OP_ASSIGN, // =
-    OP_EQ,     // ==
-    OP_NE,     // !=
-    OP_LT,     // <
-    OP_LE,     // <=
-    OP_GT,     // >
-    OP_GE,     // >=
-    OP_PLUS,   // +
-    OP_MINUS,  // -
-    OP_STAR,   // *
-    OP_SLASH,  // /
-    OP_MOD,    // %
-    OP_INC,    // ++
-    OP_DEC,    // --
-    OP_LSHIFT, // <<
-    OP_RSHIFT, // >>
-    OP_AND,    // &&
-    OP_OR,     // ||
-    OP_NOT,    // !
-    OP_BIT_AND,  // &
-    OP_BIT_OR,   // |
-    OP_BIT_XOR,  // ^
-    OP_BIT_NOT,  // ~
+    // Operators
+    OP_ASSIGN,
+    OP_EQ,
+    OP_NE,
+    OP_LT,
+    OP_LE,
+    OP_GT,
+    OP_GE,
+    OP_PLUS,
+    OP_MINUS,
+    OP_STAR,
+    OP_SLASH,
+    OP_MOD,
+    OP_INC,
+    OP_DEC,
+    OP_LSHIFT,
+    OP_RSHIFT,
+    OP_AND,
+    OP_OR,
+    OP_NOT,
+    OP_BIT_AND,
+    OP_BIT_OR,
+    OP_BIT_XOR,
+    OP_BIT_NOT,
 
     // Compound Assignment Operators
-    OP_PLUS_ASSIGN,   // +=
-    OP_MINUS_ASSIGN,  // -=
-    OP_STAR_ASSIGN,   // *=
-    OP_SLASH_ASSIGN,  // /=
-    OP_MOD_ASSIGN,    // %=
-    OP_AND_ASSIGN,    // &=
-    OP_OR_ASSIGN,     // |=
-    OP_XOR_ASSIGN,    // ^=
-    OP_LSHIFT_ASSIGN, // <<=
-    OP_RSHIFT_ASSIGN, // >>=
+    OP_PLUS_ASSIGN,
+    OP_MINUS_ASSIGN,
+    OP_STAR_ASSIGN,
+    OP_SLASH_ASSIGN,
+    OP_MOD_ASSIGN,
+    OP_AND_ASSIGN,
+    OP_OR_ASSIGN,
+    OP_XOR_ASSIGN,
+    OP_LSHIFT_ASSIGN,
+    OP_RSHIFT_ASSIGN,
 
     // Ternary/Conditional
     OP_QUESTION, // ?
 
     // Delimiters and Separators
-    LPAREN,    // (
-    RPAREN,    // )
-    LBRACE,    // {
-    RBRACE,    // }
-    LBRACKET,  // [
-    RBRACKET,  // ]
-    SEMICOLON, // ;
-    COMMA,     // ,
-    COLON,     // :
-    DOT,       // .
-    ARROW,     // ->
+    LPAREN,
+    RPAREN,
+    LBRACE,
+    RBRACE,
+    LBRACKET,
+    RBRACKET,
+    SEMICOLON,
+    COMMA,
+    COLON,
+    DOT,
+    ARROW,
 
     // Preprocessor Tokens
-    HASH,       // #
+    HASH,        // #
     DOUBLE_HASH, // ##
 
     // Special Tokens
@@ -142,12 +142,14 @@ private:
     size_t current_pos_;
     int current_line_;
     int current_column_;
+    int error_count_;                 // Count lexical errors
+    static const int MAX_ERRORS = 10; // Limit for errors
 
     // --- Core Lexing Primitives ---
     char peek() const;
     char advance();
     void skipWhitespace();
-    void skipComment(); // Not yet implemented
+    void skipComment();
 
     // --- Token Scanning Functions ---
     Token scanIdentifierOrKeyword(int start_line, int start_column);
@@ -156,11 +158,11 @@ private:
     Token scanStringLiteral(int start_line, int start_column);
     Token scanOperator(int start_line, int start_column);
     Token scanDelimiter(int start_line, int start_column);
-    
+
     TokenType checkKeyword(const string &value) const;
 
     // C keyword lookup table
     static const unordered_map<string, TokenType> keywords_;
 };
 
-#endif
+#endif // LEXER_H
