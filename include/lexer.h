@@ -162,12 +162,15 @@ private:
     char peek() const;
     char advance();
     void skipWhitespace();
-    void skipComment();
+    bool skipComment(bool is_multiline);
 
     // Token Scanning Functions
     Token scanIdentifierOrKeyword(int start_line, int start_column);
     Token scanNumber(int start_line, int start_column);
+    Token scanCharLiteral(int start_line, int start_column);
     Token scanStringLiteral(int start_line, int start_column);
+    Token scanOperator(int start_line, int start_column);
+    Token scanDelimiter(int start_line, int start_column);
 
     // Helper for distinguishing keywords from identifiers
     TokenType checkKeyword(const string &value) const;
