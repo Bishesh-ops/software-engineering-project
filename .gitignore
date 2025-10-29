@@ -44,3 +44,5 @@
 .vscode
 
 Makefile
+bin
+build
