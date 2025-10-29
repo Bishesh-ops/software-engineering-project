@@ -109,7 +109,7 @@ enum class TokenType
     HASH,        // #
     DOUBLE_HASH, // ##
 
-    // Special Tokens
+    // ... (rest of enum remains the same) ...
     EOF_TOKEN, // End of File
     UNKNOWN    // Lexical error
 };
@@ -120,11 +120,12 @@ string token_type_to_string(TokenType);
 struct Token
 {
     TokenType type;
-    string value; // The raw text (lexeme)
-    int line;     // 1-based line number
-    int column;   // 1-based column number where the token starts
+    string value;    // The raw text (lexeme)
+    string filename; // <-- ADDED: The source filename for this token
+    int line;        // 1-based line number in that file
+    int column;      // 1-based column number where the token starts
 
-    Token(TokenType type, const string &value, int line, int column);
+    Token(TokenType type, const string &value, const string &fname, int line, int column); // <-- UPDATED
     string to_string() const;
 };
 
@@ -132,7 +133,7 @@ struct Token
 class Lexer
 {
 public:
-    Lexer(const string &source);
+    Lexer(const string &source, const string &initial_filename = "input"); // <-- ADDED initial_filename
     Token getNextToken();
     vector<Token> lexAll();
 
@@ -142,16 +143,20 @@ private:
     size_t current_pos_;
     int current_line_;
     int current_column_;
-    int error_count_;                 // Count lexical errors
-    static const int MAX_ERRORS = 10; // Limit for errors
+    string current_filename_; // <-- ADDED: Track current filename
+    int error_count_;
+    static const int MAX_ERRORS = 10;
 
     // --- Core Lexing Primitives ---
     char peek() const;
     char advance();
     void skipWhitespace();
     void skipComment();
+    void skipRestOfLine();      // Helper
+    bool handleLineDirective(); // Handles #line
 
     // --- Token Scanning Functions ---
+    // (These now need to create Tokens with the filename)
     Token scanIdentifierOrKeyword(int start_line, int start_column);
     Token scanNumber(int start_line, int start_column);
     Token scanCharLiteral(int start_line, int start_column);

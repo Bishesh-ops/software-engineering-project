@@ -50,6 +50,5 @@ $(OBJ_DIR)/test_lexer.o: test_lexer.cpp
 # --- Cleanup ---
 clean:
 	@echo Cleaning up build directories...
-	@if exist "build" rmdir /s /q "build"
-	@if exist "bin" rmdir /s /q "bin"
-	@echo Cleanup complete.
+	@if exist "$(OBJ_DIR:\=\\)" rmdir /s /q "$(OBJ_DIR:\=\\)"
+	@if exist "$(BIN_DIR:\=\\)" rmdir /s /q "$(BIN_DIR:\=\\)"
