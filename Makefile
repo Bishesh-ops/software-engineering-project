@@ -24,14 +24,16 @@ ALL_OBJS := $(LEXER_OBJS) $(TEST_OBJS)
 all: dirs $(BIN_DIR)/$(TEST_EXE)
 	@echo Lexer Test executable built successfully.
 
+# UPDATED: Removed PowerShell timing command, just runs the executable
 test: all
 	@echo --- Running Lexer Test ---
-	@$(BIN_DIR)/$(TEST_EXE)
+	@.\\$(BIN_DIR)\\$(TEST_EXE)
 	@echo --- Test Complete ---
 
+# Uses Windows-native commands for directories
 dirs:
-	@mkdir -p $(OBJ_DIR)
-	@mkdir -p $(BIN_DIR)
+	@if not exist "$(OBJ_DIR:\=\\)" mkdir "$(OBJ_DIR:\=\\)"
+	@if not exist "$(BIN_DIR:\=\\)" mkdir "$(BIN_DIR:\=\\)"
 
 # --- Linking ---
 $(BIN_DIR)/$(TEST_EXE): $(ALL_OBJS)
@@ -48,7 +50,9 @@ $(OBJ_DIR)/test_lexer.o: test_lexer.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 # --- Cleanup ---
+# Uses Windows-native commands for cleanup
 clean:
 	@echo Cleaning up build directories...
-	@rm -rf build bin
+	@if exist "build" rmdir /s /q "build"
+	@if exist "bin" rmdir /s /q "bin"
 	@echo Cleanup complete.

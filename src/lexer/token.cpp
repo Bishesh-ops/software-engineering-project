@@ -1,11 +1,28 @@
 #include "lexer.h"
 #include <sstream>
+#include <string> // Include for std::string creation from string_view if needed
 
-Token::Token(TokenType type, std::string_view value, int line, int column)
-    : type(type), value(value), processed_value(), line(line), column(column) {}
+// Constructor for tokens primarily using string_view (zero-copy)
+Token::Token(TokenType type, std::string_view value, const std::string &fname, int line, int column)
+    : type(type),
+      value(value),
+      processed_value(), // Initialize processed_value as empty
+      filename(fname),
+      line(line),
+      column(column)
+{
+}
 
-Token::Token(TokenType type, std::string_view value, std::string processed, int line, int column)
-    : type(type), value(value), processed_value(std::move(processed)), line(line), column(column) {}
+// Constructor for tokens needing separate processed storage (like string/char literals)
+Token::Token(TokenType type, std::string_view value, std::string processed, const std::string &fname, int line, int column)
+    : type(type),
+      value(value),                          // Keep the original raw view
+      processed_value(std::move(processed)), // Store the processed string
+      filename(fname),
+      line(line),
+      column(column)
+{
+}
 
 // Creates a human-readable string representation (for debugging).
 std::string Token::to_string() const
@@ -13,21 +30,47 @@ std::string Token::to_string() const
     std::ostringstream oss;
     oss << "Token(" << token_type_to_string(type) << ", \"";
 
-    // Use processed_value if available (for char/string literals), otherwise use value
-    const std::string& display_value = processed_value.empty()
-        ? std::string(value)
-        : processed_value;
+    // --- Logic to display value ---
+    // If processed_value is non-empty (used for char/string literals), display that.
+    // Otherwise, convert the raw string_view 'value' to a string for display.
+    const std::string *value_ptr = &processed_value;
+    std::string temp_value_storage; // Temporary if conversion needed
 
-    // Escape control characters for clean printing
-    for (char c : display_value) {
-        switch (c) {
-            case '\n': oss << "\\n"; break;
-            case '\t': oss << "\\t"; break;
-            case '\r': oss << "\\r"; break;
-            case '\0': oss << "\\0"; break;
-            case '\\': oss << "\\\\"; break;
-            case '"': oss << "\\\""; break;
-            default: oss << c; break;
+    if (processed_value.empty())
+    {
+        temp_value_storage = std::string(value);
+        value_ptr = &temp_value_storage;
+    }
+
+    // Escape control characters from the chosen value string
+    for (char c : *value_ptr)
+    {
+        switch (c)
+        {
+        case '\n':
+            oss << "\\n";
+            break;
+        case '\t':
+            oss << "\\t";
+            break;
+        case '\r':
+            oss << "\\r";
+            break;
+        case '\0':
+            oss << "\\0";
+            break;
+        case '\\':
+            oss << "\\\\";
+            break;
+        case '"':
+            oss << "\\\"";
+            break;
+        case '\'':
+            oss << "\\'";
+            break; // Escape single quote too
+        default:
+            oss << c;
+            break;
         }
     }
 
@@ -121,103 +164,101 @@ std::string token_type_to_string(TokenType type)
 
     // Operators
     case TokenType::OP_ASSIGN:
-        return "OP_ASSIGN"; // =
+        return "OP_ASSIGN";
     case TokenType::OP_EQ:
-        return "OP_EQ"; // ==
+        return "OP_EQ";
     case TokenType::OP_NE:
-        return "OP_NE"; // !=
+        return "OP_NE";
     case TokenType::OP_LT:
-        return "OP_LT"; // <
+        return "OP_LT";
     case TokenType::OP_LE:
-        return "OP_LE"; // <=
+        return "OP_LE";
     case TokenType::OP_GT:
-        return "OP_GT"; // >
+        return "OP_GT";
     case TokenType::OP_GE:
-        return "OP_GE"; // >=
+        return "OP_GE";
     case TokenType::OP_PLUS:
-        return "OP_PLUS"; // +
+        return "OP_PLUS";
     case TokenType::OP_MINUS:
-        return "OP_MINUS"; // -
+        return "OP_MINUS";
     case TokenType::OP_STAR:
-        return "OP_STAR"; // *
+        return "OP_STAR";
     case TokenType::OP_SLASH:
-        return "OP_SLASH"; // /
+        return "OP_SLASH";
     case TokenType::OP_MOD:
-        return "OP_MOD"; // %
+        return "OP_MOD";
     case TokenType::OP_INC:
-        return "OP_INC"; // ++
+        return "OP_INC";
     case TokenType::OP_DEC:
-        return "OP_DEC"; // --
+        return "OP_DEC";
     case TokenType::OP_LSHIFT:
-        return "OP_LSHIFT"; // <<
+        return "OP_LSHIFT";
     case TokenType::OP_RSHIFT:
-        return "OP_RSHIFT"; // >>
+        return "OP_RSHIFT";
     case TokenType::OP_AND:
-        return "OP_AND"; // &&
+        return "OP_AND";
     case TokenType::OP_OR:
-        return "OP_OR"; // ||
+        return "OP_OR";
     case TokenType::OP_NOT:
-        return "OP_NOT"; // !
-
-    // Bitwise Operators
+        return "OP_NOT";
     case TokenType::OP_BIT_AND:
-        return "OP_BIT_AND"; // &
+        return "OP_BIT_AND";
     case TokenType::OP_BIT_OR:
-        return "OP_BIT_OR"; // |
+        return "OP_BIT_OR";
     case TokenType::OP_BIT_XOR:
-        return "OP_BIT_XOR"; // ^
+        return "OP_BIT_XOR";
     case TokenType::OP_BIT_NOT:
-        return "OP_BIT_NOT"; // ~
+        return "OP_BIT_NOT";
 
     // Compound Assignment Operators
     case TokenType::OP_PLUS_ASSIGN:
-        return "OP_PLUS_ASSIGN"; // +=
+        return "OP_PLUS_ASSIGN";
     case TokenType::OP_MINUS_ASSIGN:
-        return "OP_MINUS_ASSIGN"; // -=
+        return "OP_MINUS_ASSIGN";
     case TokenType::OP_STAR_ASSIGN:
-        return "OP_STAR_ASSIGN"; // *=
+        return "OP_STAR_ASSIGN";
     case TokenType::OP_SLASH_ASSIGN:
-        return "OP_SLASH_ASSIGN"; // /=
+        return "OP_SLASH_ASSIGN";
     case TokenType::OP_MOD_ASSIGN:
-        return "OP_MOD_ASSIGN"; // %=
+        return "OP_MOD_ASSIGN";
     case TokenType::OP_AND_ASSIGN:
-        return "OP_AND_ASSIGN"; // &=
+        return "OP_AND_ASSIGN";
     case TokenType::OP_OR_ASSIGN:
-        return "OP_OR_ASSIGN"; // |=
+        return "OP_OR_ASSIGN";
     case TokenType::OP_XOR_ASSIGN:
-        return "OP_XOR_ASSIGN"; // ^=
+        return "OP_XOR_ASSIGN";
     case TokenType::OP_LSHIFT_ASSIGN:
-        return "OP_LSHIFT_ASSIGN"; // <<=
+        return "OP_LSHIFT_ASSIGN";
     case TokenType::OP_RSHIFT_ASSIGN:
-        return "OP_RSHIFT_ASSIGN"; // >>=
+        return "OP_RSHIFT_ASSIGN";
 
     // Ternary/Conditional
     case TokenType::OP_QUESTION:
-        return "OP_QUESTION"; // ?
+        return "OP_QUESTION";
 
     // Delimiters
     case TokenType::LPAREN:
-        return "LPAREN"; // (
+        return "LPAREN";
     case TokenType::RPAREN:
-        return "RPAREN"; // )
+        return "RPAREN";
     case TokenType::LBRACE:
-        return "LBRACE"; // {
+        return "LBRACE";
     case TokenType::RBRACE:
-        return "RBRACE"; // }
+        return "RBRACE";
     case TokenType::LBRACKET:
-        return "LBRACKET"; // [
+        return "LBRACKET";
     case TokenType::RBRACKET:
-        return "RBRACKET"; // ]
+        return "RBRACKET";
     case TokenType::SEMICOLON:
-        return "SEMICOLON"; // ;
+        return "SEMICOLON";
     case TokenType::COMMA:
-        return "COMMA"; // ,
+        return "COMMA";
     case TokenType::COLON:
-        return "COLON"; // :
+        return "COLON";
     case TokenType::DOT:
-        return "DOT"; // .
+        return "DOT";
     case TokenType::ARROW:
-        return "ARROW"; // ->
+        return "ARROW";
 
     // Preprocessor Tokens
     case TokenType::HASH:

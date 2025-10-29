@@ -2,12 +2,12 @@
 #define LEXER_H
 
 #include <string>
-#include <string_view>
+#include <string_view> // Use string_view
 #include <iostream>
 #include <vector>
 #include <unordered_map>
 
-using namespace std;
+using namespace std; // Avoid in headers if possible
 
 // Defines all possible token types the lexer can produce.
 enum class TokenType
@@ -110,80 +110,93 @@ enum class TokenType
     HASH,        // #
     DOUBLE_HASH, // ##
 
-    // ... (rest of enum remains the same) ...
+    // Special Tokens
     EOF_TOKEN, // End of File
     UNKNOWN    // Lexical error
 };
 
-string token_type_to_string(TokenType);
+std::string token_type_to_string(TokenType type);
 
 // Represents a single lexical unit (token) found in the source code.
 struct Token
 {
     TokenType type;
-    string_view value;     // Zero-copy view into source (lexeme) for most tokens
-    string processed_value; // Storage for processed strings (char/string literals with escapes)
-    int line;              // 1-based line number
-    int column;            // 1-based column number where the token starts
+    std::string_view value;      // Zero-copy view into source (lexeme)
+    std::string processed_value; // Storage for processed strings (char/string literals)
+    std::string filename;        // The source filename for this token
+    int line;                    // 1-based line number in that file
+    int column;                  // 1-based column number where the token starts
 
-    // Constructor for tokens using string_view (zero-copy)
-    Token(TokenType type, string_view value, int line, int column);
+    // Constructor for tokens primarily using string_view
+    Token(TokenType type, std::string_view value, const std::string &fname, int line, int column);
 
-    // Constructor for tokens needing processed storage (char/string literals)
-    Token(TokenType type, string_view value, string processed, int line, int column);
+    // Constructor for tokens needing separate processed storage (like string/char literals)
+    Token(TokenType type, std::string_view value, std::string processed, const std::string &fname, int line, int column);
 
-    string to_string() const;
+    std::string to_string() const;
 };
 
 // Performs lexical analysis (tokenization) on a C source string.
 class Lexer
 {
 public:
-    Lexer(const string &source, const string &initial_filename = "input"); // <-- ADDED initial_filename
+    // Constructor accepts initial source and filename
+    Lexer(const std::string &source, const std::string &initial_filename = "input");
     Token getNextToken();
-    vector<Token> lexAll();
+    std::vector<Token> lexAll();
 
 private:
     // --- Lexer State ---
-    const string_view source_;  // Zero-copy view of source
+    const std::string_view source_; // Use string_view for the source
     size_t current_pos_;
     int current_line_;
     int current_column_;
-    string current_filename_; // <-- ADDED: Track current filename
+    std::string current_filename_; // Track current filename
     int error_count_;
     static const int MAX_ERRORS = 10;
 
     // --- Core Lexing Primitives (Optimized) ---
-    inline char peek() const {
+    // Peek with bounds check
+    inline char peek() const
+    {
         return (current_pos_ < source_.length()) ? source_[current_pos_] : '\0';
     }
-
-    inline char peek_unchecked() const {
+    // Peek without bounds check (use only when sure it's safe)
+    inline char peek_unchecked() const
+    {
         return source_[current_pos_];
+    }
+    // Peek ahead N characters with bounds check
+    inline char peek(size_t n) const
+    {
+        return (current_pos_ + n < source_.length()) ? source_[current_pos_ + n] : '\0';
     }
 
     char advance();
-    void skipWhitespaceAndComments();
+    void skipWhitespace();
+    void skipComment();
+    void skipRestOfLine();
+    bool handleLineDirective();
 
     // --- Character Classification (Optimized) ---
-    static inline bool is_identifier_start(char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+    static inline bool is_identifier_start(char c)
+    {
+        return std::isalpha(c) || c == '_';
     }
-
-    static inline bool is_identifier_char(char c) {
-        return is_identifier_start(c) || (c >= '0' && c <= '9');
+    static inline bool is_identifier_char(char c)
+    {
+        return std::isalnum(c) || c == '_';
     }
-
-    static inline bool is_digit(char c) {
-        return c >= '0' && c <= '9';
+    static inline bool is_digit(char c)
+    {
+        return std::isdigit(c);
     }
-
-    static inline bool is_hex_digit(char c) {
-        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    static inline bool is_hex_digit(char c)
+    {
+        return std::isxdigit(c);
     }
 
     // --- Token Scanning Functions ---
-    // (These now need to create Tokens with the filename)
     Token scanIdentifierOrKeyword(int start_line, int start_column);
     Token scanNumber(int start_line, int start_column);
     Token scanCharLiteral(int start_line, int start_column);
@@ -191,10 +204,11 @@ private:
     Token scanOperator(int start_line, int start_column);
     Token scanDelimiter(int start_line, int start_column);
 
-    TokenType checkKeyword(string_view value) const;
+    // Update checkKeyword to accept string_view
+    TokenType checkKeyword(std::string_view value) const;
 
-    // C keyword lookup table (using transparent comparator for string_view)
-    static const unordered_map<string, TokenType> keywords_;
+    // C keyword lookup table
+    static const std::unordered_map<std::string, TokenType> keywords_;
 };
 
 #endif // LEXER_H

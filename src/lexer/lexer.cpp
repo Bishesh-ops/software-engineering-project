@@ -1,9 +1,20 @@
 #include "lexer.h"
+#include <string>    // For std::string, std::stoi
+#include <stdexcept> // For exception handling
+#include <cctype>    // For std::isdigit, std::isalpha, etc.
 
-Lexer::Lexer(const std::string &source)
-    : source_(source), current_pos_(0), current_line_(1), current_column_(1)
+// Constructor: Initializes string_view source_ from the input string
+Lexer::Lexer(const std::string &source, const std::string &initial_filename)
+    : source_(source), // Initialize string_view directly
+      current_pos_(0),
+      current_line_(1),
+      current_column_(1),
+      current_filename_(initial_filename),
+      error_count_(0)
 {
 }
+
+// --- Core Lexing Primitives ---
 
 char Lexer::advance()
 {
@@ -12,7 +23,7 @@ char Lexer::advance()
         return '\0';
     }
 
-    char current_char = source_[current_pos_];
+    char current_char = source_[current_pos_]; // Use string_view access
     current_pos_++;
     current_column_++;
 
@@ -24,106 +35,247 @@ char Lexer::advance()
     return current_char;
 }
 
-// Optimized: Combined whitespace and comment skipping in a single loop
-void Lexer::skipWhitespaceAndComments()
+void Lexer::skipWhitespace()
 {
     while (true)
     {
         char c = peek();
-
-        // Skip whitespace characters
-        if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
-        {
+        if (c == ' ' || c == '\t' || c == '\r')
+        { // Skip space, tab, cr
             advance();
-            continue;
         }
-
-        // Check for comments
-        if (c == '/')
+        else
         {
-            size_t saved_pos = current_pos_;
-            int saved_col = current_column_;
-            advance(); // Consume '/'
-            char next = peek();
-
-            if (next == '/')
-            {
-                // Single-line comment: skip until newline or EOF
-                while (peek() != '\n' && peek() != '\0')
-                {
-                    advance();
-                }
-                continue;
-            }
-            else if (next == '*')
-            {
-                // Multi-line comment: skip until */
-                advance(); // Consume '*'
-                while (true)
-                {
-                    if (peek() == '\0')
-                    {
-                        return; // Unterminated comment
-                    }
-                    if (peek() == '*')
-                    {
-                        advance();
-                        if (peek() == '/')
-                        {
-                            advance(); // Consume '/'
-                            break;    // Exit comment loop
-                        }
-                    }
-                    else
-                    {
-                        advance();
-                    }
-                }
-                continue;
-            }
-            else
-            {
-                // Not a comment, restore position
-                current_pos_ = saved_pos;
-                current_column_ = saved_col;
-                return;
-            }
+            break;
         }
-
-        // Not whitespace or comment
-        return;
     }
 }
 
+// Skips C-style comments (// and /* */)
+// Assumes the initial '/' has already been consumed by the caller.
+void Lexer::skipComment()
+{
+    if (peek() == '/')
+    {              // Single-line comment
+        advance(); // Consume the second /
+        skipRestOfLine();
+    }
+    else if (peek() == '*')
+    {              // Multi-line comment
+        advance(); // Consume '*'
+        while (true)
+        {
+            if (peek() == '\0')
+                break; // Unterminated
+            // --- CORRECTED: Check for '*' FIRST ---
+            if (peek() == '*')
+            {
+                advance(); // Consume '*'
+                if (peek() == '/')
+                {              // Check if the NEXT char is '/'
+                    advance(); // Consume closing '/'
+                    break;     // End of comment
+                }
+                // If not '/', it was just a '*', continue loop
+                // (No need to put it back, already advanced)
+            }
+            else
+            {
+                advance(); // Consume char inside comment (handles newlines correctly)
+            }
+            // --- End Correction ---
+        }
+    }
+    // If neither '/' nor '*', the caller handles the single '/' operator
+}
+
+void Lexer::skipRestOfLine()
+{
+    while (peek() != '\n' && peek() != '\0')
+    {
+        advance();
+    }
+}
+
+// --- #line Directive Handling ---
+bool Lexer::handleLineDirective()
+{
+    size_t directive_start_pos = current_pos_; // Remember position after #
+    int directive_start_col = current_column_;
+
+    skipWhitespace(); // Use the standard whitespace skip
+
+    if (!is_identifier_start(peek()))
+    { // Must start with identifier
+        current_pos_ = directive_start_pos;
+        current_column_ = directive_start_col;
+        return false;
+    }
+
+    // Scan the potential "line" keyword
+    size_t kw_start_pos = current_pos_;
+    advance();
+    while (is_identifier_char(peek()))
+    {
+        advance();
+    }
+    string_view identifier = source_.substr(kw_start_pos, current_pos_ - kw_start_pos);
+
+    if (identifier != "line")
+    {
+        // Backtrack to just after the #
+        current_pos_ = directive_start_pos;
+        current_column_ = directive_start_col;
+        return false; // Let getNextToken handle # or ##
+    }
+
+    // --- It is a #line directive, parse arguments ---
+    skipWhitespace();
+
+    // Expect line number
+    if (!is_digit(peek()))
+    {
+        error_count_++;
+        skipRestOfLine();
+        return true; // Malformed
+    }
+    Token line_num_token = scanNumber(current_line_, current_column_);
+    std::string line_num_str(line_num_token.value); // Convert view to string for stoi
+    if (line_num_token.type != TokenType::INT_LITERAL)
+    {
+        error_count_++;
+        skipRestOfLine();
+        return true; // Malformed
+    }
+
+    // Expect optional filename
+    skipWhitespace();
+    std::string new_filename = current_filename_;
+    if (peek() == '"')
+    {
+        Token filename_token = scanStringLiteral(current_line_, current_column_);
+        if (filename_token.type == TokenType::STRING_LITERAL)
+        {
+            // Use processed_value which has escapes handled
+            if (!filename_token.processed_value.empty())
+            {
+                new_filename = filename_token.processed_value;
+            }
+            else if (filename_token.value.length() >= 2)
+            { // Fallback: strip quotes
+                new_filename = string(filename_token.value.substr(1, filename_token.value.length() - 2));
+            }
+            else
+            {
+                error_count_++;
+            } // Malformed ""
+        }
+        else
+        {
+            error_count_++;
+        } // Malformed, expected string
+    }
+
+    // Update lexer state
+    try
+    {
+        int new_line = std::stoi(line_num_str);
+        // Set line number to one *before* the directive's number,
+        // because the newline *after* the directive will increment it.
+        current_line_ = new_line - 1;
+        current_filename_ = new_filename;
+    }
+    catch (const std::exception &e)
+    {
+        error_count_++;
+    }
+
+    skipRestOfLine();
+    return true; // Indicate directive was handled
+}
+
+// --- Main Tokenization Function ---
 Token Lexer::getNextToken()
 {
-    // --- 1. Skip whitespace and comments (optimized single pass) ---
-    skipWhitespaceAndComments();
+    if (error_count_ >= MAX_ERRORS)
+    {
+        return Token(TokenType::EOF_TOKEN, source_.substr(current_pos_), current_filename_, current_line_, current_column_);
+    }
+
+    // --- 1. Skip whitespace, newlines, and comments ---
+    while (true)
+    {
+        skipWhitespace(); // Skip spaces, tabs, \r
+
+        if (peek() == '\n')
+        {
+            advance(); // Consume newline, updates line/col
+            continue;  // Go back to skip potential whitespace on new line
+        }
+
+        if (peek() == '/')
+        {
+            char next = peek(1);
+            if (next == '/' || next == '*')
+            {
+                advance(); // Consume the first '/'
+                skipComment();
+                continue; // Restart skipping loop
+            }
+            // else: It's a division operator, break loop
+        }
+        // If not whitespace, newline, or comment, break loop
+        break;
+    }
 
     // Store state *before* scanning the actual token
     int start_line = current_line_;
     int start_column = current_column_;
     string start_filename = current_filename_;
+    size_t start_pos = current_pos_; // Needed for string_view
 
     char c = peek();
 
     // --- 2. Check for EOF ---
     if (c == '\0')
     {
-        return Token(TokenType::EOF_TOKEN, "", start_filename, start_line, start_column);
+        return Token(TokenType::EOF_TOKEN, source_.substr(current_pos_), start_filename, start_line, start_column);
     }
 
-    // --- 3. Token Classification (optimized) ---
+    // --- 3. Handle '#' Directives Specially ---
+    if (c == '#')
+    {
+        advance(); // Consume '#'
+        if (handleLineDirective())
+        {
+            // #line was handled, state updated, skipped rest of line.
+            // Get the *next* real token recursively.
+            return getNextToken();
+        }
+        else if (peek() == '#')
+        {
+            advance(); // Consume second '#'
+            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            return Token(TokenType::DOUBLE_HASH, val, start_filename, start_line, start_column);
+        }
+        else
+        {
+            // Single hash (e.g., #define)
+            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            return Token(TokenType::HASH, val, start_filename, start_line, start_column);
+        }
+    }
 
-    // Identifiers and Keywords: [a-zA-Z_][a-zA-Z0-9_]*
+    // --- 4. Token Classification (using inline helpers) ---
+    Token result_token = Token(TokenType::UNKNOWN, "", start_filename, start_line, start_column); // Default
+
+    // Identifiers and Keywords
     if (is_identifier_start(c))
     {
         result_token = scanIdentifierOrKeyword(start_line, start_column);
     }
-
-    // Number Literals: 123, 0.5, 0x1A, .123
-    // Check for digit OR '.' followed by a digit
-    if (is_digit(c) || (c == '.' && current_pos_ + 1 < source_.length() && is_digit(source_[current_pos_ + 1])))
+    // Number Literals (Check for digit OR '.' followed by a digit)
+    else if (is_digit(c) || (c == '.' && is_digit(peek(1))))
     {
         result_token = scanNumber(start_line, start_column);
     }
@@ -137,26 +289,22 @@ Token Lexer::getNextToken()
     {
         result_token = scanStringLiteral(start_line, start_column);
     }
-    // Note: '#' handled above
     // Operators
-    else if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%' ||
-             c == '<' || c == '>' || c == '!' || c == '~' || c == '&' ||
-             c == '|' || c == '^' || c == '=' || c == '?' || c == ':')
+    else if (string_view("+-*/%<>&|^=!~?:").find(c) != string_view::npos)
     {
         result_token = scanOperator(start_line, start_column);
     }
     // Delimiters
-    else if (c == '(' || c == ')' || c == '{' || c == '}' || c == '[' ||
-             c == ']' || c == ';' || c == ',' || c == '.')
+    else if (string_view("(){}[].,;").find(c) != string_view::npos)
     {
         result_token = scanDelimiter(start_line, start_column);
     }
-    // --- 4. Handle Unrecognized Characters ---
+    // --- 5. Handle Unrecognized Characters ---
     else
     {
         advance(); // Consume the unknown character
-        // Ensure the token value and type reflect the error
-        result_token = Token(TokenType::UNKNOWN, std::string(1, c), start_filename, start_line, start_column);
+        string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+        result_token = Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
     }
 
     // --- Increment error count if token is UNKNOWN ---
@@ -168,14 +316,14 @@ Token Lexer::getNextToken()
     return result_token;
 }
 
-std::vector<Token> Lexer::lexAll()
+// --- lexAll ---
+vector<Token> Lexer::lexAll()
 {
-    std::vector<Token> tokens;
+    vector<Token> tokens;
     while (true)
     {
         Token token = getNextToken();
         tokens.push_back(token);
-        // Stop adding tokens if EOF was generated due to error limit or actual EOF
         if (token.type == TokenType::EOF_TOKEN)
         {
             break;
@@ -184,40 +332,62 @@ std::vector<Token> Lexer::lexAll()
     return tokens;
 }
 
-// Optimized: Uses substring extraction instead of character accumulation
+// --- Scanning Functions (Updated for string_view) ---
+
+Token Lexer::scanIdentifierOrKeyword(int start_line, int start_column)
+{
+    string start_filename = current_filename_;
+    size_t start_pos = current_pos_;
+    advance(); // First char already checked
+    while (is_identifier_char(peek()))
+    {
+        advance();
+    }
+
+    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
+    TokenType type = checkKeyword(value);
+    return Token(type, value, start_filename, start_line, start_column);
+}
+
 Token Lexer::scanNumber(int start_line, int start_column)
 {
+    string start_filename = current_filename_;
     size_t start_pos = current_pos_;
-    TokenType type = TokenType::INT_LITERAL; // Assume integer unless proven otherwise
+    TokenType type = TokenType::INT_LITERAL;
     bool is_hex = false;
-    size_t start_pos = current_pos_; // Remember start for final value string
 
-    // --- 1. Handle Integer/Prefix Part ---
+    // --- 1. Integer/Prefix Part ---
     if (peek() == '0')
     {
-        advance(); // Consume '0'
-
+        advance();
         if (peek() == 'x' || peek() == 'X')
         {
             is_hex = true;
-            advance(); // Consume 'x' or 'X'
+            advance();
+            if (!is_hex_digit(peek()))
+            { // Error: 0x must have digits
+                string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+                return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
+            }
             while (is_hex_digit(peek()))
             {
                 advance();
             }
         }
         else
-        {
-            // Octal/Decimal '0': 0... (could be 0, 0123, 0.5)
+        { // Octal or float 0.x
             while (is_digit(peek()))
             {
+                if (peek() >= '8')
+                {
+                    break;
+                } // Invalid octal digit
                 advance();
             }
         }
     }
     else if (is_digit(peek()))
-    {
-        // Decimal: [1-9]...
+    { // Decimal
         while (is_digit(peek()))
         {
             advance();
@@ -226,27 +396,28 @@ Token Lexer::scanNumber(int start_line, int start_column)
     else if (peek() == '.')
     { // Float starting with '.'
         type = TokenType::FLOAT_LITERAL;
-        advance(); // Consume '.'
+        advance();
+        if (!is_digit(peek()))
+        { // Error: '.' must have digits
+            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
+        }
         while (is_digit(peek()))
         {
             advance();
         }
     }
-    else
-    { // Should not happen
-        return Token(TokenType::UNKNOWN, text, start_filename, start_line, start_column);
-    }
 
-    // --- 2. Handle Floating Point Parts (if not hex) ---
+    // --- 2. Floating Point Parts ---
     if (!is_hex)
     {
-        bool had_decimal = (type == TokenType::FLOAT_LITERAL); // Track if '.' started the number
+        bool had_decimal = (type == TokenType::FLOAT_LITERAL);
         if (peek() == '.')
         {
             if (!had_decimal)
-            { // Allow one '.'
+            {
                 type = TokenType::FLOAT_LITERAL;
-                advance(); // Consume '.'
+                advance();
                 while (is_digit(peek()))
                 {
                     advance();
@@ -254,245 +425,234 @@ Token Lexer::scanNumber(int start_line, int start_column)
                 had_decimal = true;
             } // Else: second '.', let end check handle
         }
-        char exp_char = peek();
-        if (exp_char == 'e' || exp_char == 'E')
+        if (peek() == 'e' || peek() == 'E')
         {
-            type = TokenType::FLOAT_LITERAL;
-            advance(); // Consume 'e' or 'E'
-
-            if (peek() == '+' || peek() == '-')
+            char prev_char = (current_pos_ > start_pos) ? source_[current_pos_ - 1] : '\0';
+            if (is_digit(prev_char) || prev_char == '.')
             {
+                type = TokenType::FLOAT_LITERAL;
                 advance();
-            }
-            while (is_digit(peek()))
-            {
-                advance();
-            }
+                if (peek() == '+' || peek() == '-')
+                {
+                    advance();
+                }
+                if (!is_digit(peek()))
+                { // Error: Exponent needs digits
+                    while (std::isalnum(peek_unchecked()))
+                    {
+                        advance();
+                    }
+                    string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+                    return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
+                }
+                while (is_digit(peek()))
+                {
+                    advance();
+                }
+            } // Else: 'e' not after digit/'.', let end check handle
         }
     }
 
-    // --- 3. Handle Suffixes ---
-    std::string suffix_str; // Keep track of consumed suffixes
+    // --- 3. Suffixes ---
     if (type == TokenType::FLOAT_LITERAL)
     {
         char s = peek();
-        // Only f/F/l/L allowed for non-hex floats
         if (!is_hex && (s == 'f' || s == 'F' || s == 'l' || s == 'L'))
         {
             advance();
         }
     }
     else
-    {
-        // Integer suffixes (U, L, LL) - order can be U, L, LL, UL, LU, etc.
-        bool has_u = false;
-        bool has_l = false;
-
-        // Greedily consume suffixes
-        if (peek() == 'u' || peek() == 'U')
+    { // Integer suffixes
+        bool has_u = false, has_l = false, has_ll = false;
+        for (int i = 0; i < 3; ++i)
         {
-            advance();
-            has_u = true;
-        }
-
-        if (peek() == 'l' || peek() == 'L')
-        {
-            advance();
-            if (peek() == 'l' || peek() == 'L')
+            char s = peek();
+            if (!has_u && (s == 'u' || s == 'U'))
             {
-                advance(); // Long Long
+                has_u = true;
+                advance();
             }
-            has_l = true;
-        }
-
-        // Check for 'U' again in case of "LU" order
-        if (!has_u && (peek() == 'u' || peek() == 'U'))
-        {
-            advance();
-        }
-
-        // Check for 'L' again in case of "UL" order
-        if (!has_l && (peek() == 'l' || peek() == 'L'))
-        {
-            advance();
-            if (peek() == 'l' || peek() == 'L')
+            else if (!has_ll && (s == 'l' || s == 'L'))
             {
-                advance(); // Long Long
+                if (has_l)
+                    has_ll = true;
+                has_l = true;
+                advance();
+            }
+            else
+            {
+                break;
             }
         }
     }
 
-    // Extract substring view (zero-copy)
-    std::string_view value = source_.substr(start_pos, current_pos_ - start_pos);
-    return Token(type, value, start_line, start_column);
-}
-
-// Static map of C keywords.
-const std::unordered_map<std::string, TokenType> Lexer::keywords_ = {
-    {"auto", TokenType::KW_AUTO},
-    {"break", TokenType::KW_BREAK},
-    {"case", TokenType::KW_CASE},
-    {"char", TokenType::KW_CHAR},
-    {"const", TokenType::KW_CONST},
-    {"continue", TokenType::KW_CONTINUE},
-    {"default", TokenType::KW_DEFAULT},
-    {"do", TokenType::KW_DO},
-    {"double", TokenType::KW_DOUBLE},
-    {"else", TokenType::KW_ELSE},
-    {"enum", TokenType::KW_ENUM},
-    {"extern", TokenType::KW_EXTERN},
-    {"float", TokenType::KW_FLOAT},
-    {"for", TokenType::KW_FOR},
-    {"goto", TokenType::KW_GOTO},
-    {"if", TokenType::KW_IF},
-    {"int", TokenType::KW_INT},
-    {"long", TokenType::KW_LONG},
-    {"register", TokenType::KW_REGISTER},
-    {"return", TokenType::KW_RETURN},
-    {"short", TokenType::KW_SHORT},
-    {"signed", TokenType::KW_SIGNED},
-    {"sizeof", TokenType::KW_SIZEOF},
-    {"static", TokenType::KW_STATIC},
-    {"struct", TokenType::KW_STRUCT},
-    {"switch", TokenType::KW_SWITCH},
-    {"typedef", TokenType::KW_TYPEDEF},
-    {"union", TokenType::KW_UNION},
-    {"unsigned", TokenType::KW_UNSIGNED},
-    {"void", TokenType::KW_VOID},
-    {"volatile", TokenType::KW_VOLATILE},
-    {"while", TokenType::KW_WHILE}};
-
-TokenType Lexer::checkKeyword(std::string_view value) const
-{
-    // Use transparent comparator for efficient string_view lookup
-    std::string key(value);
-    auto it = keywords_.find(key);
-    if (it != keywords_.end())
+    // --- FINAL CHECK ---
+    if (std::isalnum(peek()) || peek() == '.')
     {
-        return it->second; // It's a keyword
-    }
-    return TokenType::IDENTIFIER; // Not a keyword
-}
-
-// Optimized: Uses substring extraction instead of character accumulation
-Token Lexer::scanIdentifierOrKeyword(int start_line, int start_column)
-{
-    size_t start_pos = current_pos_;
-    advance(); // First character is already checked
-
-    // Consume subsequent alphanumeric or underscore characters
-    while (is_identifier_char(peek()))
-    {
-        advance();
+        while (std::isalnum(peek()) || peek() == '.')
+        {
+            advance();
+        }
+        string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+        return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
     }
 
-    // Extract substring view (zero-copy)
-    std::string_view text = source_.substr(start_pos, current_pos_ - start_pos);
-
-    // Check if the identifier is actually a keyword
-    TokenType type = checkKeyword(text);
-    return Token(type, text, start_line, start_column);
+    // Valid number
+    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
+    return Token(type, value, start_filename, start_line, start_column);
 }
 
 Token Lexer::scanCharLiteral(int start_line, int start_column)
 {
     string start_filename = current_filename_;
     size_t start_pos = current_pos_;
-    advance(); // Consume opening '
+    string processed_value; // Store processed char here
+    advance();              // Consume opening '
 
     if (peek() == '\'')
     {
         advance();
-        return Token(TokenType::UNKNOWN, "''", start_filename, start_line, start_column);
+        return Token(TokenType::UNKNOWN, source_.substr(start_pos, current_pos_ - start_pos), start_filename, start_line, start_column);
     }
     if (peek() == '\n' || peek() == '\0')
     {
-        return Token(TokenType::UNKNOWN, "'", start_filename, start_line, start_column);
+        return Token(TokenType::UNKNOWN, source_.substr(start_pos, current_pos_ - start_pos), start_filename, start_line, start_column);
     }
 
+    char actual_char;
     if (peek() == '\\')
-    {              // Escape sequence
+    {
         advance(); // Consume backslash
         if (peek() == '\0')
         {
-            std::string raw_error = source_.substr(start_pos, current_pos_ - start_pos);
-            return Token(TokenType::UNKNOWN, raw_error, start_filename, start_line, start_column);
+            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
         char escape_char = advance();
         switch (escape_char)
-        {
+        { // Process escape
         case 'n':
+            actual_char = '\n';
+            break;
         case 't':
+            actual_char = '\t';
+            break;
         case 'r':
+            actual_char = '\r';
+            break;
         case '\\':
+            actual_char = '\\';
+            break;
         case '\'':
+            actual_char = '\'';
+            break;
         case '0':
-            break; // Valid
-        default:   // Invalid escape
-            std::string raw_error = source_.substr(start_pos, current_pos_ - start_pos);
-            // Consume until closing quote or error? For now, just report invalid escape
-            return Token(TokenType::UNKNOWN, raw_error, start_filename, start_line, start_column);
+            actual_char = '\0';
+            break;
+        default: // Invalid escape
+            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
+        processed_value += actual_char; // Store processed char
     }
     else
-    { // Regular character
-        advance();
+    {
+        actual_char = advance(); // Consume & store regular char
+        processed_value += actual_char;
     }
 
     if (peek() != '\'')
-    { // Multi-character or unterminated after char
-        std::string raw_error = source_.substr(start_pos, current_pos_ - start_pos);
+    { // Error: multi-char or unterminated
         while (peek() != '\'' && peek() != '\n' && peek() != '\0')
         {
-            raw_error += advance();
+            advance();
         }
         if (peek() == '\'')
         {
-            raw_error += advance();
+            advance();
         }
-        return Token(TokenType::UNKNOWN, raw_error, start_filename, start_line, start_column);
+        string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+        return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
     }
 
     advance(); // Consume closing '
-
-    // Valid char literal. Store the *actual* character value in processed_value
-    return Token(TokenType::CHAR_LITERAL, "", std::string(1, actual_char), start_line, start_column);
+    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
+    // Use the constructor that stores the processed char
+    return Token(TokenType::CHAR_LITERAL, value, processed_value, start_filename, start_line, start_column);
 }
 
 Token Lexer::scanStringLiteral(int start_line, int start_column)
 {
     string start_filename = current_filename_;
     size_t start_pos = current_pos_;
-    advance(); // Consume opening "
-
-    std::string processed_value; // The actual string value (escapes processed)
-    processed_value.reserve(32);  // Pre-allocate to reduce reallocations
+    advance();                   // Consume opening "
+    string processed_value;      // Store processed string here
+    processed_value.reserve(32); // Pre-allocate
 
     while (peek() != '"')
     {
         if (peek() == '\n' || peek() == '\0')
         { // Unterminated string
-            std::string raw_error = source_.substr(start_pos, current_pos_ - start_pos);
-            return Token(TokenType::UNKNOWN, raw_error, start_filename, start_line, start_column);
+            string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+            return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
         if (peek() == '\\')
         {              // Escape sequence
             advance(); // Consume '\'
             if (peek() == '\0')
             { // Unterminated escape
-                std::string raw_error = source_.substr(start_pos, current_pos_ - start_pos);
-                return Token(TokenType::UNKNOWN, raw_error, start_filename, start_line, start_column);
+                string_view val = source_.substr(start_pos, current_pos_ - start_pos);
+                return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
             }
-            advance(); // Consume character after backslash (don't validate here)
+            char escape_char = advance(); // Consume char after backslash
+            // Process common escapes
+            switch (escape_char)
+            {
+            case 'n':
+                processed_value += '\n';
+                break;
+            case 't':
+                processed_value += '\t';
+                break;
+            case 'r':
+                processed_value += '\r';
+                break;
+            case 'b':
+                processed_value += '\b';
+                break;
+            case 'f':
+                processed_value += '\f';
+                break;
+            case 'v':
+                processed_value += '\v';
+                break;
+            case '0':
+                processed_value += '\0';
+                break;
+            case '\\':
+                processed_value += '\\';
+                break;
+            case '"':
+                processed_value += '"';
+                break;
+            case '\'':
+                processed_value += '\'';
+                break;
+            default:
+                processed_value += escape_char;
+                break; // Treat invalid as literal
+            }
         }
         else
         { // Regular character
-            advance();
+            processed_value += advance();
         }
     }
     advance(); // Consume closing "
-
-    return Token(TokenType::STRING_LITERAL, "", std::move(processed_value), start_line, start_column);
+    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
+    // Use constructor with processed value
+    return Token(TokenType::STRING_LITERAL, value, std::move(processed_value), start_filename, start_line, start_column);
 }
 
 Token Lexer::scanOperator(int start_line, int start_column)
@@ -511,11 +671,17 @@ Token Lexer::scanOperator(int start_line, int start_column)
     case '%':
     case '=':
     case '!':
-    case '&':
     case '|':
-    case '^':
+    case '^': // Added '|' and '^' here
+        // Check for '=', '++', '--', '->'
         if (peek() == '=' || (c == '+' && peek() == '+') || (c == '-' && peek() == '-') || (c == '-' && peek() == '>'))
         {
+            advance();
+        }
+        break;
+    case '&': // Special case for & and &&
+        if (peek() == '&' || peek() == '=')
+        { // Correctly check for && or &=
             advance();
         }
         break;
@@ -542,26 +708,35 @@ Token Lexer::scanOperator(int start_line, int start_column)
         break;
     }
 
-    std::string op_value = source_.substr(start_pos, current_pos_ - start_pos);
+    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
     TokenType op_type = TokenType::UNKNOWN;
 
-    // Map operator string to type
+    // Map operator string to type (using string conversion for lookup)
     static const std::unordered_map<std::string, TokenType> op_map = {
-        {"+", TokenType::OP_PLUS}, {"-", TokenType::OP_MINUS}, {"*", TokenType::OP_STAR}, {"/", TokenType::OP_SLASH}, {"%", TokenType::OP_MOD}, {"<", TokenType::OP_LT}, {">", TokenType::OP_GT}, {"=", TokenType::OP_ASSIGN}, {"!", TokenType::OP_NOT}, {"&", TokenType::OP_BIT_AND}, {"|", TokenType::OP_BIT_OR}, {"^", TokenType::OP_BIT_XOR}, {"~", TokenType::OP_BIT_NOT}, {"?", TokenType::OP_QUESTION}, {":", TokenType::COLON}, {"++", TokenType::OP_INC}, {"--", TokenType::OP_DEC}, {"->", TokenType::ARROW}, {"+=", TokenType::OP_PLUS_ASSIGN}, {"-=", TokenType::OP_MINUS_ASSIGN}, {"*=", TokenType::OP_STAR_ASSIGN}, {"/=", TokenType::OP_SLASH_ASSIGN}, {"%=", TokenType::OP_MOD_ASSIGN}, {"<<", TokenType::OP_LSHIFT}, {">>", TokenType::OP_RSHIFT}, {"<=", TokenType::OP_LE}, {">=", TokenType::OP_GE}, {"==", TokenType::OP_EQ}, {"!=", TokenType::OP_NE}, {"&&", TokenType::OP_AND}, {"||", TokenType::OP_OR}, {"&=", TokenType::OP_AND_ASSIGN}, {"|=", TokenType::OP_OR_ASSIGN}, {"^=", TokenType::OP_XOR_ASSIGN}, {"<<=", TokenType::OP_LSHIFT_ASSIGN}, {">>=", TokenType::OP_RSHIFT_ASSIGN}};
-    auto it = op_map.find(op_value);
+        {"+", TokenType::OP_PLUS}, {"-", TokenType::OP_MINUS}, {"*", TokenType::OP_STAR}, {"/", TokenType::OP_SLASH}, {"%", TokenType::OP_MOD}, {"<", TokenType::OP_LT}, {">", TokenType::OP_GT}, {"=", TokenType::OP_ASSIGN}, {"!", TokenType::OP_NOT}, {"&", TokenType::OP_BIT_AND}, {"|", TokenType::OP_BIT_OR}, {"^", TokenType::OP_BIT_XOR}, {"~", TokenType::OP_BIT_NOT}, {"?", TokenType::OP_QUESTION}, {":", TokenType::COLON}, {"++", TokenType::OP_INC}, {"--", TokenType::OP_DEC}, {"->", TokenType::ARROW}, {"+=", TokenType::OP_PLUS_ASSIGN}, {"-=", TokenType::OP_MINUS_ASSIGN}, {"*=", TokenType::OP_STAR_ASSIGN}, {"/=", TokenType::OP_SLASH_ASSIGN}, {"%=", TokenType::OP_MOD_ASSIGN}, {"<<", TokenType::OP_LSHIFT}, {">>", TokenType::OP_RSHIFT}, {"<=", TokenType::OP_LE}, {">=", TokenType::OP_GE}, {"==", TokenType::OP_EQ}, {"!=", TokenType::OP_NE}, {"&&", TokenType::OP_AND}, // Correctly mapped
+        {"||", TokenType::OP_OR},
+        {"&=", TokenType::OP_AND_ASSIGN},
+        {"|=", TokenType::OP_OR_ASSIGN},
+        {"^=", TokenType::OP_XOR_ASSIGN},
+        {"<<=", TokenType::OP_LSHIFT_ASSIGN},
+        {">>=", TokenType::OP_RSHIFT_ASSIGN}};
+    std::string op_key(value); // Convert string_view for map lookup
+    auto it = op_map.find(op_key);
     if (it != op_map.end())
     {
         op_type = it->second;
     }
+    // If not found, op_type remains UNKNOWN
 
-    return Token(op_type, op_value, start_filename, start_line, start_column);
+    return Token(op_type, value, start_filename, start_line, start_column);
 }
 
 Token Lexer::scanDelimiter(int start_line, int start_column)
 {
     string start_filename = current_filename_;
+    size_t start_pos = current_pos_;
     char c = advance();
-    std::string val(1, c);
+    string_view value = source_.substr(start_pos, current_pos_ - start_pos);
     TokenType type = TokenType::UNKNOWN;
 
     switch (c)
@@ -594,21 +769,24 @@ Token Lexer::scanDelimiter(int start_line, int start_column)
         type = TokenType::DOT;
         break;
     default:
-        break; // Type remains UNKNOWN
+        break;
     }
-    return Token(type, val, start_filename, start_line, start_column);
+    return Token(type, value, start_filename, start_line, start_column);
 }
 
-// Static map of C keywords.
-const std::unordered_map<std::string, TokenType> Lexer::keywords_ = {
-    {"auto", TokenType::KW_AUTO}, {"break", TokenType::KW_BREAK}, {"case", TokenType::KW_CASE}, {"char", TokenType::KW_CHAR}, {"const", TokenType::KW_CONST}, {"continue", TokenType::KW_CONTINUE}, {"default", TokenType::KW_DEFAULT}, {"do", TokenType::KW_DO}, {"double", TokenType::KW_DOUBLE}, {"else", TokenType::KW_ELSE}, {"enum", TokenType::KW_ENUM}, {"extern", TokenType::KW_EXTERN}, {"float", TokenType::KW_FLOAT}, {"for", TokenType::KW_FOR}, {"goto", TokenType::KW_GOTO}, {"if", TokenType::KW_IF}, {"int", TokenType::KW_INT}, {"long", TokenType::KW_LONG}, {"register", TokenType::KW_REGISTER}, {"return", TokenType::KW_RETURN}, {"short", TokenType::KW_SHORT}, {"signed", TokenType::KW_SIGNED}, {"sizeof", TokenType::KW_SIZEOF}, {"static", TokenType::KW_STATIC}, {"struct", TokenType::KW_STRUCT}, {"switch", TokenType::KW_SWITCH}, {"typedef", TokenType::KW_TYPEDEF}, {"union", TokenType::KW_UNION}, {"unsigned", TokenType::KW_UNSIGNED}, {"void", TokenType::KW_VOID}, {"volatile", TokenType::KW_VOLATILE}, {"while", TokenType::KW_WHILE}};
-
-TokenType Lexer::checkKeyword(const std::string &value) const
+// Keyword lookup (needs string_view key or conversion)
+TokenType Lexer::checkKeyword(string_view value) const
 {
-    auto it = keywords_.find(value);
+    // Convert string_view to string for lookup
+    std::string key(value);
+    auto it = keywords_.find(key);
     if (it != keywords_.end())
     {
         return it->second; // It's a keyword
     }
     return TokenType::IDENTIFIER; // Not a keyword
 }
+
+// Static map definition (remains the same)
+const std::unordered_map<std::string, TokenType> Lexer::keywords_ = {
+    {"auto", TokenType::KW_AUTO}, {"break", TokenType::KW_BREAK}, {"case", TokenType::KW_CASE}, {"char", TokenType::KW_CHAR}, {"const", TokenType::KW_CONST}, {"continue", TokenType::KW_CONTINUE}, {"default", TokenType::KW_DEFAULT}, {"do", TokenType::KW_DO}, {"double", TokenType::KW_DOUBLE}, {"else", TokenType::KW_ELSE}, {"enum", TokenType::KW_ENUM}, {"extern", TokenType::KW_EXTERN}, {"float", TokenType::KW_FLOAT}, {"for", TokenType::KW_FOR}, {"goto", TokenType::KW_GOTO}, {"if", TokenType::KW_IF}, {"int", TokenType::KW_INT}, {"long", TokenType::KW_LONG}, {"register", TokenType::KW_REGISTER}, {"return", TokenType::KW_RETURN}, {"short", TokenType::KW_SHORT}, {"signed", TokenType::KW_SIGNED}, {"sizeof", TokenType::KW_SIZEOF}, {"static", TokenType::KW_STATIC}, {"struct", TokenType::KW_STRUCT}, {"switch", TokenType::KW_SWITCH}, {"typedef", TokenType::KW_TYPEDEF}, {"union", TokenType::KW_UNION}, {"unsigned", TokenType::KW_UNSIGNED}, {"void", TokenType::KW_VOID}, {"volatile", TokenType::KW_VOLATILE}, {"while", TokenType::KW_WHILE}};
