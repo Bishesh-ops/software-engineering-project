@@ -5,21 +5,37 @@ Parser::Parser(const std::vector<Token> &tokens)
 
 Token Parser::current() const
 {
-    if (isAtEnd())
-        return tokens_.back();
+    if (current_pos_ >= tokens_.size())
+    {
+        if (!tokens_.empty())
+            return tokens_.back();
+        std::string empty_str;
+        std::string_view empty_view;
+        Token eof_token(TokenType::EOF_TOKEN, empty_view, empty_str, 0, 0);
+        return eof_token;
+    }
     return tokens_[current_pos_];
 }
 
 Token Parser::peek() const
 {
     if (current_pos_ + 1 >= tokens_.size())
-        return tokens_.back();
+    {
+        if (!tokens_.empty())
+            return tokens_.back();
+        std::string empty_str;
+        std::string_view empty_view;
+        Token eof_token(TokenType::EOF_TOKEN, empty_view, empty_str, 0, 0);
+        return eof_token;
+    }
     return tokens_[current_pos_ + 1];
 }
 
 bool Parser::isAtEnd() const
 {
-    return current_pos_ >= tokens_.size() || current().type == TokenType::EOF_TOKEN;
+    if (current_pos_ >= tokens_.size())
+        return true;
+    return tokens_[current_pos_].type == TokenType::EOF_TOKEN;
 }
 
 Token Parser::advance()
