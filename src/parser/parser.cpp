@@ -9,9 +9,9 @@ Token Parser::current() const
     {
         if (!tokens_.empty())
             return tokens_.back();
-        std::string empty_str;
-        std::string_view empty_view;
-        Token eof_token(TokenType::EOF_TOKEN, empty_view, empty_str, 0, 0);
+        static const std::string empty_filename = "";
+        static const std::string_view empty_value = "";
+        static Token eof_token(TokenType::EOF_TOKEN, empty_value, empty_filename, 0, 0);
         return eof_token;
     }
     return tokens_[current_pos_];
@@ -23,9 +23,9 @@ Token Parser::peek() const
     {
         if (!tokens_.empty())
             return tokens_.back();
-        std::string empty_str;
-        std::string_view empty_view;
-        Token eof_token(TokenType::EOF_TOKEN, empty_view, empty_str, 0, 0);
+        static const std::string empty_filename = "";
+        static const std::string_view empty_value = "";
+        static Token eof_token(TokenType::EOF_TOKEN, empty_value, empty_filename, 0, 0);
         return eof_token;
     }
     return tokens_[current_pos_ + 1];
