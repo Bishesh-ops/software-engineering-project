@@ -54,4 +54,31 @@ struct SourceLocation
     }
 };
 
+class ASTNode
+{
+public:
+    ASTNode(ASTNodeType type, const SourceLocation &location);
+    virtual ~ASTNode() = default;
+
+    ASTNodeType getNodeType() const { return node_type_; }
+    const SourceLocation &getLocation() const { return location_; }
+
+    virtual void accept(ASTVisitor *visitor) = 0;
+
+protected:
+    ASTNodeType node_type_;
+    SourceLocation location_;
+};
+
+class IdentifierNode : public ASTNode
+{
+public:
+    IdentifierNode(const std::string &name, const SourceLocation &location);
+    const std::string &getName() const { return name_; }
+    void accept(ASTVisitor *visitor) override;
+
+private:
+    std::string name_;
+};
+
 #endif
