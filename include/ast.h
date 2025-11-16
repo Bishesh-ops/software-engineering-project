@@ -81,8 +81,8 @@ struct SourceLocation
 class ASTNode
 {
 protected:
-    SourceLocation location;
     ASTNodeType nodeType;
+    SourceLocation location;
 
 public:
     ASTNode(ASTNodeType type, const SourceLocation &loc) : nodeType(type), location(loc) {}
@@ -167,8 +167,8 @@ class BinaryExpr : public Expression
 {
 private:
     std::unique_ptr<Expression> left;
-    std::unique_ptr<Expression> right;
     std::string op; // operator: +, -, *, /, ==, !=, <, >, etc.
+    std::unique_ptr<Expression> right;
 
 public:
     BinaryExpr(std::unique_ptr<Expression> lhs, std::string operation,
@@ -187,8 +187,8 @@ public:
 class UnaryExpr : public Expression
 {
 private:
-    std::unique_ptr<Expression> operand;
     std::string op; // operator: -, !, *, &, ++, --, etc.
+    std::unique_ptr<Expression> operand;
     bool prefixOp;  // true for prefix (++x), false for postfix (x++)
 
 public:

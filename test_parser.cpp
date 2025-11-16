@@ -301,6 +301,81 @@ void test_while_loops()
         fail("While loop: while (x < 10) x = x + 1;");
 }
 
+void test_for_loops()
+{
+    cout << "\n[TEST] For Loops (USER STORY #10)\n";
+
+    // Test 1: Full for loop with all parts
+    auto stmt1 = parseStmt("for (i = 0; i < 10; i = i + 1) x = x + 1;");
+    if (stmt1 && stmt1->getNodeType() == ASTNodeType::FOR_STMT)
+    {
+        ForStmt* for_stmt = dynamic_cast<ForStmt*>(stmt1.get());
+        if (for_stmt &&
+            for_stmt->getInitializer() &&
+            for_stmt->getCondition() &&
+            isBinaryOp(for_stmt->getCondition(), "<") &&
+            for_stmt->getIncrement() &&
+            for_stmt->getBody())
+            pass("Full for loop: for (i = 0; i < 10; i = i + 1) x = x + 1;");
+        else
+            fail("Full for loop: for (i = 0; i < 10; i = i + 1) x = x + 1;");
+    }
+    else
+        fail("Full for loop: for (i = 0; i < 10; i = i + 1) x = x + 1;");
+
+    // Test 2: Infinite loop - for (;;)
+    auto stmt2 = parseStmt("for (;;) x = x + 1;");
+    if (stmt2 && stmt2->getNodeType() == ASTNodeType::FOR_STMT)
+    {
+        ForStmt* for_stmt = dynamic_cast<ForStmt*>(stmt2.get());
+        if (for_stmt &&
+            !for_stmt->getInitializer() &&
+            !for_stmt->getCondition() &&
+            !for_stmt->getIncrement() &&
+            for_stmt->getBody())
+            pass("Infinite loop: for (;;) x = x + 1;");
+        else
+            fail("Infinite loop: for (;;) x = x + 1;");
+    }
+    else
+        fail("Infinite loop: for (;;) x = x + 1;");
+
+    // Test 3: For loop with only condition
+    auto stmt3 = parseStmt("for (; i < 10;) x = x + 1;");
+    if (stmt3 && stmt3->getNodeType() == ASTNodeType::FOR_STMT)
+    {
+        ForStmt* for_stmt = dynamic_cast<ForStmt*>(stmt3.get());
+        if (for_stmt &&
+            !for_stmt->getInitializer() &&
+            for_stmt->getCondition() &&
+            isBinaryOp(for_stmt->getCondition(), "<") &&
+            !for_stmt->getIncrement() &&
+            for_stmt->getBody())
+            pass("For with only condition: for (; i < 10;) x = x + 1;");
+        else
+            fail("For with only condition: for (; i < 10;) x = x + 1;");
+    }
+    else
+        fail("For with only condition: for (; i < 10;) x = x + 1;");
+
+    // Test 4: For loop with init and condition only
+    auto stmt4 = parseStmt("for (i = 0; i < 10;) x = x + 1;");
+    if (stmt4 && stmt4->getNodeType() == ASTNodeType::FOR_STMT)
+    {
+        ForStmt* for_stmt = dynamic_cast<ForStmt*>(stmt4.get());
+        if (for_stmt &&
+            for_stmt->getInitializer() &&
+            for_stmt->getCondition() &&
+            !for_stmt->getIncrement() &&
+            for_stmt->getBody())
+            pass("For with init and condition: for (i = 0; i < 10;) x = x + 1;");
+        else
+            fail("For with init and condition: for (i = 0; i < 10;) x = x + 1;");
+    }
+    else
+        fail("For with init and condition: for (i = 0; i < 10;) x = x + 1;");
+}
+
 void test_compound_statements()
 {
     cout << "\n[TEST] Compound Statements\n";
@@ -458,6 +533,7 @@ int main()
     // Statement tests
     test_if_statements();
     test_while_loops();
+    test_for_loops();
     test_compound_statements();
 
     // Precedence tests
