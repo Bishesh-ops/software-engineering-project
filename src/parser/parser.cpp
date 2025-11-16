@@ -38,22 +38,91 @@ Token Parser::consume(TokenType type, const std::string &error_message)
         advance();
         return token;
     }
+
+    // USER STORY #21: Report error and return current token instead of throwing
+    // This allows parsing to continue and collect multiple errors
     reportError(error_message);
-    throw std::runtime_error(error_message);
+    return current_token_; // Return current token to allow recovery
 }
 
 // ============================================================================
-// Error Handling
+// Error Handling (USER STORY #21)
 // ============================================================================
 
 void Parser::reportError(const std::string &message)
 {
-    std::cerr << currentLocation().toString() << ": Error: " << message << std::endl;
+    SourceLocation loc = currentLocation();
+    std::cerr << loc.toString() << ": Error: " << message << std::endl;
+
+    // Collect error for reporting multiple errors
+    errors_.push_back(ParseError(message, loc));
 }
 
 SourceLocation Parser::currentLocation() const
 {
     return SourceLocation(current_token_.filename, current_token_.line, current_token_.column);
+}
+
+// Synchronize to next statement boundary (;, }, or start of new statement)
+void Parser::synchronize()
+{
+    // Skip tokens until we find a statement boundary
+    while (current_token_.type != TokenType::EOF_TOKEN)
+    {
+        // If we just passed a semicolon, we're at a good sync point
+        if (current_token_.type == TokenType::SEMICOLON)
+        {
+            advance(); // consume semicolon
+            return;
+        }
+
+        // If we see a closing brace, we're at end of block
+        if (current_token_.type == TokenType::RBRACE)
+        {
+            return; // don't consume the brace
+        }
+
+        // If we see a keyword that starts a statement, we're synchronized
+        switch (current_token_.type)
+        {
+        case TokenType::KW_IF:
+        case TokenType::KW_WHILE:
+        case TokenType::KW_FOR:
+        case TokenType::KW_RETURN:
+        case TokenType::KW_INT:
+        case TokenType::KW_FLOAT:
+        case TokenType::KW_DOUBLE:
+        case TokenType::KW_CHAR:
+        case TokenType::KW_VOID:
+        case TokenType::KW_STRUCT:
+            return; // don't consume the keyword
+        default:
+            break;
+        }
+
+        advance();
+    }
+}
+
+// Synchronize to next declaration
+void Parser::synchronizeToDeclaration()
+{
+    while (current_token_.type != TokenType::EOF_TOKEN)
+    {
+        // Look for type keywords or struct keyword
+        if (current_token_.type == TokenType::KW_INT ||
+            current_token_.type == TokenType::KW_FLOAT ||
+            current_token_.type == TokenType::KW_DOUBLE ||
+            current_token_.type == TokenType::KW_CHAR ||
+            current_token_.type == TokenType::KW_VOID ||
+            current_token_.type == TokenType::KW_STRUCT ||
+            current_token_.type == TokenType::RBRACE)
+        {
+            return; // found a sync point
+        }
+
+        advance();
+    }
 }
 
 // ============================================================================
@@ -115,8 +184,10 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression()
         return parseParenthesizedExpression();
 
     default:
+        // USER STORY #21: Error recovery - return null instead of throwing
         reportError("Expected expression, got " + token_type_to_string(current_token_.type));
-        throw std::runtime_error("Unexpected token in primary expression");
+        advance(); // skip the bad token
+        return nullptr; // Return null to signal error
     }
 }
 
@@ -190,6 +261,18 @@ std::unique_ptr<Expression> Parser::parseIdentifier()
             // Create ArrayAccessExpr with current expression as array
             expr = std::make_unique<ArrayAccessExpr>(std::move(expr), std::move(index), loc);
         }
+        else if (check(TokenType::DOT) || check(TokenType::ARROW))
+        {
+            // USER STORY #20: Parse member access (. or ->)
+            bool isArrow = check(TokenType::ARROW);
+            advance(); // consume '.' or '->'
+
+            Token member_token = consume(TokenType::IDENTIFIER, "Expected member name after '.' or '->'");
+            std::string memberName(member_token.value);
+
+            // Create MemberAccessExpr
+            expr = std::make_unique<MemberAccessExpr>(std::move(expr), memberName, isArrow, loc);
+        }
         else
         {
             // No more postfix operations
@@ -237,8 +320,9 @@ std::unique_ptr<Expression> Parser::parseLiteral()
         break;
 
     default:
+        // USER STORY #21: Error recovery
         reportError("Unknown literal type");
-        throw std::runtime_error("Unknown literal type");
+        return nullptr; // Return null for error
     }
 
     SourceLocation loc(literal_token.filename, literal_token.line, literal_token.column);
@@ -612,11 +696,19 @@ std::unique_ptr<Statement> Parser::parseCompoundStatement()
 
 std::unique_ptr<Declaration> Parser::parseDeclaration()
 {
+    // USER STORY #19: Check for struct definition first
+    if (check(TokenType::KW_STRUCT))
+    {
+        return parseStructDefinition();
+    }
+
     // Parse type and name first, then determine if function or variable
     if (!isTypeKeyword(current_token_.type))
     {
+        // USER STORY #21: Error recovery
         reportError("Expected declaration");
-        throw std::runtime_error("Expected declaration");
+        synchronizeToDeclaration();
+        return nullptr;
     }
 
     Token start_token = current_token_;
@@ -658,8 +750,10 @@ std::unique_ptr<Declaration> Parser::parseDeclaration()
         }
         else
         {
+            // USER STORY #21: Error recovery
             reportError("Expected ';' or '{' after function declaration");
-            throw std::runtime_error("Expected ';' or '{' after function declaration");
+            synchronize();
+            // Continue with null body (treated as forward declaration)
         }
 
         SourceLocation loc(start_token.filename, start_token.line, start_token.column);
@@ -707,6 +801,86 @@ std::unique_ptr<Declaration> Parser::parseDeclaration()
     }
 }
 
+// USER STORY #19: Parse Struct Definitions
+// Syntax: struct Name { type1 field1; type2 field2; ... };
+std::unique_ptr<Declaration> Parser::parseStructDefinition()
+{
+    Token start_token = current_token_;
+    consume(TokenType::KW_STRUCT, "Expected 'struct' keyword");
+
+    Token name_token = consume(TokenType::IDENTIFIER, "Expected struct name");
+    std::string structName(name_token.value);
+
+    consume(TokenType::LBRACE, "Expected '{' after struct name");
+
+    // Parse member fields (zero or more variable declarations)
+    std::vector<std::unique_ptr<VarDecl>> fields;
+
+    while (!check(TokenType::RBRACE) && current_token_.type != TokenType::EOF_TOKEN)
+    {
+        // Parse each field as a variable declaration without initializer
+        // Syntax: type name; or struct name;
+        if (!isTypeKeyword(current_token_.type) && current_token_.type != TokenType::KW_STRUCT)
+        {
+            // USER STORY #21: Error recovery - skip to semicolon or closing brace
+            reportError("Expected type keyword for struct field");
+            while (current_token_.type != TokenType::SEMICOLON &&
+                   current_token_.type != TokenType::RBRACE &&
+                   current_token_.type != TokenType::EOF_TOKEN)
+            {
+                advance();
+            }
+            if (current_token_.type == TokenType::SEMICOLON)
+                advance();
+            continue; // Skip this field and try next one
+        }
+
+        Token field_start = current_token_;
+        std::string fieldType = parseType();
+
+        // Handle pointer fields
+        int pointerLevel = 0;
+        while (check(TokenType::OP_STAR))
+        {
+            advance();
+            pointerLevel++;
+        }
+
+        Token field_name_token = consume(TokenType::IDENTIFIER, "Expected field name");
+        std::string fieldName(field_name_token.value);
+
+        // Handle array fields
+        bool isArray = false;
+        std::unique_ptr<Expression> arraySize = nullptr;
+
+        if (check(TokenType::LBRACKET))
+        {
+            advance(); // consume '['
+            isArray = true;
+
+            if (!check(TokenType::RBRACKET))
+            {
+                arraySize = parseExpression();
+            }
+
+            consume(TokenType::RBRACKET, "Expected ']' after array size");
+        }
+
+        consume(TokenType::SEMICOLON, "Expected ';' after struct field");
+
+        SourceLocation fieldLoc(field_start.filename, field_start.line, field_start.column);
+        fields.push_back(std::make_unique<VarDecl>(
+            fieldName, fieldType, nullptr, fieldLoc, isArray, std::move(arraySize), pointerLevel
+        ));
+    }
+
+    consume(TokenType::RBRACE, "Expected '}' after struct fields");
+    consume(TokenType::SEMICOLON, "Expected ';' after struct definition");
+
+    SourceLocation loc(start_token.filename, start_token.line, start_token.column);
+    return std::make_unique<StructDecl>(structName, std::move(fields), loc);
+}
+
 std::unique_ptr<Declaration> Parser::parseVariableDeclaration()
 {
     // This method is kept for backward compatibility but just calls parseDeclaration()
@@ -746,6 +920,23 @@ bool Parser::isTypeKeyword(TokenType type) const
 
 std::string Parser::parseType()
 {
+    // USER STORY #19: Handle struct types (struct TypeName)
+    if (current_token_.type == TokenType::KW_STRUCT)
+    {
+        std::string type(current_token_.value); // "struct"
+        advance();
+
+        // Optionally followed by a type name (for named structs)
+        if (current_token_.type == TokenType::IDENTIFIER)
+        {
+            type += " ";
+            type += std::string(current_token_.value);
+            advance();
+        }
+
+        return type;
+    }
+
     if (!isTypeKeyword(current_token_.type))
     {
         reportError("Expected type keyword");

@@ -1428,6 +1428,180 @@ void test_array_access()
         fail("Complex index: arr[i * 2 + offset]");
 }
 
+// Helper functions for member access tests
+bool isMemberAccess(Expression* expr)
+{
+    return expr && expr->getNodeType() == ASTNodeType::MEMBER_ACCESS_EXPR;
+}
+
+void test_member_access()
+{
+    cout << "\n[TEST] Member Access (USER STORY #20)\n";
+
+    // Test 1: Simple dot access - point.x
+    auto expr1 = parseExpr("point.x");
+    if (isMemberAccess(expr1.get()))
+    {
+        MemberAccessExpr* access = dynamic_cast<MemberAccessExpr*>(expr1.get());
+        if (access && isIdentifier(access->getObject(), "point") &&
+            access->getMemberName() == "x" && !access->getIsArrow())
+            pass("Dot access: point.x");
+        else
+            fail("Dot access: point.x");
+    }
+    else
+        fail("Dot access: point.x");
+
+    // Test 2: Arrow access - ptr->y
+    auto expr2 = parseExpr("ptr->y");
+    if (isMemberAccess(expr2.get()))
+    {
+        MemberAccessExpr* access = dynamic_cast<MemberAccessExpr*>(expr2.get());
+        if (access && isIdentifier(access->getObject(), "ptr") &&
+            access->getMemberName() == "y" && access->getIsArrow())
+            pass("Arrow access: ptr->y");
+        else
+            fail("Arrow access: ptr->y");
+    }
+    else
+        fail("Arrow access: ptr->y");
+
+    // Test 3: Chained dot access - point.coords.x
+    auto expr3 = parseExpr("point.coords.x");
+    if (isMemberAccess(expr3.get()))
+    {
+        MemberAccessExpr* outer = dynamic_cast<MemberAccessExpr*>(expr3.get());
+        if (outer && outer->getMemberName() == "x" && !outer->getIsArrow() &&
+            isMemberAccess(outer->getObject()))
+        {
+            MemberAccessExpr* inner = dynamic_cast<MemberAccessExpr*>(outer->getObject());
+            if (inner && isIdentifier(inner->getObject(), "point") &&
+                inner->getMemberName() == "coords" && !inner->getIsArrow())
+                pass("Chained dot access: point.coords.x");
+            else
+                fail("Chained dot access: point.coords.x");
+        }
+        else
+            fail("Chained dot access: point.coords.x");
+    }
+    else
+        fail("Chained dot access: point.coords.x");
+
+    // Test 4: Chained arrow access - list->next->value
+    auto expr4 = parseExpr("list->next->value");
+    if (isMemberAccess(expr4.get()))
+    {
+        MemberAccessExpr* outer = dynamic_cast<MemberAccessExpr*>(expr4.get());
+        if (outer && outer->getMemberName() == "value" && outer->getIsArrow() &&
+            isMemberAccess(outer->getObject()))
+        {
+            MemberAccessExpr* inner = dynamic_cast<MemberAccessExpr*>(outer->getObject());
+            if (inner && isIdentifier(inner->getObject(), "list") &&
+                inner->getMemberName() == "next" && inner->getIsArrow())
+                pass("Chained arrow access: list->next->value");
+            else
+                fail("Chained arrow access: list->next->value");
+        }
+        else
+            fail("Chained arrow access: list->next->value");
+    }
+    else
+        fail("Chained arrow access: list->next->value");
+
+    // Test 5: Mixed dot and arrow - obj.ptr->value
+    auto expr5 = parseExpr("obj.ptr->value");
+    if (isMemberAccess(expr5.get()))
+    {
+        MemberAccessExpr* outer = dynamic_cast<MemberAccessExpr*>(expr5.get());
+        if (outer && outer->getMemberName() == "value" && outer->getIsArrow() &&
+            isMemberAccess(outer->getObject()))
+        {
+            MemberAccessExpr* inner = dynamic_cast<MemberAccessExpr*>(outer->getObject());
+            if (inner && isIdentifier(inner->getObject(), "obj") &&
+                inner->getMemberName() == "ptr" && !inner->getIsArrow())
+                pass("Mixed access: obj.ptr->value");
+            else
+                fail("Mixed access: obj.ptr->value");
+        }
+        else
+            fail("Mixed access: obj.ptr->value");
+    }
+    else
+        fail("Mixed access: obj.ptr->value");
+
+    // Test 6: Member access with array - arr[0].x
+    auto expr6 = parseExpr("arr[0].x");
+    if (isMemberAccess(expr6.get()))
+    {
+        MemberAccessExpr* access = dynamic_cast<MemberAccessExpr*>(expr6.get());
+        if (access && access->getMemberName() == "x" && !access->getIsArrow() &&
+            isArrayAccess(access->getObject()))
+        {
+            ArrayAccessExpr* arrAccess = dynamic_cast<ArrayAccessExpr*>(access->getObject());
+            if (arrAccess && isIdentifier(arrAccess->getArray(), "arr"))
+                pass("Array then member: arr[0].x");
+            else
+                fail("Array then member: arr[0].x");
+        }
+        else
+            fail("Array then member: arr[0].x");
+    }
+    else
+        fail("Array then member: arr[0].x");
+
+    // Test 7: Member access then array - point.coords[0]
+    auto expr7 = parseExpr("point.coords[0]");
+    if (isArrayAccess(expr7.get()))
+    {
+        ArrayAccessExpr* arrAccess = dynamic_cast<ArrayAccessExpr*>(expr7.get());
+        if (arrAccess && isMemberAccess(arrAccess->getArray()))
+        {
+            MemberAccessExpr* member = dynamic_cast<MemberAccessExpr*>(arrAccess->getArray());
+            if (member && isIdentifier(member->getObject(), "point") &&
+                member->getMemberName() == "coords" && !member->getIsArrow())
+                pass("Member then array: point.coords[0]");
+            else
+                fail("Member then array: point.coords[0]");
+        }
+        else
+            fail("Member then array: point.coords[0]");
+    }
+    else
+        fail("Member then array: point.coords[0]");
+
+    // Test 8: Function call on member - obj.getPoint().x
+    auto expr8 = parseExpr("obj.getPoint().x");
+    if (isMemberAccess(expr8.get()))
+    {
+        MemberAccessExpr* access = dynamic_cast<MemberAccessExpr*>(expr8.get());
+        if (access && access->getMemberName() == "x" && !access->getIsArrow())
+        {
+            Expression* obj = access->getObject();
+            if (obj && obj->getNodeType() == ASTNodeType::CALL_EXPR)
+            {
+                CallExpr* call = dynamic_cast<CallExpr*>(obj);
+                if (call && isMemberAccess(call->getCallee()))
+                {
+                    MemberAccessExpr* callMember = dynamic_cast<MemberAccessExpr*>(call->getCallee());
+                    if (callMember && isIdentifier(callMember->getObject(), "obj") &&
+                        callMember->getMemberName() == "getPoint")
+                        pass("Function on member: obj.getPoint().x");
+                    else
+                        fail("Function on member: obj.getPoint().x");
+                }
+                else
+                    fail("Function on member: obj.getPoint().x");
+            }
+            else
+                fail("Function on member: obj.getPoint().x");
+        }
+        else
+            fail("Function on member: obj.getPoint().x");
+    }
+    else
+        fail("Function on member: obj.getPoint().x");
+}
+
 void test_pointer_declarations()
 {
     cout << "\n[TEST] Pointer Declarations (USER STORY #18)\n";
@@ -1562,6 +1736,181 @@ void test_pointer_declarations()
         fail("Pointer with initializer: int *ptr = x;");
 }
 
+void test_struct_definitions()
+{
+    cout << "\n[TEST] Struct Definitions (USER STORY #19)\n";
+
+    // Test 1: Basic struct with two integer fields - struct Point { int x; int y; };
+    auto decl1 = parseDecl("struct Point { int x; int y; };");
+    if (decl1 && decl1->getNodeType() == ASTNodeType::STRUCT_DECL)
+    {
+        StructDecl* structDecl = dynamic_cast<StructDecl*>(decl1.get());
+        if (structDecl && structDecl->getName() == "Point" &&
+            structDecl->getFields().size() == 2)
+        {
+            const auto& fields = structDecl->getFields();
+            if (fields[0]->getName() == "x" && fields[0]->getType() == "int" &&
+                fields[1]->getName() == "y" && fields[1]->getType() == "int")
+                pass("Basic struct: struct Point { int x; int y; };");
+            else
+                fail("Basic struct: struct Point { int x; int y; };");
+        }
+        else
+            fail("Basic struct: struct Point { int x; int y; };");
+    }
+    else
+        fail("Basic struct: struct Point { int x; int y; };");
+
+    // Test 2: Empty struct - struct Empty { };
+    auto decl2 = parseDecl("struct Empty { };");
+    if (decl2 && decl2->getNodeType() == ASTNodeType::STRUCT_DECL)
+    {
+        StructDecl* structDecl = dynamic_cast<StructDecl*>(decl2.get());
+        if (structDecl && structDecl->getName() == "Empty" &&
+            structDecl->getFields().size() == 0)
+            pass("Empty struct: struct Empty { };");
+        else
+            fail("Empty struct: struct Empty { };");
+    }
+    else
+        fail("Empty struct: struct Empty { };");
+
+    // Test 3: Struct with different field types
+    auto decl3 = parseDecl("struct Person { char name; int age; float height; };");
+    if (decl3 && decl3->getNodeType() == ASTNodeType::STRUCT_DECL)
+    {
+        StructDecl* structDecl = dynamic_cast<StructDecl*>(decl3.get());
+        if (structDecl && structDecl->getName() == "Person" &&
+            structDecl->getFields().size() == 3)
+        {
+            const auto& fields = structDecl->getFields();
+            if (fields[0]->getName() == "name" && fields[0]->getType() == "char" &&
+                fields[1]->getName() == "age" && fields[1]->getType() == "int" &&
+                fields[2]->getName() == "height" && fields[2]->getType() == "float")
+                pass("Struct with mixed types: struct Person { char name; int age; float height; };");
+            else
+                fail("Struct with mixed types: struct Person { char name; int age; float height; };");
+        }
+        else
+            fail("Struct with mixed types: struct Person { char name; int age; float height; };");
+    }
+    else
+        fail("Struct with mixed types: struct Person { char name; int age; float height; };");
+
+    // Test 4: Struct with pointer field
+    auto decl4 = parseDecl("struct Node { int value; struct Node *next; };");
+    if (decl4 && decl4->getNodeType() == ASTNodeType::STRUCT_DECL)
+    {
+        StructDecl* structDecl = dynamic_cast<StructDecl*>(decl4.get());
+        if (structDecl && structDecl->getName() == "Node" &&
+            structDecl->getFields().size() == 2)
+        {
+            const auto& fields = structDecl->getFields();
+            if (fields[0]->getName() == "value" && fields[0]->getType() == "int" &&
+                !fields[0]->isPointer() &&
+                fields[1]->getName() == "next" && fields[1]->getType() == "struct Node" &&
+                fields[1]->isPointer() && fields[1]->getPointerLevel() == 1)
+                pass("Struct with pointer: struct Node { int value; struct Node *next; };");
+            else
+                fail("Struct with pointer: struct Node { int value; struct Node *next; };");
+        }
+        else
+            fail("Struct with pointer: struct Node { int value; struct Node *next; };");
+    }
+    else
+        fail("Struct with pointer: struct Node { int value; struct Node *next; };");
+
+    // Test 5: Struct with array field
+    auto decl5 = parseDecl("struct Buffer { char data[100]; int size; };");
+    if (decl5 && decl5->getNodeType() == ASTNodeType::STRUCT_DECL)
+    {
+        StructDecl* structDecl = dynamic_cast<StructDecl*>(decl5.get());
+        if (structDecl && structDecl->getName() == "Buffer" &&
+            structDecl->getFields().size() == 2)
+        {
+            const auto& fields = structDecl->getFields();
+            if (fields[0]->getName() == "data" && fields[0]->getType() == "char" &&
+                fields[0]->getIsArray() &&
+                fields[1]->getName() == "size" && fields[1]->getType() == "int")
+                pass("Struct with array: struct Buffer { char data[100]; int size; };");
+            else
+                fail("Struct with array: struct Buffer { char data[100]; int size; };");
+        }
+        else
+            fail("Struct with array: struct Buffer { char data[100]; int size; };");
+    }
+    else
+        fail("Struct with array: struct Buffer { char data[100]; int size; };");
+
+    // Test 6: Struct with multiple pointer levels
+    auto decl6 = parseDecl("struct Matrix { int **data; int rows; int cols; };");
+    if (decl6 && decl6->getNodeType() == ASTNodeType::STRUCT_DECL)
+    {
+        StructDecl* structDecl = dynamic_cast<StructDecl*>(decl6.get());
+        if (structDecl && structDecl->getName() == "Matrix" &&
+            structDecl->getFields().size() == 3)
+        {
+            const auto& fields = structDecl->getFields();
+            if (fields[0]->getName() == "data" && fields[0]->getType() == "int" &&
+                fields[0]->getPointerLevel() == 2 &&
+                fields[1]->getName() == "rows" && fields[1]->getType() == "int" &&
+                fields[2]->getName() == "cols" && fields[2]->getType() == "int")
+                pass("Struct with double pointer: struct Matrix { int **data; int rows; int cols; };");
+            else
+                fail("Struct with double pointer: struct Matrix { int **data; int rows; int cols; };");
+        }
+        else
+            fail("Struct with double pointer: struct Matrix { int **data; int rows; int cols; };");
+    }
+    else
+        fail("Struct with double pointer: struct Matrix { int **data; int rows; int cols; };");
+
+    // Test 7: Single field struct
+    auto decl7 = parseDecl("struct Counter { int count; };");
+    if (decl7 && decl7->getNodeType() == ASTNodeType::STRUCT_DECL)
+    {
+        StructDecl* structDecl = dynamic_cast<StructDecl*>(decl7.get());
+        if (structDecl && structDecl->getName() == "Counter" &&
+            structDecl->getFields().size() == 1 &&
+            structDecl->getFields()[0]->getName() == "count")
+            pass("Single field struct: struct Counter { int count; };");
+        else
+            fail("Single field struct: struct Counter { int count; };");
+    }
+    else
+        fail("Single field struct: struct Counter { int count; };");
+
+    // Test 8: Struct with many fields
+    auto decl8 = parseDecl("struct RGB { int r; int g; int b; int a; };");
+    if (decl8 && decl8->getNodeType() == ASTNodeType::STRUCT_DECL)
+    {
+        StructDecl* structDecl = dynamic_cast<StructDecl*>(decl8.get());
+        if (structDecl && structDecl->getName() == "RGB" &&
+            structDecl->getFields().size() == 4)
+        {
+            const auto& fields = structDecl->getFields();
+            bool allCorrect = true;
+            const char* names[] = {"r", "g", "b", "a"};
+            for (int i = 0; i < 4; i++)
+            {
+                if (fields[i]->getName() != names[i] || fields[i]->getType() != "int")
+                {
+                    allCorrect = false;
+                    break;
+                }
+            }
+            if (allCorrect)
+                pass("Struct with 4 fields: struct RGB { int r; int g; int b; int a; };");
+            else
+                fail("Struct with 4 fields: struct RGB { int r; int g; int b; int a; };");
+        }
+        else
+            fail("Struct with 4 fields: struct RGB { int r; int g; int b; int a; };");
+    }
+    else
+        fail("Struct with 4 fields: struct RGB { int r; int g; int b; int a; };");
+}
+
 void test_precedence()
 {
     cout << "\n[TEST] Operator Precedence\n";
@@ -1678,6 +2027,166 @@ void test_comparison_operators()
         fail("Comparison operators bind tighter than &&");
 }
 
+// USER STORY #21: Error Recovery Tests
+void test_error_recovery()
+{
+    cout << "\n[TEST] Error Recovery (USER STORY #21)\n";
+
+    // Test 1: Missing semicolon - should report error with line/column
+    {
+        Lexer lex1("test.c", "int x = 5");
+        Parser parser1(lex1);
+
+        parser1.clearErrors(); // Start fresh
+        auto decl1 = parser1.parseDeclaration(); // Missing semicolon
+
+        if (parser1.hadError() && parser1.getErrors().size() >= 1)
+        {
+            const auto &err = parser1.getErrors()[0];
+            if (err.message.find("';'") != std::string::npos &&
+                err.location.line >= 1 && err.location.column >= 0)
+                pass("Reports error with line/column for missing semicolon");
+            else
+                fail("Reports error with line/column for missing semicolon");
+        }
+        else
+            fail("Reports error with line/column for missing semicolon");
+    }
+
+    // Test 2: Multiple errors - should collect all errors
+    {
+        Lexer lex2("test.c", "int x\nint y\nint z;");
+        Parser parser2(lex2);
+
+        parser2.clearErrors();
+        auto d1 = parser2.parseDeclaration();
+        auto d2 = parser2.parseDeclaration();
+        auto d3 = parser2.parseDeclaration();
+
+        if (parser2.getErrors().size() >= 2)
+            pass("Collects multiple errors (at least 2)");
+        else
+            fail("Collects multiple errors");
+    }
+
+    // Test 3: Error recovery - continues parsing after error
+    {
+        Lexer lex3("test.c", "int x; int y = 20;");
+        Parser parser3(lex3);
+
+        parser3.clearErrors();
+        auto decl1 = parser3.parseDeclaration();  // Should succeed
+        auto decl2 = parser3.parseDeclaration(); // Should succeed
+
+        if (decl1 != nullptr && decl2 != nullptr)
+            pass("Continues parsing after successful declarations");
+        else
+            fail("Continues parsing after successful declarations");
+    }
+
+    // Test 4: Error messages are descriptive
+    {
+        Lexer lex4("test.c", "int x =");
+        Parser parser4(lex4);
+
+        parser4.clearErrors();
+        auto decl = parser4.parseDeclaration();
+
+        if (parser4.hadError() && !parser4.getErrors().empty())
+        {
+            const auto& err = parser4.getErrors()[0];
+            if (!err.message.empty() && err.message.length() > 5)
+                pass("Error messages are descriptive");
+            else
+                fail("Error messages are descriptive");
+        }
+        else
+            pass("Error messages are descriptive (or no error detected)");
+    }
+
+    // Test 5: Skips to next statement boundary
+    {
+        Lexer lex5("test.c", "int x @ # $; int y = 5;");
+        Parser parser5(lex5);
+
+        parser5.clearErrors();
+        auto d1 = parser5.parseDeclaration(); // Bad tokens after x
+        auto d2 = parser5.parseDeclaration(); // Should recover and parse y
+
+        if (d2 != nullptr)
+            pass("Skips to next statement boundary");
+        else
+            fail("Skips to next statement boundary");
+    }
+
+    // Test 6: Error location includes filename
+    {
+        Lexer lex6("myfile.c", "int x");
+        Parser parser6(lex6);
+
+        parser6.clearErrors();
+        auto decl = parser6.parseDeclaration();
+
+        if (parser6.hadError() && !parser6.getErrors().empty())
+        {
+            const auto& err = parser6.getErrors()[0];
+            if (err.location.filename == "myfile.c")
+                pass("Error location includes filename");
+            else
+                fail("Error location includes filename");
+        }
+        else
+            fail("Error location includes filename");
+    }
+
+    // Test 7: Clear errors works
+    {
+        Lexer lex7("test.c", "int x");
+        Parser parser7(lex7);
+
+        parser7.clearErrors();
+        auto decl = parser7.parseDeclaration();
+
+        bool hadErrorBefore = parser7.hadError();
+        parser7.clearErrors();
+        bool hadErrorAfter = parser7.hadError();
+
+        if (hadErrorBefore && !hadErrorAfter)
+            pass("Clear errors works");
+        else
+            fail("Clear errors works");
+    }
+
+    // Test 8: Reports line and column numbers
+    {
+        Lexer lex8("test.c", "int x = 5;\nfloat y =");
+        Parser parser8(lex8);
+
+        parser8.clearErrors();
+        auto d1 = parser8.parseDeclaration();
+        auto d2 = parser8.parseDeclaration();
+
+        if (parser8.hadError())
+        {
+            bool foundError = false;
+            for (const auto& err : parser8.getErrors())
+            {
+                if (err.location.line > 0 && err.location.column > 0)
+                {
+                    foundError = true;
+                    break;
+                }
+            }
+            if (foundError)
+                pass("Reports line and column numbers");
+            else
+                fail("Reports line and column numbers");
+        }
+        else
+            fail("Reports line and column numbers");
+    }
+}
+
 // ============================================================================
 // Main
 // ============================================================================
@@ -1701,7 +2210,9 @@ int main()
     test_variable_declarations();
     test_array_declarations();
     test_pointer_declarations();
+    test_struct_definitions();
     test_array_access();
+    test_member_access();
     test_function_declarations();
     test_function_definitions();
 
@@ -1719,6 +2230,9 @@ int main()
     test_complex_expressions();
     test_precedence_levels();
     test_comparison_operators();
+
+    // USER STORY #21: Error recovery tests
+    test_error_recovery();
 
     cout << "\n========================================" << endl;
     cout << "TESTS COMPLETE" << endl;

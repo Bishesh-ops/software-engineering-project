@@ -16,6 +16,7 @@ class IdentifierExpr;
 class CallExpr;
 class AssignmentExpr;
 class ArrayAccessExpr;
+class MemberAccessExpr; // USER STORY #20
 class IfStmt;
 class WhileStmt;
 class ForStmt;
@@ -44,6 +45,7 @@ enum class ASTNodeType
     CALL_EXPR,
     ASSIGNMENT_EXPR,
     ARRAY_ACCESS_EXPR,
+    MEMBER_ACCESS_EXPR, // USER STORY #20
 
     // Statement types
     IF_STMT,
@@ -116,6 +118,7 @@ public:
     virtual void visit(CallExpr &node) = 0;
     virtual void visit(AssignmentExpr &node) = 0;
     virtual void visit(ArrayAccessExpr &node) = 0;
+    virtual void visit(MemberAccessExpr &node) = 0; // USER STORY #20
 
     // Statement visitors
     virtual void visit(IfStmt &node) = 0;
@@ -307,6 +310,30 @@ public:
 
     Expression *getArray() const { return array.get(); }
     Expression *getIndex() const { return index.get(); }
+};
+
+// Member Access Expression (e.g., point.x or ptr->y)
+// USER STORY #20
+class MemberAccessExpr : public Expression
+{
+private:
+    std::unique_ptr<Expression> object;  // object/pointer being accessed
+    std::string memberName;              // name of the member
+    bool isArrow;                        // true for ->, false for .
+
+public:
+    MemberAccessExpr(std::unique_ptr<Expression> obj,
+                     std::string member,
+                     bool arrow,
+                     const SourceLocation &loc)
+        : Expression(ASTNodeType::MEMBER_ACCESS_EXPR, loc),
+          object(std::move(obj)), memberName(member), isArrow(arrow) {}
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+    Expression *getObject() const { return object.get(); }
+    const std::string &getMemberName() const { return memberName; }
+    bool getIsArrow() const { return isArrow; }
 };
 
 // ============================================================================

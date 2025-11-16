@@ -5,6 +5,16 @@
 #include "ast.h"
 #include <memory>
 #include <vector>
+#include <string>
+
+// USER STORY #21: Error recovery support
+struct ParseError
+{
+    std::string message;
+    SourceLocation location;
+    ParseError(const std::string &msg, const SourceLocation &loc)
+        : message(msg), location(loc) {}
+};
 
 // Parser for C source code
 // Converts tokens from the lexer into an Abstract Syntax Tree (AST)
@@ -37,6 +47,12 @@ public:
     std::unique_ptr<Declaration> parseDeclaration();
     std::unique_ptr<Declaration> parseVariableDeclaration();
     std::unique_ptr<Declaration> parseFunctionDeclaration();
+    std::unique_ptr<Declaration> parseStructDefinition(); // USER STORY #19
+
+    // Error handling public API (USER STORY #21)
+    bool hadError() const { return !errors_.empty(); }
+    const std::vector<ParseError> &getErrors() const { return errors_; }
+    void clearErrors() { errors_.clear(); }
 
 private:
     Lexer &lexer_;
@@ -48,9 +64,13 @@ private:
     bool match(TokenType type);
     Token consume(TokenType type, const std::string &error_message);
 
-    // Error handling
+    // Error handling (USER STORY #21)
     void reportError(const std::string &message);
     SourceLocation currentLocation() const;
+    void synchronize(); // Skip to next statement boundary
+    void synchronizeToDeclaration(); // Skip to next declaration
+
+    std::vector<ParseError> errors_; // Error collection
 
     // Operator precedence and associativity (User Story #3)
     int getOperatorPrecedence(TokenType type) const;
