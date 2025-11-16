@@ -35,14 +35,14 @@ make test_lexer     # Run only lexer tests
 
 ```
 [TEST] Simple Binary Operations
-  ✓ a + b
-  ✓ x * y
+  [PASS] a + b
+  [PASS] x * y
 
 [TEST] All Operators
-  ✓ All 12 operators work
+  [PASS] All 12 operators work
 ```
 
-Simple and clean! ✓ = pass, ✗ = fail
+Simple and clean! [PASS] = pass, [FAIL] = fail
 
 ## Why One Test File?
 

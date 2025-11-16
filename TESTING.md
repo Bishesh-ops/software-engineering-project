@@ -42,16 +42,16 @@ Tests tokenization of C source code.
 
 ```
 [TEST] Simple Binary Operations
-  ✓ a + b
-  ✓ x * y
+  [PASS] a + b
+  [PASS] x * y
 
 [TEST] Operator Precedence
-  ✓ * has higher precedence than +
-  ✓ Left associativity with different precedence
+  [PASS] * has higher precedence than +
+  [PASS] Left associativity with different precedence
 ```
 
-- `✓` = Test passed
-- `✗` = Test failed (shows what failed)
+- `[PASS]` = Test passed
+- `[FAIL]` = Test failed (shows what failed)
 
 ## Operator Precedence Tested
 

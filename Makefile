@@ -1,6 +1,7 @@
 # --- Compiler and Flags ---
 CXX := g++
 CXXFLAGS := -Wall -Wextra -std=c++17 -g
+LDFLAGS := -Wl,--allow-multiple-definition
 INCLUDES := -Iinclude
 
 # --- Directories ---
@@ -47,11 +48,11 @@ dirs:
 
 # --- Linking ---
 $(BIN_DIR)/test_lexer.exe: $(LEXER_OBJS) $(TEST_LEXER_OBJS)
-	$(CXX) $(CXXFLAGS) $(LEXER_OBJS) $(TEST_LEXER_OBJS) -o $@
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LEXER_OBJS) $(TEST_LEXER_OBJS) -o $@
 	@echo Linked $@.
 
 $(BIN_DIR)/test_parser.exe: $(LEXER_OBJS) $(PARSER_OBJS) $(TEST_PARSER_OBJS)
-	$(CXX) $(CXXFLAGS) $(LEXER_OBJS) $(PARSER_OBJS) $(TEST_PARSER_OBJS) -o $@
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LEXER_OBJS) $(PARSER_OBJS) $(TEST_PARSER_OBJS) -o $@
 	@echo Linked $@.
 
 # --- Compilation Rules ---

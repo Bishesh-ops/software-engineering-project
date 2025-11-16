@@ -14,11 +14,13 @@ class UnaryExpr;
 class LiteralExpr;
 class IdentifierExpr;
 class CallExpr;
+class AssignmentExpr;
 class IfStmt;
 class WhileStmt;
 class ForStmt;
 class ReturnStmt;
 class CompoundStmt;
+class ExpressionStmt;
 class VarDecl;
 class TypeDecl;
 class StructDecl;
@@ -39,6 +41,7 @@ enum class ASTNodeType
     LITERAL_EXPR,
     IDENTIFIER_EXPR,
     CALL_EXPR,
+    ASSIGNMENT_EXPR,
 
     // Statement types
     IF_STMT,
@@ -46,6 +49,7 @@ enum class ASTNodeType
     FOR_STMT,
     RETURN_STMT,
     COMPOUND_STMT,
+    EXPRESSION_STMT,
 
     // Declaration types
     VAR_DECL,
@@ -108,6 +112,7 @@ public:
     virtual void visit(LiteralExpr &node) = 0;
     virtual void visit(IdentifierExpr &node) = 0;
     virtual void visit(CallExpr &node) = 0;
+    virtual void visit(AssignmentExpr &node) = 0;
 
     // Statement visitors
     virtual void visit(IfStmt &node) = 0;
@@ -115,6 +120,7 @@ public:
     virtual void visit(ForStmt &node) = 0;
     virtual void visit(ReturnStmt &node) = 0;
     virtual void visit(CompoundStmt &node) = 0;
+    virtual void visit(ExpressionStmt &node) = 0;
 
     // Declaration visitors
     virtual void visit(VarDecl &node) = 0;
@@ -260,6 +266,26 @@ public:
     const std::vector<std::unique_ptr<Expression>> &getArguments() const { return arguments; }
 };
 
+// Assignment Expression (e.g., x = 5)
+class AssignmentExpr : public Expression
+{
+private:
+    std::unique_ptr<Expression> target;  // left-hand side (usually identifier)
+    std::unique_ptr<Expression> value;   // right-hand side
+
+public:
+    AssignmentExpr(std::unique_ptr<Expression> lhs,
+                   std::unique_ptr<Expression> rhs,
+                   const SourceLocation &loc)
+        : Expression(ASTNodeType::ASSIGNMENT_EXPR, loc),
+          target(std::move(lhs)), value(std::move(rhs)) {}
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+    Expression *getTarget() const { return target.get(); }
+    Expression *getValue() const { return value.get(); }
+};
+
 // ============================================================================
 // Statement Node Classes
 // ============================================================================
@@ -363,6 +389,21 @@ public:
     void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
 
     const std::vector<std::unique_ptr<Statement>> &getStatements() const { return statements; }
+};
+
+// Expression Statement (expression used as a statement, e.g., x = 5;)
+class ExpressionStmt : public Statement
+{
+private:
+    std::unique_ptr<Expression> expression;
+
+public:
+    ExpressionStmt(std::unique_ptr<Expression> expr, const SourceLocation &loc)
+        : Statement(ASTNodeType::EXPRESSION_STMT, loc), expression(std::move(expr)) {}
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+    Expression *getExpression() const { return expression.get(); }
 };
 
 // ============================================================================
