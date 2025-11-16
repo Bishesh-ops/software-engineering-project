@@ -1,7 +1,13 @@
 # --- Compiler and Flags ---
 CXX := g++
 CXXFLAGS := -Wall -Wextra -std=c++17 -g
-LDFLAGS := -Wl,--allow-multiple-definition
+# macOS uses LLVM linker, Linux uses GNU ld
+UNAME := $(shell uname -s)
+ifeq ($(UNAME),Darwin)
+    LDFLAGS :=
+else
+    LDFLAGS := -Wl,--allow-multiple-definition
+endif
 INCLUDES := -Iinclude
 
 # --- Directories ---
@@ -56,16 +62,16 @@ $(BIN_DIR)/test_parser.exe: $(LEXER_OBJS) $(PARSER_OBJS) $(TEST_PARSER_OBJS)
 	@echo Linked $@.
 
 # --- Compilation Rules ---
-$(OBJ_DIR)/%.o: src/lexer/%.cpp
+$(OBJ_DIR)/%.o: src/lexer/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-$(OBJ_DIR)/%.o: src/parser/%.cpp
+$(OBJ_DIR)/%.o: src/parser/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-$(OBJ_DIR)/test_lexer.o: test_lexer.cpp
+$(OBJ_DIR)/test_lexer.o: test_lexer.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-$(OBJ_DIR)/test_parser.o: test_parser.cpp
+$(OBJ_DIR)/test_parser.o: test_parser.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 # --- Cleanup ---

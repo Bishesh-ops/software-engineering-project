@@ -15,6 +15,7 @@ class LiteralExpr;
 class IdentifierExpr;
 class CallExpr;
 class AssignmentExpr;
+class ArrayAccessExpr;
 class IfStmt;
 class WhileStmt;
 class ForStmt;
@@ -42,6 +43,7 @@ enum class ASTNodeType
     IDENTIFIER_EXPR,
     CALL_EXPR,
     ASSIGNMENT_EXPR,
+    ARRAY_ACCESS_EXPR,
 
     // Statement types
     IF_STMT,
@@ -113,6 +115,7 @@ public:
     virtual void visit(IdentifierExpr &node) = 0;
     virtual void visit(CallExpr &node) = 0;
     virtual void visit(AssignmentExpr &node) = 0;
+    virtual void visit(ArrayAccessExpr &node) = 0;
 
     // Statement visitors
     virtual void visit(IfStmt &node) = 0;
@@ -286,6 +289,26 @@ public:
     Expression *getValue() const { return value.get(); }
 };
 
+// Array Access Expression (e.g., arr[index] or arr[i + 1])
+class ArrayAccessExpr : public Expression
+{
+private:
+    std::unique_ptr<Expression> array;  // array being accessed
+    std::unique_ptr<Expression> index;  // index expression
+
+public:
+    ArrayAccessExpr(std::unique_ptr<Expression> arr,
+                    std::unique_ptr<Expression> idx,
+                    const SourceLocation &loc)
+        : Expression(ASTNodeType::ARRAY_ACCESS_EXPR, loc),
+          array(std::move(arr)), index(std::move(idx)) {}
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+    Expression *getArray() const { return array.get(); }
+    Expression *getIndex() const { return index.get(); }
+};
+
 // ============================================================================
 // Statement Node Classes
 // ============================================================================
@@ -410,25 +433,35 @@ public:
 // Declaration Node Classes
 // ============================================================================
 
-// Variable Declaration (e.g., int x = 5;)
+// Variable Declaration (e.g., int x = 5; or int arr[10]; or int *ptr;)
 class VarDecl : public Declaration
 {
 private:
     std::string name;
     std::string type;
     std::unique_ptr<Expression> initializer; // can be nullptr
+    bool isArray;                             // true if this is an array declaration
+    std::unique_ptr<Expression> arraySize;    // size expression for arrays (can be nullptr)
+    int pointerLevel;                         // number of pointer indirections (0 = not a pointer, 1 = *, 2 = **, etc.)
 
 public:
     VarDecl(std::string varName, std::string varType,
-            std::unique_ptr<Expression> init, const SourceLocation &loc)
+            std::unique_ptr<Expression> init, const SourceLocation &loc,
+            bool array = false, std::unique_ptr<Expression> size = nullptr,
+            int ptrLevel = 0)
         : Declaration(ASTNodeType::VAR_DECL, loc),
-          name(varName), type(varType), initializer(std::move(init)) {}
+          name(varName), type(varType), initializer(std::move(init)),
+          isArray(array), arraySize(std::move(size)), pointerLevel(ptrLevel) {}
 
     void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
 
     const std::string &getName() const { return name; }
     const std::string &getType() const { return type; }
     Expression *getInitializer() const { return initializer.get(); }
+    bool getIsArray() const { return isArray; }
+    Expression *getArraySize() const { return arraySize.get(); }
+    int getPointerLevel() const { return pointerLevel; }
+    bool isPointer() const { return pointerLevel > 0; }
 };
 
 // Type Declaration (e.g., typedef)

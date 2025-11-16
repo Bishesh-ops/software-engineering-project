@@ -29,12 +29,14 @@ public:
     std::unique_ptr<Statement> parseIfStatement();
     std::unique_ptr<Statement> parseWhileStatement();
     std::unique_ptr<Statement> parseForStatement();
+    std::unique_ptr<Statement> parseReturnStatement();
     std::unique_ptr<Statement> parseExpressionStatement();
     std::unique_ptr<Statement> parseCompoundStatement();
 
     // Declaration parsing
     std::unique_ptr<Declaration> parseDeclaration();
     std::unique_ptr<Declaration> parseVariableDeclaration();
+    std::unique_ptr<Declaration> parseFunctionDeclaration();
 
 private:
     Lexer &lexer_;
@@ -59,6 +61,7 @@ private:
     // Helper methods
     bool isTypeKeyword(TokenType type) const;
     std::string parseType();
+    std::vector<std::unique_ptr<ParameterDecl>> parseParameterList();
 };
 
 #endif // PARSER_H

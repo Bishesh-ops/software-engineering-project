@@ -121,13 +121,15 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression()
 }
 
 // ============================================================================
-// Identifier Parsing (USER STORY #2)
+// Identifier and Function Call Parsing (USER STORY #2, #14)
 // ============================================================================
 
 std::unique_ptr<Expression> Parser::parseIdentifier()
 {
     // Accept: Creates IdentifierNode with variable name
     // Accept: Does NOT validate existence (that's semantic analysis later)
+    // USER STORY #14: Also handles function calls when identifier is followed by '('
+    // USER STORY #17: Also handles array access when identifier is followed by '['
 
     Token identifier_token = consume(TokenType::IDENTIFIER, "Expected identifier");
 
@@ -137,9 +139,65 @@ std::unique_ptr<Expression> Parser::parseIdentifier()
     // Create source location for error reporting
     SourceLocation loc(identifier_token.filename, identifier_token.line, identifier_token.column);
 
-    // Create and return IdentifierExpr node
-    // NOTE: We do NOT check if this variable exists - that's semantic analysis!
-    return std::make_unique<IdentifierExpr>(name, loc);
+    // Create the base expression (identifier)
+    std::unique_ptr<Expression> expr = std::make_unique<IdentifierExpr>(name, loc);
+
+    // Handle postfix operations (function calls and array access)
+    // These can be chained: arr[i](args) or func(args)[i]
+    while (true)
+    {
+        if (check(TokenType::LPAREN))
+        {
+            // USER STORY #14: Parse function call
+            consume(TokenType::LPAREN, "Expected '('");
+
+            // Parse argument list
+            std::vector<std::unique_ptr<Expression>> arguments;
+
+            // Handle empty argument list
+            if (!check(TokenType::RPAREN))
+            {
+                // Parse arguments: expr, expr, expr, ...
+                do
+                {
+                    arguments.push_back(parseExpression());
+
+                    // Check for comma (more arguments)
+                    if (!check(TokenType::COMMA))
+                    {
+                        break;
+                    }
+                    advance(); // consume comma
+
+                } while (!check(TokenType::RPAREN) && !check(TokenType::EOF_TOKEN));
+            }
+
+            consume(TokenType::RPAREN, "Expected ')' after function arguments");
+
+            // Create CallExpr with current expression as callee
+            expr = std::make_unique<CallExpr>(std::move(expr), std::move(arguments), loc);
+        }
+        else if (check(TokenType::LBRACKET))
+        {
+            // USER STORY #17: Parse array access
+            consume(TokenType::LBRACKET, "Expected '['");
+
+            // Parse index expression
+            std::unique_ptr<Expression> index = parseExpression();
+
+            consume(TokenType::RBRACKET, "Expected ']' after array index");
+
+            // Create ArrayAccessExpr with current expression as array
+            expr = std::make_unique<ArrayAccessExpr>(std::move(expr), std::move(index), loc);
+        }
+        else
+        {
+            // No more postfix operations
+            break;
+        }
+    }
+
+    return expr;
 }
 
 // ============================================================================
@@ -234,7 +292,7 @@ std::unique_ptr<Expression> Parser::parseBinaryExpression(int min_precedence)
 }
 
 // ============================================================================
-// Operator Precedence Helpers (USER STORY #3)
+// Operator Precedence Helpers
 // ============================================================================
 
 int Parser::getOperatorPrecedence(TokenType type) const
@@ -319,7 +377,7 @@ std::string Parser::tokenTypeToOperatorString(TokenType type) const
 }
 
 // ============================================================================
-// Unary Expression Parsing (USER STORY #4)
+// Unary Expression Parsing
 // ============================================================================
 
 std::unique_ptr<Expression> Parser::parseUnaryExpression()
@@ -363,6 +421,9 @@ std::unique_ptr<Statement> Parser::parseStatement()
 
     case TokenType::KW_FOR:
         return parseForStatement();
+
+    case TokenType::KW_RETURN:
+        return parseReturnStatement();
 
     case TokenType::LBRACE:
         return parseCompoundStatement();
@@ -483,6 +544,29 @@ std::unique_ptr<Statement> Parser::parseForStatement()
     );
 }
 
+std::unique_ptr<Statement> Parser::parseReturnStatement()
+{
+    // USER STORY #13: Parse return statements
+    // Syntax: return;              (void return)
+    //     or: return expression;   (return with value)
+
+    Token return_token = current_token_;
+    advance(); // consume 'return'
+
+    std::unique_ptr<Expression> returnValue = nullptr;
+
+    // Check if there's a return value (not just "return;")
+    if (!check(TokenType::SEMICOLON))
+    {
+        returnValue = parseExpression();
+    }
+
+    consume(TokenType::SEMICOLON, "Expected ';' after return statement");
+
+    SourceLocation loc(return_token.filename, return_token.line, return_token.column);
+    return std::make_unique<ReturnStmt>(std::move(returnValue), loc);
+}
+
 std::unique_ptr<Statement> Parser::parseExpressionStatement()
 {
     Token start_token = current_token_;
@@ -523,39 +607,118 @@ std::unique_ptr<Statement> Parser::parseCompoundStatement()
 }
 
 // ============================================================================
-// Declaration Parsing (USER STORY #6)
+// Declaration Parsing 
 // ============================================================================
 
 std::unique_ptr<Declaration> Parser::parseDeclaration()
 {
-    if (isTypeKeyword(current_token_.type))
+    // Parse type and name first, then determine if function or variable
+    if (!isTypeKeyword(current_token_.type))
     {
-        return parseVariableDeclaration();
+        reportError("Expected declaration");
+        throw std::runtime_error("Expected declaration");
     }
 
-    reportError("Expected declaration");
-    throw std::runtime_error("Expected declaration");
+    Token start_token = current_token_;
+    std::string type = parseType();
+
+    // USER STORY #18: Parse pointer declarators (* symbols)
+    int pointerLevel = 0;
+    while (check(TokenType::OP_STAR))
+    {
+        advance(); // consume '*'
+        pointerLevel++;
+    }
+
+    Token name_token = consume(TokenType::IDENTIFIER, "Expected identifier in declaration");
+    std::string name(name_token.value);
+
+    // Check what follows the identifier
+    if (check(TokenType::LPAREN))
+    {
+        // It's a function declaration: type name(...)
+        // Parse parameter list
+        consume(TokenType::LPAREN, "Expected '(' after function name");
+        std::vector<std::unique_ptr<ParameterDecl>> parameters = parseParameterList();
+        consume(TokenType::RPAREN, "Expected ')' after parameter list");
+
+        // Check if this is a forward declaration (ends with ';') or a definition (has body)
+        std::unique_ptr<CompoundStmt> body = nullptr;
+
+        if (check(TokenType::LBRACE))
+        {
+            // Function definition with body
+            body = std::unique_ptr<CompoundStmt>(
+                dynamic_cast<CompoundStmt*>(parseCompoundStatement().release())
+            );
+        }
+        else if (match(TokenType::SEMICOLON))
+        {
+            // Forward declaration - body remains nullptr
+        }
+        else
+        {
+            reportError("Expected ';' or '{' after function declaration");
+            throw std::runtime_error("Expected ';' or '{' after function declaration");
+        }
+
+        SourceLocation loc(start_token.filename, start_token.line, start_token.column);
+        return std::make_unique<FunctionDecl>(name, type, std::move(parameters), std::move(body), loc);
+    }
+    else if (check(TokenType::LBRACKET))
+    {
+        // USER STORY #16: Array declaration: type name[size];
+        consume(TokenType::LBRACKET, "Expected '['");
+
+        // Parse array size expression
+        std::unique_ptr<Expression> arraySize = parseExpression();
+
+        consume(TokenType::RBRACKET, "Expected ']' after array size");
+
+        // Arrays can optionally have initializers (future enhancement)
+        std::unique_ptr<Expression> initializer = nullptr;
+        if (match(TokenType::OP_ASSIGN))
+        {
+            // For now, we'll parse the initializer as an expression
+            // A full implementation would handle { elem1, elem2, ... }
+            initializer = parseExpression();
+        }
+
+        consume(TokenType::SEMICOLON, "Expected ';' after array declaration");
+
+        SourceLocation loc(start_token.filename, start_token.line, start_token.column);
+        return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, true, std::move(arraySize), pointerLevel);
+    }
+    else
+    {
+        // It's a regular variable declaration: type name [= value];
+        // or pointer declaration: type *name [= value];
+        std::unique_ptr<Expression> initializer = nullptr;
+
+        if (match(TokenType::OP_ASSIGN))
+        {
+            initializer = parseExpression();
+        }
+
+        consume(TokenType::SEMICOLON, "Expected ';' after variable declaration");
+
+        SourceLocation loc(start_token.filename, start_token.line, start_token.column);
+        return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, false, nullptr, pointerLevel);
+    }
 }
 
 std::unique_ptr<Declaration> Parser::parseVariableDeclaration()
 {
-    Token start_token = current_token_;
-    std::string type = parseType();
+    // This method is kept for backward compatibility but just calls parseDeclaration()
+    // The main logic is now in parseDeclaration() which handles both variables and functions
+    return parseDeclaration();
+}
 
-    Token name_token = consume(TokenType::IDENTIFIER, "Expected variable name");
-    std::string name(name_token.value);
-
-    std::unique_ptr<Expression> initializer = nullptr;
-
-    if (match(TokenType::OP_ASSIGN))
-    {
-        initializer = parseExpression();
-    }
-
-    consume(TokenType::SEMICOLON, "Expected ';' after variable declaration");
-
-    SourceLocation loc(start_token.filename, start_token.line, start_token.column);
-    return std::make_unique<VarDecl>(name, type, std::move(initializer), loc);
+std::unique_ptr<Declaration> Parser::parseFunctionDeclaration()
+{
+    // This method is kept for potential future use but just calls parseDeclaration()
+    // The main logic is now in parseDeclaration() which handles both variables and functions
+    return parseDeclaration();
 }
 
 // ============================================================================
@@ -592,4 +755,62 @@ std::string Parser::parseType()
     std::string type(current_token_.value);
     advance();
     return type;
+}
+
+std::vector<std::unique_ptr<ParameterDecl>> Parser::parseParameterList()
+{
+    // USER STORY #12: Parse function parameter list
+    // Syntax: (type name, type name, ...)
+    // Empty parameter list: () or (void)
+
+    std::vector<std::unique_ptr<ParameterDecl>> parameters;
+
+    // Handle empty parameter list or (void)
+    if (check(TokenType::RPAREN))
+    {
+        return parameters; // empty list
+    }
+
+    if (check(TokenType::KW_VOID))
+    {
+        // Check if it's just "(void)" - no parameters
+        Token void_token = current_token_;
+        advance();
+
+        if (check(TokenType::RPAREN))
+        {
+            return parameters; // empty list, void means no parameters
+        }
+        else
+        {
+            reportError("Unexpected token after 'void' in parameter list");
+            throw std::runtime_error("Unexpected token after 'void'");
+        }
+    }
+
+    // Parse parameter list: type name, type name, ...
+    do
+    {
+        Token param_start = current_token_;
+
+        // Parse parameter type
+        std::string paramType = parseType();
+
+        // Parse parameter name (optional in forward declarations, but we'll require it)
+        Token param_name_token = consume(TokenType::IDENTIFIER, "Expected parameter name");
+        std::string paramName(param_name_token.value);
+
+        SourceLocation loc(param_start.filename, param_start.line, param_start.column);
+        parameters.push_back(std::make_unique<ParameterDecl>(paramName, paramType, loc));
+
+        // Check for comma (more parameters)
+        if (!check(TokenType::COMMA))
+        {
+            break;
+        }
+        advance(); // consume comma
+
+    } while (!check(TokenType::RPAREN) && !check(TokenType::EOF_TOKEN));
+
+    return parameters;
 }
