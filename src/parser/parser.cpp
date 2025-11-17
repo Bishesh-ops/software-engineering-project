@@ -46,7 +46,7 @@ Token Parser::consume(TokenType type, const std::string &error_message)
 }
 
 // ============================================================================
-// Error Handling (USER STORY #21)
+// Error Handling
 // ============================================================================
 
 void Parser::reportError(const std::string &message)
@@ -192,7 +192,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression()
 }
 
 // ============================================================================
-// Identifier and Function Call Parsing (USER STORY #2, #14)
+// Identifier and Function Call Parsing
 // ============================================================================
 
 std::unique_ptr<Expression> Parser::parseIdentifier()
@@ -330,7 +330,7 @@ std::unique_ptr<Expression> Parser::parseLiteral()
 }
 
 // ============================================================================
-// Binary Expression Parsing (USER STORY #3)
+// Binary Expression Parsing
 // ============================================================================
 
 std::unique_ptr<Expression> Parser::parseBinaryExpression(int min_precedence)
@@ -478,7 +478,7 @@ std::unique_ptr<Expression> Parser::parseUnaryExpression()
 }
 
 // ============================================================================
-// Parenthesized Expression Parsing (USER STORY #5)
+// Parenthesized Expression Parsing
 // ============================================================================
 
 std::unique_ptr<Expression> Parser::parseParenthesizedExpression()
