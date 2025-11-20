@@ -41,7 +41,7 @@
 *.dwo
 
 # IDE files
-.vscode
+
 
 Makefile
 bin
