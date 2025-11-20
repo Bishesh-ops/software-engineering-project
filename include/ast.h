@@ -14,11 +14,15 @@ class UnaryExpr;
 class LiteralExpr;
 class IdentifierExpr;
 class CallExpr;
+class AssignmentExpr;
+class ArrayAccessExpr;
+class MemberAccessExpr; // USER STORY #20
 class IfStmt;
 class WhileStmt;
 class ForStmt;
 class ReturnStmt;
 class CompoundStmt;
+class ExpressionStmt;
 class VarDecl;
 class TypeDecl;
 class StructDecl;
@@ -39,6 +43,9 @@ enum class ASTNodeType
     LITERAL_EXPR,
     IDENTIFIER_EXPR,
     CALL_EXPR,
+    ASSIGNMENT_EXPR,
+    ARRAY_ACCESS_EXPR,
+    MEMBER_ACCESS_EXPR, // USER STORY #20
 
     // Statement types
     IF_STMT,
@@ -46,6 +53,7 @@ enum class ASTNodeType
     FOR_STMT,
     RETURN_STMT,
     COMPOUND_STMT,
+    EXPRESSION_STMT,
 
     // Declaration types
     VAR_DECL,
@@ -77,8 +85,8 @@ struct SourceLocation
 class ASTNode
 {
 protected:
-    SourceLocation location;
     ASTNodeType nodeType;
+    SourceLocation location;
 
 public:
     ASTNode(ASTNodeType type, const SourceLocation &loc) : nodeType(type), location(loc) {}
@@ -108,6 +116,9 @@ public:
     virtual void visit(LiteralExpr &node) = 0;
     virtual void visit(IdentifierExpr &node) = 0;
     virtual void visit(CallExpr &node) = 0;
+    virtual void visit(AssignmentExpr &node) = 0;
+    virtual void visit(ArrayAccessExpr &node) = 0;
+    virtual void visit(MemberAccessExpr &node) = 0; // USER STORY #20
 
     // Statement visitors
     virtual void visit(IfStmt &node) = 0;
@@ -115,6 +126,7 @@ public:
     virtual void visit(ForStmt &node) = 0;
     virtual void visit(ReturnStmt &node) = 0;
     virtual void visit(CompoundStmt &node) = 0;
+    virtual void visit(ExpressionStmt &node) = 0;
 
     // Declaration visitors
     virtual void visit(VarDecl &node) = 0;
@@ -161,8 +173,8 @@ class BinaryExpr : public Expression
 {
 private:
     std::unique_ptr<Expression> left;
-    std::unique_ptr<Expression> right;
     std::string op; // operator: +, -, *, /, ==, !=, <, >, etc.
+    std::unique_ptr<Expression> right;
 
 public:
     BinaryExpr(std::unique_ptr<Expression> lhs, std::string operation,
@@ -181,8 +193,8 @@ public:
 class UnaryExpr : public Expression
 {
 private:
-    std::unique_ptr<Expression> operand;
     std::string op; // operator: -, !, *, &, ++, --, etc.
+    std::unique_ptr<Expression> operand;
     bool prefixOp;  // true for prefix (++x), false for postfix (x++)
 
 public:
@@ -258,6 +270,70 @@ public:
 
     Expression *getCallee() const { return callee.get(); }
     const std::vector<std::unique_ptr<Expression>> &getArguments() const { return arguments; }
+};
+
+// Assignment Expression (e.g., x = 5)
+class AssignmentExpr : public Expression
+{
+private:
+    std::unique_ptr<Expression> target;  // left-hand side (usually identifier)
+    std::unique_ptr<Expression> value;   // right-hand side
+
+public:
+    AssignmentExpr(std::unique_ptr<Expression> lhs,
+                   std::unique_ptr<Expression> rhs,
+                   const SourceLocation &loc)
+        : Expression(ASTNodeType::ASSIGNMENT_EXPR, loc),
+          target(std::move(lhs)), value(std::move(rhs)) {}
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+    Expression *getTarget() const { return target.get(); }
+    Expression *getValue() const { return value.get(); }
+};
+
+// Array Access Expression (e.g., arr[index] or arr[i + 1])
+class ArrayAccessExpr : public Expression
+{
+private:
+    std::unique_ptr<Expression> array;  // array being accessed
+    std::unique_ptr<Expression> index;  // index expression
+
+public:
+    ArrayAccessExpr(std::unique_ptr<Expression> arr,
+                    std::unique_ptr<Expression> idx,
+                    const SourceLocation &loc)
+        : Expression(ASTNodeType::ARRAY_ACCESS_EXPR, loc),
+          array(std::move(arr)), index(std::move(idx)) {}
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+    Expression *getArray() const { return array.get(); }
+    Expression *getIndex() const { return index.get(); }
+};
+
+// Member Access Expression (e.g., point.x or ptr->y)
+// USER STORY #20
+class MemberAccessExpr : public Expression
+{
+private:
+    std::unique_ptr<Expression> object;  // object/pointer being accessed
+    std::string memberName;              // name of the member
+    bool isArrow;                        // true for ->, false for .
+
+public:
+    MemberAccessExpr(std::unique_ptr<Expression> obj,
+                     std::string member,
+                     bool arrow,
+                     const SourceLocation &loc)
+        : Expression(ASTNodeType::MEMBER_ACCESS_EXPR, loc),
+          object(std::move(obj)), memberName(member), isArrow(arrow) {}
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+    Expression *getObject() const { return object.get(); }
+    const std::string &getMemberName() const { return memberName; }
+    bool getIsArrow() const { return isArrow; }
 };
 
 // ============================================================================
@@ -365,29 +441,54 @@ public:
     const std::vector<std::unique_ptr<Statement>> &getStatements() const { return statements; }
 };
 
+// Expression Statement (expression used as a statement, e.g., x = 5;)
+class ExpressionStmt : public Statement
+{
+private:
+    std::unique_ptr<Expression> expression;
+
+public:
+    ExpressionStmt(std::unique_ptr<Expression> expr, const SourceLocation &loc)
+        : Statement(ASTNodeType::EXPRESSION_STMT, loc), expression(std::move(expr)) {}
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+    Expression *getExpression() const { return expression.get(); }
+};
+
 // ============================================================================
 // Declaration Node Classes
 // ============================================================================
 
-// Variable Declaration (e.g., int x = 5;)
+// Variable Declaration (e.g., int x = 5; or int arr[10]; or int *ptr;)
 class VarDecl : public Declaration
 {
 private:
     std::string name;
     std::string type;
     std::unique_ptr<Expression> initializer; // can be nullptr
+    bool isArray;                             // true if this is an array declaration
+    std::unique_ptr<Expression> arraySize;    // size expression for arrays (can be nullptr)
+    int pointerLevel;                         // number of pointer indirections (0 = not a pointer, 1 = *, 2 = **, etc.)
 
 public:
     VarDecl(std::string varName, std::string varType,
-            std::unique_ptr<Expression> init, const SourceLocation &loc)
+            std::unique_ptr<Expression> init, const SourceLocation &loc,
+            bool array = false, std::unique_ptr<Expression> size = nullptr,
+            int ptrLevel = 0)
         : Declaration(ASTNodeType::VAR_DECL, loc),
-          name(varName), type(varType), initializer(std::move(init)) {}
+          name(varName), type(varType), initializer(std::move(init)),
+          isArray(array), arraySize(std::move(size)), pointerLevel(ptrLevel) {}
 
     void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
 
     const std::string &getName() const { return name; }
     const std::string &getType() const { return type; }
     Expression *getInitializer() const { return initializer.get(); }
+    bool getIsArray() const { return isArray; }
+    Expression *getArraySize() const { return arraySize.get(); }
+    int getPointerLevel() const { return pointerLevel; }
+    bool isPointer() const { return pointerLevel > 0; }
 };
 
 // Type Declaration (e.g., typedef)
