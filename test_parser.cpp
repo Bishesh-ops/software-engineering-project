@@ -313,7 +313,7 @@ void test_while_loops()
 
 void test_for_loops()
 {
-    cout << "\n[TEST] For Loops (USER STORY #10)\n";
+    cout << "\n[TEST] For Loops\n";
 
     // Test 1: Full for loop with all parts
     auto stmt1 = parseStmt("for (i = 0; i < 10; i = i + 1) x = x + 1;");
@@ -388,7 +388,7 @@ void test_for_loops()
 
 void test_compound_statements()
 {
-    cout << "\n[TEST] Compound Statements (USER STORY #11)\n";
+    cout << "\n[TEST] Compound Statements\n";
 
     // Test 1: Block with 2 statements
     auto stmt1 = parseStmt("{ x = 1; y = 2; }");
@@ -538,7 +538,7 @@ void test_compound_statements()
 
 void test_function_declarations()
 {
-    cout << "\n[TEST] Function Declarations (USER STORY #12)\n";
+    cout << "\n[TEST] Function Declarations\n";
 
     // Test 1: Simple function declaration - int add(int a, int b);
     auto decl1 = parseDecl("int add(int a, int b);");
@@ -682,7 +682,7 @@ void test_function_declarations()
 
 void test_function_definitions()
 {
-    cout << "\n[TEST] Function Definitions (USER STORY #13)\n";
+    cout << "\n[TEST] Function Definitions\n";
 
     // Test 1: Function with return statement - int add(int a, int b) { return a + b; }
     auto decl1 = parseDecl("int add(int a, int b) { return a + b; }");
@@ -865,7 +865,7 @@ void test_function_definitions()
 
 void test_function_calls()
 {
-    cout << "\n[TEST] Function Calls (USER STORY #14)\n";
+    cout << "\n[TEST] Function Calls\n";
 
     // Test 1: Simple function call with no arguments
     auto expr1 = parseExpr("getAnswer()");
@@ -1019,7 +1019,7 @@ void test_function_calls()
 
 void test_return_statements()
 {
-    cout << "\n[TEST] Return Statements (USER STORY #15)\n";
+    cout << "\n[TEST] Return Statements\n";
 
     // Test 1: Return with expression - return x;
     auto stmt1 = parseStmt("return x;");
@@ -1155,7 +1155,7 @@ void test_return_statements()
 
 void test_array_declarations()
 {
-    cout << "\n[TEST] Array Declarations (USER STORY #16)\n";
+    cout << "\n[TEST] Array Declarations\n";
 
     // Test 1: Simple array declaration - int arr[10];
     auto decl1 = parseDecl("int arr[10];");
@@ -1276,7 +1276,7 @@ void test_array_declarations()
 
 void test_array_access()
 {
-    cout << "\n[TEST] Array Access (USER STORY #17)\n";
+    cout << "\n[TEST] Array Access\n";
 
     // Test 1: Simple array access - arr[index]
     auto expr1 = parseExpr("arr[index]");
@@ -1436,7 +1436,7 @@ bool isMemberAccess(Expression* expr)
 
 void test_member_access()
 {
-    cout << "\n[TEST] Member Access (USER STORY #20)\n";
+    cout << "\n[TEST] Member Access\n";
 
     // Test 1: Simple dot access - point.x
     auto expr1 = parseExpr("point.x");
@@ -1604,7 +1604,7 @@ void test_member_access()
 
 void test_pointer_declarations()
 {
-    cout << "\n[TEST] Pointer Declarations (USER STORY #18)\n";
+    cout << "\n[TEST] Pointer Declarations\n";
 
     // Test 1: Simple pointer declaration - int *ptr;
     auto decl1 = parseDecl("int *ptr;");
@@ -1738,7 +1738,7 @@ void test_pointer_declarations()
 
 void test_struct_definitions()
 {
-    cout << "\n[TEST] Struct Definitions (USER STORY #19)\n";
+    cout << "\n[TEST] Struct Definitions\n";
 
     // Test 1: Basic struct with two integer fields - struct Point { int x; int y; };
     auto decl1 = parseDecl("struct Point { int x; int y; };");
