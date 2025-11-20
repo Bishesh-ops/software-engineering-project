@@ -5,29 +5,34 @@
 #include <unordered_map>
 #include <memory>
 #include <optional>
+#include "type.h"
 
 // Symbol represents an entry in the symbol table
 // Stores information about identifiers (variables, functions, etc.)
 struct Symbol {
-    std::string name;           // Identifier name
-    std::string type;           // Type (e.g., "int", "float", "char", etc.)
-    int scope_level;            // Scope depth (0 = global, 1+ = nested scopes)
-    bool is_function;           // true if this is a function, false for variable
-    bool is_array;              // true if this is an array
-    int array_size;             // Size of array (0 if not array or size unknown)
-    int pointer_depth;          // Number of pointer indirections (0 = not a pointer, 1 = *, 2 = **, etc.)
+    std::string name;                    // Identifier name
+    std::shared_ptr<Type> symbol_type;   // Type information (new Type class)
+    int scope_level;                     // Scope depth (0 = global, 1+ = nested scopes)
+    bool is_function;                    // true if this is a function, false for variable
+
+    // Deprecated fields (kept for backward compatibility with tests)
+    std::string type;           // Type string (deprecated, use symbol_type instead)
+    bool is_array;              // true if this is an array (deprecated)
+    int array_size;             // Size of array (deprecated)
+    int pointer_depth;          // Number of pointer indirections (deprecated)
 
     // Default constructor (needed for unordered_map)
     Symbol()
         : name(""),
-          type(""),
+          symbol_type(nullptr),
           scope_level(0),
           is_function(false),
+          type(""),
           is_array(false),
           array_size(0),
           pointer_depth(0) {}
 
-    // Constructor for variable symbols
+    // Constructor for variable symbols (backward compatible - uses string type)
     Symbol(const std::string& name,
            const std::string& type,
            int scope_level,
@@ -35,29 +40,97 @@ struct Symbol {
            int array_size = 0,
            int pointer_depth = 0)
         : name(name),
-          type(type),
+          symbol_type(createTypeFromLegacyFields(type, is_array, array_size, pointer_depth)),
           scope_level(scope_level),
           is_function(false),
+          type(type),
           is_array(is_array),
           array_size(array_size),
           pointer_depth(pointer_depth) {}
+
+    // Constructor for variable symbols (new Type-based)
+    Symbol(const std::string& name,
+           std::shared_ptr<Type> typ,
+           int scope_level)
+        : name(name),
+          symbol_type(typ),
+          scope_level(scope_level),
+          is_function(false),
+          type(typ ? typ->toString() : ""),
+          is_array(typ ? typ->isArray() : false),
+          array_size(typ ? typ->getArraySize() : 0),
+          pointer_depth(typ ? typ->getPointerDepth() : 0) {}
 
     // Tag types for constructor overloading
     struct FunctionTag {};
     static constexpr FunctionTag AsFunction{};
 
-    // Constructor for function symbols (using tag dispatch)
+    // Constructor for function symbols (using tag dispatch, backward compatible)
     Symbol(FunctionTag,
            const std::string& name,
            const std::string& return_type,
            int scope_level)
         : name(name),
-          type(return_type),
+          symbol_type(Type::fromString(return_type)),
           scope_level(scope_level),
           is_function(true),
+          type(return_type),
           is_array(false),
           array_size(0),
           pointer_depth(0) {}
+
+    // Constructor for function symbols (new Type-based)
+    Symbol(FunctionTag,
+           const std::string& name,
+           std::shared_ptr<Type> return_type,
+           int scope_level)
+        : name(name),
+          symbol_type(return_type),
+          scope_level(scope_level),
+          is_function(true),
+          type(return_type ? return_type->toString() : ""),
+          is_array(false),
+          array_size(0),
+          pointer_depth(0) {}
+
+private:
+    // Helper to create Type from legacy fields
+    static std::shared_ptr<Type> createTypeFromLegacyFields(
+        const std::string& type_str,
+        bool is_array,
+        int array_size,
+        int pointer_depth)
+    {
+        auto base_type = Type::fromString(type_str);
+        if (!base_type) {
+            return nullptr;
+        }
+
+        if (is_array && pointer_depth > 0) {
+            // Array of pointers
+            return std::make_shared<Type>(
+                base_type->getBaseType(),
+                pointer_depth,
+                array_size
+            );
+        } else if (is_array) {
+            // Just array
+            return std::make_shared<Type>(
+                base_type->getBaseType(),
+                array_size,
+                true
+            );
+        } else if (pointer_depth > 0) {
+            // Just pointer
+            return std::make_shared<Type>(
+                base_type->getBaseType(),
+                pointer_depth
+            );
+        } else {
+            // Simple type
+            return base_type;
+        }
+    }
 };
 
 // SymbolTable manages symbol lookup and insertion

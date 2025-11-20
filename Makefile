@@ -19,7 +19,7 @@ LEXER_SRCS := src/lexer/lexer.cpp src/lexer/token.cpp
 PARSER_SRCS := src/parser/parser.cpp
 AST_SRCS := src/AST/ast_node.cpp src/AST/ast_printer.cpp src/AST/ast_visitor.cpp \
             src/nodes/declaration_nodes.cpp src/nodes/expression_nodes.cpp src/nodes/statement_nodes.cpp
-SEMANTIC_SRCS := src/semantic/symbol_table.cpp src/semantic/scope_manager.cpp src/semantic/semantic_analyzer.cpp
+SEMANTIC_SRCS := src/semantic/type.cpp src/semantic/symbol_table.cpp src/semantic/scope_manager.cpp src/semantic/semantic_analyzer.cpp
 TEST_LEXER_SRCS := test_lexer.cpp
 TEST_PARSER_SRCS := test_parser.cpp
 TEST_SEMANTIC_SRCS := test_semantic.cpp

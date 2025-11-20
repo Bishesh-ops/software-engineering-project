@@ -109,12 +109,21 @@ void Parser::synchronizeToDeclaration()
 {
     while (current_token_.type != TokenType::EOF_TOKEN)
     {
-        // Look for type keywords or struct keyword
+        // If we find a semicolon, consume it and we're ready for next declaration
+        if (current_token_.type == TokenType::SEMICOLON)
+        {
+            advance(); // consume semicolon
+            return;
+        }
+
+        // Look for type keywords or struct keyword (start of next declaration)
         if (current_token_.type == TokenType::KW_INT ||
             current_token_.type == TokenType::KW_FLOAT ||
             current_token_.type == TokenType::KW_DOUBLE ||
             current_token_.type == TokenType::KW_CHAR ||
             current_token_.type == TokenType::KW_VOID ||
+            current_token_.type == TokenType::KW_LONG ||
+            current_token_.type == TokenType::KW_UNSIGNED ||
             current_token_.type == TokenType::KW_STRUCT ||
             current_token_.type == TokenType::RBRACE)
         {
@@ -778,7 +787,14 @@ std::unique_ptr<Declaration> Parser::parseDeclaration()
             initializer = parseExpression();
         }
 
-        consume(TokenType::SEMICOLON, "Expected ';' after array declaration");
+        if (!check(TokenType::SEMICOLON))
+        {
+            // USER STORY #21: Semicolon is missing, report error and synchronize
+            reportError("Expected ';'");
+            synchronizeToDeclaration();
+            return nullptr;
+        }
+        advance(); // Consume semicolon
 
         SourceLocation loc(start_token.filename, start_token.line, start_token.column);
         return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, true, std::move(arraySize), pointerLevel);
@@ -794,7 +810,14 @@ std::unique_ptr<Declaration> Parser::parseDeclaration()
             initializer = parseExpression();
         }
 
-        consume(TokenType::SEMICOLON, "Expected ';' after variable declaration");
+        if (!check(TokenType::SEMICOLON))
+        {
+            // USER STORY #21: Semicolon is missing, report error and synchronize
+            reportError("Expected ';'");
+            synchronizeToDeclaration();
+            return nullptr;
+        }
+        advance(); // Consume semicolon
 
         SourceLocation loc(start_token.filename, start_token.line, start_token.column);
         return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, false, nullptr, pointerLevel);

@@ -2231,7 +2231,7 @@ int main()
     test_precedence_levels();
     test_comparison_operators();
 
-    // USER STORY #21: Error recovery tests
+    // Error recovery tests
     test_error_recovery();
 
     cout << "\n========================================" << endl;

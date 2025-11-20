@@ -3,6 +3,9 @@
  * @brief Comprehensive test suite for semantic analysis
  *
  * This program tests all semantic analysis components including:
+ * - Type system (base types, pointers, arrays, structs)
+ * - Type equality and compatibility checking
+ * - Type conversion rules
  * - Symbol table operations (insert, lookup, exists)
  * - Scope stack management (enter/exit scopes, shadowing)
  * - Variable and function symbol handling
@@ -10,6 +13,7 @@
  * - Redeclaration error detection
  */
 
+#include "include/type.h"
 #include "include/symbol_table.h"
 #include "include/scope_manager.h"
 #include "include/ast.h"
@@ -31,6 +35,426 @@ void fail(const string& msg) { cout << "  [FAIL] " << msg << endl; }
 // Helper function to create a function symbol (using tag dispatch)
 Symbol createFunctionSymbol(const string& name, const string& return_type, int scope_level) {
     return Symbol(Symbol::AsFunction, name, return_type, scope_level);
+}
+
+// ============================================================================
+// Type System Tests (User Story #4: Type Representation)
+// ============================================================================
+
+void test_type_base_types() {
+    cout << "\n[TEST] Type System - Base Types" << endl;
+
+    auto int_type = Type::makeInt();
+    auto float_type = Type::makeFloat();
+    auto char_type = Type::makeChar();
+    auto void_type = Type::makeVoid();
+
+    if (int_type->toString() == "int")
+        pass("int type toString()");
+    else
+        fail("int type toString()");
+
+    if (float_type->toString() == "float")
+        pass("float type toString()");
+    else
+        fail("float type toString()");
+
+    if (char_type->toString() == "char")
+        pass("char type toString()");
+    else
+        fail("char type toString()");
+
+    if (void_type->toString() == "void")
+        pass("void type toString()");
+    else
+        fail("void type toString()");
+}
+
+void test_type_pointers() {
+    cout << "\n[TEST] Type System - Pointer Types" << endl;
+
+    auto int_ptr = Type::makePointer(Type::BaseType::INT, 1);
+    auto char_ptr_ptr = Type::makePointer(Type::BaseType::CHAR, 2);
+    auto void_ptr = Type::makePointer(Type::BaseType::VOID, 1);
+
+    if (int_ptr->toString() == "int*" && int_ptr->getPointerDepth() == 1)
+        pass("int* pointer type");
+    else
+        fail("int* pointer type");
+
+    if (char_ptr_ptr->toString() == "char**" && char_ptr_ptr->getPointerDepth() == 2)
+        pass("char** double pointer");
+    else
+        fail("char** double pointer");
+
+    if (void_ptr->toString() == "void*")
+        pass("void* pointer type");
+    else
+        fail("void* pointer type");
+
+    if (int_ptr->isPointer() && !Type::makeInt()->isPointer())
+        pass("isPointer() correctly identifies pointers");
+    else
+        fail("isPointer() correctly identifies pointers");
+}
+
+void test_type_arrays() {
+    cout << "\n[TEST] Type System - Array Types" << endl;
+
+    auto int_array = Type::makeArray(Type::BaseType::INT, 10);
+    auto char_array = Type::makeArray(Type::BaseType::CHAR, 256);
+
+    if (int_array->toString() == "int[10]" && int_array->isArray() && int_array->getArraySize() == 10)
+        pass("int[10] array type");
+    else
+        fail("int[10] array type");
+
+    if (char_array->toString() == "char[256]" && char_array->getArraySize() == 256)
+        pass("char[256] array type");
+    else
+        fail("char[256] array type");
+}
+
+void test_type_structs() {
+    cout << "\n[TEST] Type System - Struct Types" << endl;
+
+    vector<Type::StructMember> members;
+    members.emplace_back("x", Type::makeInt());
+    members.emplace_back("y", Type::makeInt());
+    members.emplace_back("name", Type::makePointer(Type::BaseType::CHAR, 1));
+
+    auto point_struct = Type::makeStruct("Point", members);
+
+    if (point_struct->isStruct() && point_struct->getStructName() == "Point")
+        pass("Struct type with name 'Point'");
+    else
+        fail("Struct type with name 'Point'");
+
+    if (point_struct->hasMember("x") && point_struct->hasMember("y") && point_struct->hasMember("name"))
+        pass("Struct has all members (x, y, name)");
+    else
+        fail("Struct has all members (x, y, name)");
+
+    auto x_type = point_struct->getMemberType("x");
+    if (x_type && x_type->equals(*Type::makeInt()))
+        pass("Member 'x' has type int");
+    else
+        fail("Member 'x' has type int");
+
+    auto name_type = point_struct->getMemberType("name");
+    if (name_type && name_type->isPointer() && name_type->getPointerDepth() == 1)
+        pass("Member 'name' has type char*");
+    else
+        fail("Member 'name' has type char*");
+
+    if (!point_struct->hasMember("z"))
+        pass("Struct does not have non-existent member 'z'");
+    else
+        fail("Struct does not have non-existent member 'z'");
+}
+
+void test_type_equality() {
+    cout << "\n[TEST] Type System - Type Equality Checking" << endl;
+
+    auto int1 = Type::makeInt();
+    auto int2 = Type::makeInt();
+    auto float1 = Type::makeFloat();
+
+    if (int1->equals(*int2))
+        pass("int equals int");
+    else
+        fail("int equals int");
+
+    if (!int1->equals(*float1))
+        pass("int does not equal float");
+    else
+        fail("int does not equal float");
+
+    auto int_ptr1 = Type::makePointer(Type::BaseType::INT, 1);
+    auto int_ptr2 = Type::makePointer(Type::BaseType::INT, 1);
+    auto int_ptr_ptr = Type::makePointer(Type::BaseType::INT, 2);
+
+    if (int_ptr1->equals(*int_ptr2))
+        pass("int* equals int*");
+    else
+        fail("int* equals int*");
+
+    if (!int_ptr1->equals(*int_ptr_ptr))
+        pass("int* does not equal int**");
+    else
+        fail("int* does not equal int**");
+
+    auto array1 = Type::makeArray(Type::BaseType::INT, 10);
+    auto array2 = Type::makeArray(Type::BaseType::INT, 10);
+    auto array3 = Type::makeArray(Type::BaseType::INT, 20);
+
+    if (array1->equals(*array2))
+        pass("int[10] equals int[10]");
+    else
+        fail("int[10] equals int[10]");
+
+    if (!array1->equals(*array3))
+        pass("int[10] does not equal int[20]");
+    else
+        fail("int[10] does not equal int[20]");
+}
+
+void test_type_compatibility() {
+    cout << "\n[TEST] Type System - Type Compatibility" << endl;
+
+    auto int_type = Type::makeInt();
+    auto float_type = Type::makeFloat();
+    auto char_type = Type::makeChar();
+
+    if (int_type->isCompatibleWith(*float_type))
+        pass("int compatible with float (arithmetic types)");
+    else
+        fail("int compatible with float (arithmetic types)");
+
+    if (float_type->isCompatibleWith(*char_type))
+        pass("float compatible with char (arithmetic types)");
+    else
+        fail("float compatible with char (arithmetic types)");
+
+    auto void_ptr = Type::makePointer(Type::BaseType::VOID, 1);
+    auto int_ptr = Type::makePointer(Type::BaseType::INT, 1);
+    auto char_ptr = Type::makePointer(Type::BaseType::CHAR, 1);
+
+    if (void_ptr->isCompatibleWith(*int_ptr))
+        pass("void* compatible with int* (universal pointer)");
+    else
+        fail("void* compatible with int* (universal pointer)");
+
+    if (int_ptr->isCompatibleWith(*void_ptr))
+        pass("int* compatible with void* (universal pointer)");
+    else
+        fail("int* compatible with void* (universal pointer)");
+
+    if (!int_ptr->isCompatibleWith(*char_ptr))
+        pass("int* NOT compatible with char* (different pointer types)");
+    else
+        fail("int* NOT compatible with char* (different pointer types)");
+
+    auto int_ptr_ptr = Type::makePointer(Type::BaseType::INT, 2);
+    if (!int_ptr->isCompatibleWith(*int_ptr_ptr))
+        pass("int* NOT compatible with int** (different pointer depth)");
+    else
+        fail("int* NOT compatible with int** (different pointer depth)");
+}
+
+void test_type_conversion() {
+    cout << "\n[TEST] Type System - Type Conversion Checking" << endl;
+
+    auto int_type = Type::makeInt();
+    auto float_type = Type::makeFloat();
+    auto char_type = Type::makeChar();
+    auto void_type = Type::makeVoid();
+
+    if (int_type->canConvertTo(*float_type))
+        pass("int can convert to float");
+    else
+        fail("int can convert to float");
+
+    if (char_type->canConvertTo(*int_type))
+        pass("char can convert to int");
+    else
+        fail("char can convert to int");
+
+    if (!int_type->canConvertTo(*void_type))
+        pass("int cannot convert to void");
+    else
+        fail("int cannot convert to void");
+
+    auto void_ptr = Type::makePointer(Type::BaseType::VOID, 1);
+    auto int_ptr = Type::makePointer(Type::BaseType::INT, 1);
+
+    if (int_ptr->canConvertTo(*void_ptr))
+        pass("int* can convert to void*");
+    else
+        fail("int* can convert to void*");
+
+    if (void_ptr->canConvertTo(*int_ptr))
+        pass("void* can convert to int*");
+    else
+        fail("void* can convert to int*");
+}
+
+void test_type_from_string() {
+    cout << "\n[TEST] Type System - Creating Types from Strings" << endl;
+
+    auto int_type = Type::fromString("int");
+    if (int_type && int_type->toString() == "int")
+        pass("Create int from string 'int'");
+    else
+        fail("Create int from string 'int'");
+
+    auto int_ptr = Type::fromString("int*");
+    if (int_ptr && int_ptr->toString() == "int*" && int_ptr->getPointerDepth() == 1)
+        pass("Create int* from string 'int*'");
+    else
+        fail("Create int* from string 'int*'");
+
+    auto char_ptr_ptr = Type::fromString("char**");
+    if (char_ptr_ptr && char_ptr_ptr->toString() == "char**" && char_ptr_ptr->getPointerDepth() == 2)
+        pass("Create char** from string 'char**'");
+    else
+        fail("Create char** from string 'char**'");
+
+    auto float_type = Type::fromString("float");
+    if (float_type && float_type->toString() == "float")
+        pass("Create float from string 'float'");
+    else
+        fail("Create float from string 'float'");
+}
+
+void test_arithmetic_operators() {
+    cout << "\n[TEST] Type System - Arithmetic Operator Validation" << endl;
+
+    auto int_type = Type::makeInt();
+    auto float_type = Type::makeFloat();
+    auto int_ptr = Type::makePointer(Type::BaseType::INT, 1);
+
+    if (isValidBinaryOperator(*int_type, *int_type, "+"))
+        pass("int + int is valid");
+    else
+        fail("int + int is valid");
+
+    if (isValidBinaryOperator(*float_type, *int_type, "*"))
+        pass("float * int is valid");
+    else
+        fail("float * int is valid");
+
+    if (isValidBinaryOperator(*int_ptr, *int_type, "+"))
+        pass("int* + int is valid (pointer arithmetic)");
+    else
+        fail("int* + int is valid (pointer arithmetic)");
+
+    if (isValidBinaryOperator(*int_ptr, *int_ptr, "-"))
+        pass("int* - int* is valid (pointer difference)");
+    else
+        fail("int* - int* is valid (pointer difference)");
+
+    if (!isValidBinaryOperator(*int_ptr, *int_ptr, "*"))
+        pass("int* * int* is NOT valid (cannot multiply pointers)");
+    else
+        fail("int* * int* is NOT valid (cannot multiply pointers)");
+
+    if (isValidBinaryOperator(*int_type, *int_type, "%"))
+        pass("int % int is valid (modulo)");
+    else
+        fail("int % int is valid (modulo)");
+
+    if (!isValidBinaryOperator(*float_type, *float_type, "%"))
+        pass("float % float is NOT valid (modulo only for integers)");
+    else
+        fail("float % float is NOT valid (modulo only for integers)");
+}
+
+void test_comparison_operators() {
+    cout << "\n[TEST] Type System - Comparison Operator Validation" << endl;
+
+    auto int_type = Type::makeInt();
+    auto float_type = Type::makeFloat();
+    auto int_ptr = Type::makePointer(Type::BaseType::INT, 1);
+    auto char_ptr = Type::makePointer(Type::BaseType::CHAR, 1);
+
+    if (isValidBinaryOperator(*int_type, *float_type, "<"))
+        pass("int < float is valid");
+    else
+        fail("int < float is valid");
+
+    if (isValidBinaryOperator(*int_ptr, *int_ptr, "=="))
+        pass("int* == int* is valid");
+    else
+        fail("int* == int* is valid");
+
+    if (!isValidBinaryOperator(*int_ptr, *char_ptr, "=="))
+        pass("int* == char* is NOT valid (incompatible pointer types)");
+    else
+        fail("int* == char* is NOT valid (incompatible pointer types)");
+}
+
+void test_unary_operators() {
+    cout << "\n[TEST] Type System - Unary Operator Validation" << endl;
+
+    auto int_type = Type::makeInt();
+    auto int_ptr = Type::makePointer(Type::BaseType::INT, 1);
+    auto float_type = Type::makeFloat();
+
+    if (isValidUnaryOperator(*int_ptr, "*"))
+        pass("*ptr is valid (dereference)");
+    else
+        fail("*ptr is valid (dereference)");
+
+    if (!isValidUnaryOperator(*int_type, "*"))
+        pass("*int is NOT valid (cannot dereference non-pointer)");
+    else
+        fail("*int is NOT valid (cannot dereference non-pointer)");
+
+    if (isValidUnaryOperator(*int_type, "&"))
+        pass("&var is valid (address-of)");
+    else
+        fail("&var is valid (address-of)");
+
+    if (isValidUnaryOperator(*int_type, "++"))
+        pass("++int is valid");
+    else
+        fail("++int is valid");
+
+    if (isValidUnaryOperator(*float_type, "-"))
+        pass("-float is valid");
+    else
+        fail("-float is valid");
+
+    if (isValidUnaryOperator(*int_type, "~"))
+        pass("~int is valid (bitwise NOT)");
+    else
+        fail("~int is valid (bitwise NOT)");
+
+    if (!isValidUnaryOperator(*float_type, "~"))
+        pass("~float is NOT valid (bitwise NOT only for integers)");
+    else
+        fail("~float is NOT valid (bitwise NOT only for integers)");
+}
+
+void test_arithmetic_result_types() {
+    cout << "\n[TEST] Type System - Arithmetic Result Type Promotion" << endl;
+
+    auto int_type = Type::makeInt();
+    auto float_type = Type::makeFloat();
+    auto double_type = Type::makeDouble();
+    auto char_type = Type::makeChar();
+
+    auto result1 = getArithmeticResultType(*int_type, *int_type, "+");
+    if (result1 && result1->equals(*int_type))
+        pass("int + int -> int");
+    else
+        fail("int + int -> int");
+
+    auto result2 = getArithmeticResultType(*int_type, *float_type, "*");
+    if (result2 && result2->equals(*float_type))
+        pass("int * float -> float (type promotion)");
+    else
+        fail("int * float -> float (type promotion)");
+
+    auto result3 = getArithmeticResultType(*float_type, *double_type, "/");
+    if (result3 && result3->equals(*double_type))
+        pass("float / double -> double (type promotion)");
+    else
+        fail("float / double -> double (type promotion)");
+
+    auto result4 = getArithmeticResultType(*char_type, *int_type, "+");
+    if (result4 && result4->equals(*int_type))
+        pass("char + int -> int (char promotes to int)");
+    else
+        fail("char + int -> int (char promotes to int)");
+
+    auto int_ptr = Type::makePointer(Type::BaseType::INT, 1);
+    auto result5 = getArithmeticResultType(*int_ptr, *int_type, "+");
+    if (result5 && result5->isPointer())
+        pass("int* + int -> int* (pointer arithmetic)");
+    else
+        fail("int* + int -> int* (pointer arithmetic)");
 }
 
 // ============================================================================
@@ -861,9 +1285,27 @@ int main() {
     cout << "========================================" << endl;
 
     // ========================================
-    // PART 1: Symbol Table Tests
+    // PART 1: Type System Tests (User Story #4)
     // ========================================
-    cout << "\n--- PART 1: SYMBOL TABLE TESTS ---" << endl;
+    cout << "\n--- PART 1: TYPE SYSTEM TESTS (USER STORY #4) ---" << endl;
+
+    test_type_base_types();
+    test_type_pointers();
+    test_type_arrays();
+    test_type_structs();
+    test_type_equality();
+    test_type_compatibility();
+    test_type_conversion();
+    test_type_from_string();
+    test_arithmetic_operators();
+    test_comparison_operators();
+    test_unary_operators();
+    test_arithmetic_result_types();
+
+    // ========================================
+    // PART 2: Symbol Table Tests
+    // ========================================
+    cout << "\n--- PART 2: SYMBOL TABLE TESTS ---" << endl;
 
     test_symbol_table_basic();
     test_symbol_table_duplicates();
@@ -872,9 +1314,9 @@ int main() {
     test_symbol_table_functions();
 
     // ========================================
-    // PART 2: Scope Manager Tests
+    // PART 3: Scope Manager Tests
     // ========================================
-    cout << "\n--- PART 2: SCOPE MANAGER TESTS ---" << endl;
+    cout << "\n--- PART 3: SCOPE MANAGER TESTS ---" << endl;
 
     test_scope_manager_initial_state();
     test_scope_manager_enter_exit();
@@ -886,9 +1328,9 @@ int main() {
     test_scope_manager_complex_scenario();
 
     // ========================================
-    // PART 3: SemanticAnalyzer - Acceptance Criteria
+    // PART 4: SemanticAnalyzer - Acceptance Criteria
     // ========================================
-    cout << "\n--- PART 3: SEMANTIC ANALYZER (ACCEPTANCE CRITERIA) ---" << endl;
+    cout << "\n--- PART 4: SEMANTIC ANALYZER (ACCEPTANCE CRITERIA) ---" << endl;
 
     test_global_variables();              // AC: Adds global variables to global scope
     test_function_registration();         // AC: Adds functions to global scope
@@ -899,9 +1341,9 @@ int main() {
     test_redeclaration_local();           // AC: Reports redeclaration errors
 
     // ========================================
-    // PART 4: SemanticAnalyzer - Additional Tests
+    // PART 5: SemanticAnalyzer - Additional Tests
     // ========================================
-    cout << "\n--- PART 4: SEMANTIC ANALYZER (ADDITIONAL TESTS) ---" << endl;
+    cout << "\n--- PART 5: SEMANTIC ANALYZER (ADDITIONAL TESTS) ---" << endl;
 
     test_variable_shadowing();            // Shadowing across different scopes is legal
     test_complex_program();               // Complex realistic program
