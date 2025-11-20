@@ -1,17 +1,23 @@
 /**
  * @file test_semantic.cpp
- * @brief Test suite for semantic analysis components (Symbol Table and Scope Manager)
+ * @brief Comprehensive test suite for semantic analysis
  *
- * This program tests the semantic analysis infrastructure including:
+ * This program tests all semantic analysis components including:
  * - Symbol table operations (insert, lookup, exists)
  * - Scope stack management (enter/exit scopes, shadowing)
  * - Variable and function symbol handling
+ * - SemanticAnalyzer AST walking and declaration registration
+ * - Redeclaration error detection
  */
 
 #include "include/symbol_table.h"
 #include "include/scope_manager.h"
+#include "include/ast.h"
+#include "include/semantic_analyzer.h"
 #include <iostream>
 #include <string>
+#include <vector>
+#include <memory>
 
 using namespace std;
 
@@ -402,22 +408,474 @@ void test_scope_manager_complex_scenario() {
 }
 
 // ============================================================================
+// SemanticAnalyzer Tests - AST Walking and Declaration Registration
+// ============================================================================
+
+void test_global_variables() {
+    cout << "\n[TEST] Global Variables Registration" << endl;
+
+    // Create AST: int x = 10; float y;
+    vector<unique_ptr<Declaration>> program;
+
+    SourceLocation loc("test.c", 1, 0);
+
+    // int x = 10;
+    auto init_x = make_unique<LiteralExpr>("10", LiteralExpr::LiteralType::INTEGER, loc);
+    program.push_back(make_unique<VarDecl>("x", "int", move(init_x), loc));
+
+    // float y;
+    program.push_back(make_unique<VarDecl>("y", "float", nullptr, loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Global variables registered without errors");
+    } else {
+        fail("Global variables registered without errors");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_function_registration() {
+    cout << "\n[TEST] Functions Registration" << endl;
+
+    // Create AST: int add(int a, int b) { return a + b; }
+    vector<unique_ptr<Declaration>> program;
+
+    SourceLocation loc("test.c", 1, 0);
+
+    // Parameters
+    vector<unique_ptr<ParameterDecl>> params;
+    params.push_back(make_unique<ParameterDecl>("a", "int", loc));
+    params.push_back(make_unique<ParameterDecl>("b", "int", loc));
+
+    // Function body: return a + b;
+    auto id_a = make_unique<IdentifierExpr>("a", loc);
+    auto id_b = make_unique<IdentifierExpr>("b", loc);
+    auto add_expr = make_unique<BinaryExpr>(move(id_a), "+", move(id_b), loc);
+    auto return_stmt = make_unique<ReturnStmt>(move(add_expr), loc);
+
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(move(return_stmt));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+
+    // Function declaration
+    program.push_back(make_unique<FunctionDecl>("add", "int", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Function registered without errors");
+    } else {
+        fail("Function registered without errors");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_parameters_registration() {
+    cout << "\n[TEST] Parameters Registration in Function Scope" << endl;
+
+    // Create AST: void foo(int x, float y, char z) { }
+    vector<unique_ptr<Declaration>> program;
+
+    SourceLocation loc("test.c", 1, 0);
+
+    // Parameters
+    vector<unique_ptr<ParameterDecl>> params;
+    params.push_back(make_unique<ParameterDecl>("x", "int", loc));
+    params.push_back(make_unique<ParameterDecl>("y", "float", loc));
+    params.push_back(make_unique<ParameterDecl>("z", "char", loc));
+
+    // Empty body
+    vector<unique_ptr<Statement>> body_stmts;
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+
+    // Function declaration
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Three parameters registered without errors");
+    } else {
+        fail("Three parameters registered without errors");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_local_variables_in_blocks() {
+    cout << "\n[TEST] Block Scopes with Nested Statements" << endl;
+
+    // Create AST:
+    // void foo() {
+    //     {
+    //         x = 1;
+    //     }
+    // }
+    vector<unique_ptr<Declaration>> program;
+
+    SourceLocation loc("test.c", 1, 0);
+
+    // Inner block: { x = 1; }
+    vector<unique_ptr<Statement>> inner_stmts;
+    auto assign = make_unique<AssignmentExpr>(
+        make_unique<IdentifierExpr>("x", loc),
+        make_unique<LiteralExpr>("1", LiteralExpr::LiteralType::INTEGER, loc),
+        loc
+    );
+    inner_stmts.push_back(make_unique<ExpressionStmt>(move(assign), loc));
+    auto inner_block = make_unique<CompoundStmt>(move(inner_stmts), loc);
+
+    // Outer block: { { x = 1; } }
+    vector<unique_ptr<Statement>> outer_stmts;
+    outer_stmts.push_back(move(inner_block));
+    auto outer_block = make_unique<CompoundStmt>(move(outer_stmts), loc);
+
+    // Function
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(outer_block), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Nested blocks create separate scopes (no errors)");
+    } else {
+        fail("Nested blocks create separate scopes (no errors)");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_redeclaration_global() {
+    cout << "\n[TEST] Redeclaration Errors - Global Scope" << endl;
+
+    // Create AST: int x; int x;  (redeclaration error)
+    vector<unique_ptr<Declaration>> program;
+
+    SourceLocation loc1("test.c", 1, 0);
+    SourceLocation loc2("test.c", 2, 0);
+
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc1));
+    program.push_back(make_unique<VarDecl>("x", "float", nullptr, loc2));  // Redeclaration
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("Redeclaration") != string::npos && err.message.find("'x'") != string::npos) {
+            pass("Redeclaration error detected for global variable 'x'");
+        } else {
+            fail("Correct error message for redeclaration");
+            cout << "    Got: " << err.message << endl;
+        }
+    } else {
+        fail("Exactly one redeclaration error reported");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+void test_redeclaration_parameters() {
+    cout << "\n[TEST] Redeclaration Errors - Function Parameters" << endl;
+
+    // Create AST: void foo(int x, float x) { }  (parameter redeclaration)
+    vector<unique_ptr<Declaration>> program;
+
+    SourceLocation loc("test.c", 1, 0);
+
+    // Parameters with duplicate names
+    vector<unique_ptr<ParameterDecl>> params;
+    params.push_back(make_unique<ParameterDecl>("x", "int", loc));
+    params.push_back(make_unique<ParameterDecl>("x", "float", loc));  // Redeclaration
+
+    // Empty body
+    vector<unique_ptr<Statement>> body_stmts;
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("Redeclaration") != string::npos && err.message.find("'x'") != string::npos) {
+            pass("Redeclaration error detected for parameter 'x'");
+        } else {
+            fail("Correct error message for parameter redeclaration");
+            cout << "    Got: " << err.message << endl;
+        }
+    } else {
+        fail("Exactly one redeclaration error for parameter");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+void test_redeclaration_local() {
+    cout << "\n[TEST] Redeclaration Errors - Parameters and Global" << endl;
+
+    // Create AST:
+    // int x;
+    // void foo(int x) { }  // OK: different scope (parameter shadows global)
+    //
+    vector<unique_ptr<Declaration>> program;
+
+    SourceLocation loc("test.c", 1, 0);
+
+    // Global variable
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+
+    // Function with parameter named x (this is legal - parameter shadows global)
+    vector<unique_ptr<ParameterDecl>> params;
+    params.push_back(make_unique<ParameterDecl>("x", "int", loc));
+
+    vector<unique_ptr<Statement>> body_stmts;
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Parameter can shadow global variable (no error)");
+    } else {
+        fail("Parameter shadowing should be legal");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_variable_shadowing() {
+    cout << "\n[TEST] Multiple Functions - No Name Conflicts" << endl;
+
+    // Create AST:
+    // void foo(int a, int b) { }
+    // void bar(int a, int b) { }  // OK: different function scope
+    vector<unique_ptr<Declaration>> program;
+
+    SourceLocation loc("test.c", 1, 0);
+
+    // Function foo
+    {
+        vector<unique_ptr<ParameterDecl>> params;
+        params.push_back(make_unique<ParameterDecl>("a", "int", loc));
+        params.push_back(make_unique<ParameterDecl>("b", "int", loc));
+
+        vector<unique_ptr<Statement>> body_stmts;
+        auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+
+        program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+    }
+
+    // Function bar with same parameter names (legal - different scope)
+    {
+        vector<unique_ptr<ParameterDecl>> params;
+        params.push_back(make_unique<ParameterDecl>("a", "int", loc));
+        params.push_back(make_unique<ParameterDecl>("b", "int", loc));
+
+        vector<unique_ptr<Statement>> body_stmts;
+        auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+
+        program.push_back(make_unique<FunctionDecl>("bar", "void", move(params), move(body), loc));
+    }
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Different functions can have parameters with same names");
+    } else {
+        fail("Different functions with same param names should be legal");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_complex_program() {
+    cout << "\n[TEST] Complex Program - Multiple Functions and Nested Scopes" << endl;
+
+    // Create AST:
+    // int global_x;
+    // float global_y;
+    //
+    // int add(int a, int b) {
+    //     return a + b;
+    // }
+    //
+    // void main() {
+    //     {
+    //         x = 1;
+    //     }
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Globals
+    program.push_back(make_unique<VarDecl>("global_x", "int", nullptr, loc));
+    program.push_back(make_unique<VarDecl>("global_y", "float", nullptr, loc));
+
+    // Function: add
+    {
+        vector<unique_ptr<ParameterDecl>> params;
+        params.push_back(make_unique<ParameterDecl>("a", "int", loc));
+        params.push_back(make_unique<ParameterDecl>("b", "int", loc));
+
+        vector<unique_ptr<Statement>> body_stmts;
+
+        auto id_a = make_unique<IdentifierExpr>("a", loc);
+        auto id_b = make_unique<IdentifierExpr>("b", loc);
+        auto add_expr = make_unique<BinaryExpr>(move(id_a), "+", move(id_b), loc);
+        body_stmts.push_back(make_unique<ReturnStmt>(move(add_expr), loc));
+
+        auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+        program.push_back(make_unique<FunctionDecl>("add", "int", move(params), move(body), loc));
+    }
+
+    // Function: main
+    {
+        vector<unique_ptr<ParameterDecl>> params;
+
+        // Inner block
+        vector<unique_ptr<Statement>> inner_stmts;
+        auto assign = make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            make_unique<LiteralExpr>("1", LiteralExpr::LiteralType::INTEGER, loc),
+            loc
+        );
+        inner_stmts.push_back(make_unique<ExpressionStmt>(move(assign), loc));
+        auto inner_block = make_unique<CompoundStmt>(move(inner_stmts), loc);
+
+        // Outer body
+        vector<unique_ptr<Statement>> outer_stmts;
+        outer_stmts.push_back(move(inner_block));
+        auto body = make_unique<CompoundStmt>(move(outer_stmts), loc);
+
+        program.push_back(make_unique<FunctionDecl>("main", "void", move(params), move(body), loc));
+    }
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Complex program with multiple functions and nested scopes analyzed successfully");
+    } else {
+        fail("Complex program should have no errors");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_for_loop_scope() {
+    cout << "\n[TEST] For Loop Creates Its Own Scope" << endl;
+
+    // Create AST:
+    // void foo() {
+    //     for (i = 0; i < 10; i++) {
+    //         x = 1;
+    //     }
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // For loop body: { x = 1; }
+    vector<unique_ptr<Statement>> loop_body_stmts;
+    auto assign = make_unique<AssignmentExpr>(
+        make_unique<IdentifierExpr>("x", loc),
+        make_unique<LiteralExpr>("1", LiteralExpr::LiteralType::INTEGER, loc),
+        loc
+    );
+    loop_body_stmts.push_back(make_unique<ExpressionStmt>(move(assign), loc));
+    auto loop_body = make_unique<CompoundStmt>(move(loop_body_stmts), loc);
+
+    // For loop: for (i = 0; i < 10; i++)
+    auto init_expr = make_unique<AssignmentExpr>(
+        make_unique<IdentifierExpr>("i", loc),
+        make_unique<LiteralExpr>("0", LiteralExpr::LiteralType::INTEGER, loc),
+        loc
+    );
+    auto init = make_unique<ExpressionStmt>(move(init_expr), loc);
+    auto cond = make_unique<BinaryExpr>(
+        make_unique<IdentifierExpr>("i", loc),
+        "<",
+        make_unique<LiteralExpr>("10", LiteralExpr::LiteralType::INTEGER, loc),
+        loc
+    );
+    auto inc = make_unique<UnaryExpr>("++", make_unique<IdentifierExpr>("i", loc), true, loc);
+    auto for_stmt = make_unique<ForStmt>(move(init), move(cond), move(inc), move(loop_body), loc);
+
+    // Function body
+    vector<unique_ptr<Statement>> func_body_stmts;
+    func_body_stmts.push_back(move(for_stmt));
+    auto func_body = make_unique<CompoundStmt>(move(func_body_stmts), loc);
+
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(func_body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("For loop creates separate scope");
+    } else {
+        fail("For loop should create separate scope");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+// ============================================================================
 // Main Test Runner
 // ============================================================================
 
 int main() {
     cout << "\n========================================" << endl;
-    cout << "SEMANTIC ANALYSIS TESTS" << endl;
+    cout << "COMPREHENSIVE SEMANTIC ANALYSIS TESTS" << endl;
     cout << "========================================" << endl;
 
-    // Symbol Table Tests
+    // ========================================
+    // PART 1: Symbol Table Tests
+    // ========================================
+    cout << "\n--- PART 1: SYMBOL TABLE TESTS ---" << endl;
+
     test_symbol_table_basic();
     test_symbol_table_duplicates();
     test_symbol_table_arrays();
     test_symbol_table_pointers();
     test_symbol_table_functions();
 
-    // Scope Manager Tests
+    // ========================================
+    // PART 2: Scope Manager Tests
+    // ========================================
+    cout << "\n--- PART 2: SCOPE MANAGER TESTS ---" << endl;
+
     test_scope_manager_initial_state();
     test_scope_manager_enter_exit();
     test_scope_manager_global_protection();
@@ -427,8 +885,30 @@ int main() {
     test_scope_manager_deep_nesting();
     test_scope_manager_complex_scenario();
 
+    // ========================================
+    // PART 3: SemanticAnalyzer - Acceptance Criteria
+    // ========================================
+    cout << "\n--- PART 3: SEMANTIC ANALYZER (ACCEPTANCE CRITERIA) ---" << endl;
+
+    test_global_variables();              // AC: Adds global variables to global scope
+    test_function_registration();         // AC: Adds functions to global scope
+    test_parameters_registration();       // AC: Adds parameters to function scope
+    test_local_variables_in_blocks();     // AC: Adds local variables to block scopes
+    test_redeclaration_global();          // AC: Reports redeclaration errors
+    test_redeclaration_parameters();      // AC: Reports redeclaration errors
+    test_redeclaration_local();           // AC: Reports redeclaration errors
+
+    // ========================================
+    // PART 4: SemanticAnalyzer - Additional Tests
+    // ========================================
+    cout << "\n--- PART 4: SEMANTIC ANALYZER (ADDITIONAL TESTS) ---" << endl;
+
+    test_variable_shadowing();            // Shadowing across different scopes is legal
+    test_complex_program();               // Complex realistic program
+    test_for_loop_scope();                // For loops create their own scope
+
     cout << "\n========================================" << endl;
-    cout << "TESTS COMPLETE" << endl;
+    cout << "ALL TESTS COMPLETE" << endl;
     cout << "========================================\n" << endl;
 
     return 0;

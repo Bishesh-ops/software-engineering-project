@@ -17,7 +17,9 @@ BIN_DIR := bin
 # --- Source Files ---
 LEXER_SRCS := src/lexer/lexer.cpp src/lexer/token.cpp
 PARSER_SRCS := src/parser/parser.cpp
-SEMANTIC_SRCS := src/semantic/symbol_table.cpp src/semantic/scope_manager.cpp
+AST_SRCS := src/AST/ast_node.cpp src/AST/ast_printer.cpp src/AST/ast_visitor.cpp \
+            src/nodes/declaration_nodes.cpp src/nodes/expression_nodes.cpp src/nodes/statement_nodes.cpp
+SEMANTIC_SRCS := src/semantic/symbol_table.cpp src/semantic/scope_manager.cpp src/semantic/semantic_analyzer.cpp
 TEST_LEXER_SRCS := test_lexer.cpp
 TEST_PARSER_SRCS := test_parser.cpp
 TEST_SEMANTIC_SRCS := test_semantic.cpp
@@ -25,6 +27,7 @@ TEST_SEMANTIC_SRCS := test_semantic.cpp
 # --- Object Files ---
 LEXER_OBJS := $(LEXER_SRCS:src/lexer/%.cpp=$(OBJ_DIR)/%.o)
 PARSER_OBJS := $(PARSER_SRCS:src/parser/%.cpp=$(OBJ_DIR)/%.o)
+AST_OBJS := $(patsubst src/%.cpp,$(OBJ_DIR)/%.o,$(AST_SRCS))
 SEMANTIC_OBJS := $(SEMANTIC_SRCS:src/semantic/%.cpp=$(OBJ_DIR)/%.o)
 TEST_LEXER_OBJS := $(TEST_LEXER_SRCS:%.cpp=$(OBJ_DIR)/%.o)
 TEST_PARSER_OBJS := $(TEST_PARSER_SRCS:%.cpp=$(OBJ_DIR)/%.o)
@@ -71,8 +74,8 @@ $(BIN_DIR)/test_parser.exe: $(LEXER_OBJS) $(PARSER_OBJS) $(TEST_PARSER_OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LEXER_OBJS) $(PARSER_OBJS) $(TEST_PARSER_OBJS) -o $@
 	@echo Linked $@.
 
-$(BIN_DIR)/test_semantic.exe: $(SEMANTIC_OBJS) $(TEST_SEMANTIC_OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(SEMANTIC_OBJS) $(TEST_SEMANTIC_OBJS) -o $@
+$(BIN_DIR)/test_semantic.exe: $(SEMANTIC_OBJS) $(AST_OBJS) $(TEST_SEMANTIC_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(SEMANTIC_OBJS) $(AST_OBJS) $(TEST_SEMANTIC_OBJS) -o $@
 	@echo Linked $@.
 
 # --- Compilation Rules ---
@@ -80,6 +83,14 @@ $(OBJ_DIR)/%.o: src/lexer/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(OBJ_DIR)/%.o: src/parser/%.cpp | dirs
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(OBJ_DIR)/AST/%.o: src/AST/%.cpp | dirs
+	@mkdir -p $(OBJ_DIR)/AST
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(OBJ_DIR)/nodes/%.o: src/nodes/%.cpp | dirs
+	@mkdir -p $(OBJ_DIR)/nodes
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(OBJ_DIR)/%.o: src/semantic/%.cpp | dirs
