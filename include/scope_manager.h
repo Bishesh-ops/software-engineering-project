@@ -58,6 +58,9 @@ public:
 
     // Get the total number of symbols across all scopes
     size_t get_total_symbol_count() const;
+
+    // Get all symbol names from all scopes (for suggestions)
+    std::vector<std::string> get_all_symbol_names() const;
 };
 
 #endif // SCOPE_MANAGER_H

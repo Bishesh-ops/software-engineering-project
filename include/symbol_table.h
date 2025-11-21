@@ -15,6 +15,9 @@ struct Symbol {
     int scope_level;                     // Scope depth (0 = global, 1+ = nested scopes)
     bool is_function;                    // true if this is a function, false for variable
 
+    // Function-specific fields
+    std::vector<std::shared_ptr<Type>> parameter_types;  // Parameter types for functions
+
     // Deprecated fields (kept for backward compatibility with tests)
     std::string type;           // Type string (deprecated, use symbol_type instead)
     bool is_array;              // true if this is an array (deprecated)
@@ -93,6 +96,22 @@ struct Symbol {
           array_size(0),
           pointer_depth(0) {}
 
+    // Constructor for function symbols with parameters
+    Symbol(FunctionTag,
+           const std::string& name,
+           std::shared_ptr<Type> return_type,
+           const std::vector<std::shared_ptr<Type>>& params,
+           int scope_level)
+        : name(name),
+          symbol_type(return_type),
+          scope_level(scope_level),
+          is_function(true),
+          parameter_types(params),
+          type(return_type ? return_type->toString() : ""),
+          is_array(false),
+          array_size(0),
+          pointer_depth(0) {}
+
 private:
     // Helper to create Type from legacy fields
     static std::shared_ptr<Type> createTypeFromLegacyFields(
@@ -163,6 +182,9 @@ public:
 
     // Remove a symbol from the table (useful for scope management)
     bool remove(const std::string& name);
+
+    // Get all symbol names in this table
+    std::vector<std::string> get_all_names() const;
 };
 
 #endif // SYMBOL_TABLE_H

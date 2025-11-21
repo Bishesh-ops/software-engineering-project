@@ -91,3 +91,16 @@ size_t ScopeManager::get_total_symbol_count() const {
     }
     return total;
 }
+
+// Get all symbol names from all scopes
+std::vector<std::string> ScopeManager::get_all_symbol_names() const {
+    std::vector<std::string> all_names;
+
+    // Collect names from all scopes (innermost to outermost)
+    for (const auto& table : scope_stack_) {
+        auto names = table.get_all_names();
+        all_names.insert(all_names.end(), names.begin(), names.end());
+    }
+
+    return all_names;
+}

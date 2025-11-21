@@ -38,3 +38,13 @@ bool SymbolTable::remove(const std::string& name) {
     }
     return false;
 }
+
+// Get all symbol names in this table
+std::vector<std::string> SymbolTable::get_all_names() const {
+    std::vector<std::string> names;
+    names.reserve(symbols_.size());
+    for (const auto& pair : symbols_) {
+        names.push_back(pair.first);
+    }
+    return names;
+}

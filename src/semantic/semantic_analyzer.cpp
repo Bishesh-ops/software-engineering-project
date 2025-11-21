@@ -12,6 +12,10 @@ void SemanticAnalyzer::add_error(const std::string& message, const SourceLocatio
     errors_.push_back(SemanticError(message, location));
 }
 
+void SemanticAnalyzer::add_warning(const std::string& message, const SourceLocation& location) {
+    warnings_.push_back(SemanticWarning(message, location));
+}
+
 bool SemanticAnalyzer::register_symbol(const Symbol& symbol, const SourceLocation& location) {
     // Check if symbol already exists in current scope
     if (scope_manager_.exists_in_current_scope(symbol.name)) {
@@ -25,8 +29,10 @@ bool SemanticAnalyzer::register_symbol(const Symbol& symbol, const SourceLocatio
 }
 
 void SemanticAnalyzer::analyze_program(const std::vector<std::unique_ptr<Declaration>>& declarations) {
-    // Clear any previous errors
+    // Clear any previous errors, warnings, and expression types
     errors_.clear();
+    warnings_.clear();
+    expression_types_.clear();
 
     // Process all top-level declarations
     for (const auto& decl : declarations) {
@@ -34,6 +40,113 @@ void SemanticAnalyzer::analyze_program(const std::vector<std::unique_ptr<Declara
             decl->accept(*this);
         }
     }
+}
+
+std::shared_ptr<Type> SemanticAnalyzer::get_expression_type(const Expression* expr) const {
+    auto it = expression_types_.find(expr);
+    if (it != expression_types_.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
+void SemanticAnalyzer::set_expression_type(const Expression* expr, std::shared_ptr<Type> type) {
+    expression_types_[expr] = type;
+}
+
+bool SemanticAnalyzer::is_lvalue(const Expression* expr) const {
+    if (!expr) return false;
+
+    // Check the AST node type
+    ASTNodeType node_type = expr->getNodeType();
+
+    // Lvalues are expressions that refer to memory locations:
+    // - Identifiers (variables)
+    // - Array access (arr[i])
+    // - Member access (obj.member, ptr->member)
+    // - Dereferenced pointers (*ptr)
+
+    if (node_type == ASTNodeType::IDENTIFIER_EXPR) {
+        return true;
+    }
+
+    if (node_type == ASTNodeType::ARRAY_ACCESS_EXPR) {
+        return true;
+    }
+
+    if (node_type == ASTNodeType::MEMBER_ACCESS_EXPR) {
+        return true;
+    }
+
+    if (node_type == ASTNodeType::UNARY_EXPR) {
+        // Dereference operator (*ptr) is an lvalue
+        const UnaryExpr* unary = static_cast<const UnaryExpr*>(expr);
+        if (unary->getOperator() == "*") {
+            return true;
+        }
+    }
+
+    // Everything else (literals, function calls, binary expressions, etc.) is not an lvalue
+    return false;
+}
+
+// Calculate Levenshtein distance between two strings (for finding similar identifiers)
+int SemanticAnalyzer::levenshtein_distance(const std::string& s1, const std::string& s2) {
+    const size_t m = s1.size();
+    const size_t n = s2.size();
+
+    if (m == 0) return n;
+    if (n == 0) return m;
+
+    // Create distance matrix
+    std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1));
+
+    // Initialize base cases
+    for (size_t i = 0; i <= m; ++i) dp[i][0] = i;
+    for (size_t j = 0; j <= n; ++j) dp[0][j] = j;
+
+    // Fill the matrix
+    for (size_t i = 1; i <= m; ++i) {
+        for (size_t j = 1; j <= n; ++j) {
+            if (s1[i - 1] == s2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = 1 + std::min({dp[i - 1][j],      // deletion
+                                          dp[i][j - 1],      // insertion
+                                          dp[i - 1][j - 1]}); // substitution
+            }
+        }
+    }
+
+    return dp[m][n];
+}
+
+// Find similar identifier name for suggestions
+std::string SemanticAnalyzer::find_similar_identifier(const std::string& name) const {
+    auto all_names = scope_manager_.get_all_symbol_names();
+
+    if (all_names.empty()) {
+        return "";
+    }
+
+    std::string best_match;
+    int best_distance = INT_MAX;
+
+    for (const auto& candidate : all_names) {
+        int distance = levenshtein_distance(name, candidate);
+
+        // Consider it a good suggestion if:
+        // 1. Distance is small (≤ 2 for short names, ≤ 3 for longer)
+        // 2. It's the closest match so far
+        int max_distance = (name.length() <= 4) ? 2 : 3;
+
+        if (distance <= max_distance && distance < best_distance) {
+            best_distance = distance;
+            best_match = candidate;
+        }
+    }
+
+    return best_match;
 }
 
 // ============================================================================
@@ -54,9 +167,36 @@ void SemanticAnalyzer::visit(VarDecl &node) {
     // Register the variable
     register_symbol(symbol, node.getLocation());
 
-    // Visit initializer if present
+    // Visit initializer if present and check type compatibility
     if (node.getInitializer()) {
         node.getInitializer()->accept(*this);
+
+        // Get the declared type and initializer type
+        auto declared_type = symbol.symbol_type;
+        auto init_type = get_expression_type(node.getInitializer());
+
+        if (declared_type && init_type) {
+            // Check if types are compatible
+            if (!declared_type->equals(*init_type)) {
+                // Check if implicit conversion is allowed
+                if (init_type->canConvertTo(*declared_type)) {
+                    // Allow conversion but warn for potentially lossy conversions
+                    // (e.g., float to int)
+                    if (init_type->isFloatingPoint() && declared_type->isIntegral()) {
+                        add_warning("Implicit conversion from '" + init_type->toString() +
+                                    "' to '" + declared_type->toString() +
+                                    "' may lose precision",
+                                    node.getLocation());
+                    }
+                } else {
+                    // Types are incompatible
+                    add_error("Cannot initialize variable '" + node.getName() +
+                              "' of type '" + declared_type->toString() +
+                              "' with value of type '" + init_type->toString() + "'",
+                              node.getLocation());
+                }
+            }
+        }
     }
 
     // Visit array size expression if present
@@ -85,15 +225,32 @@ void SemanticAnalyzer::visit(StructDecl &node) {
 }
 
 void SemanticAnalyzer::visit(FunctionDecl &node) {
-    // Register function in current scope (should be global)
+    // Collect parameter types
+    std::vector<std::shared_ptr<Type>> param_types;
+    for (const auto& param : node.getParameters()) {
+        if (param) {
+            auto param_type = Type::fromString(param->getType());
+            if (param_type) {
+                param_types.push_back(param_type);
+            }
+        }
+    }
+
+    // Register function in current scope (should be global) with parameter types
     Symbol func_symbol(
         Symbol::AsFunction,
         node.getName(),
-        node.getReturnType(),
+        Type::fromString(node.getReturnType()),
+        param_types,
         scope_manager_.get_current_scope_level()
     );
 
     register_symbol(func_symbol, node.getLocation());
+
+    // Set current function context for return type checking
+    current_function_name_ = node.getName();
+    current_function_return_type_ = Type::fromString(node.getReturnType());
+    current_function_has_return_ = false;
 
     // Enter function scope for parameters and body
     scope_manager_.enter_scope();
@@ -111,8 +268,20 @@ void SemanticAnalyzer::visit(FunctionDecl &node) {
         node.getBody()->accept(*this);
     }
 
-    // Exit function scope
+    // Check if non-void function has a return statement
+    if (current_function_return_type_ &&
+        !current_function_return_type_->isVoid() &&
+        !current_function_has_return_) {
+        add_warning("Non-void function '" + node.getName() +
+                    "' does not return a value",
+                    node.getLocation());
+    }
+
+    // Exit function scope and clear function context
     in_function_scope_ = false;
+    current_function_name_ = "";
+    current_function_return_type_ = nullptr;
+    current_function_has_return_ = false;
     scope_manager_.exit_scope();
 }
 
@@ -204,9 +373,62 @@ void SemanticAnalyzer::visit(ForStmt &node) {
 }
 
 void SemanticAnalyzer::visit(ReturnStmt &node) {
+    // Mark that we've seen a return statement
+    current_function_has_return_ = true;
+
     // Visit return value expression if present
     if (node.getReturnValue()) {
         node.getReturnValue()->accept(*this);
+    }
+
+    // Validate return type matches function signature
+    if (!current_function_return_type_) {
+        // Not in a function context - this shouldn't happen but handle gracefully
+        return;
+    }
+
+    // Case 1: void function with return value
+    if (current_function_return_type_->isVoid() && node.getReturnValue()) {
+        add_error("Void function '" + current_function_name_ +
+                  "' should not return a value",
+                  node.getLocation());
+        return;
+    }
+
+    // Case 2: non-void function without return value
+    if (!current_function_return_type_->isVoid() && !node.getReturnValue()) {
+        add_error("Non-void function '" + current_function_name_ +
+                  "' must return a value",
+                  node.getLocation());
+        return;
+    }
+
+    // Case 3: non-void function with return value - check type compatibility
+    if (!current_function_return_type_->isVoid() && node.getReturnValue()) {
+        auto return_type = get_expression_type(node.getReturnValue());
+
+        if (return_type) {
+            // Check if types match
+            if (!current_function_return_type_->equals(*return_type)) {
+                // Check if implicit conversion is allowed
+                if (return_type->canConvertTo(*current_function_return_type_)) {
+                    // Allow conversion but warn for lossy conversions
+                    if (return_type->isFloatingPoint() && current_function_return_type_->isIntegral()) {
+                        add_warning("Returning '" + return_type->toString() +
+                                    "' from function with return type '" +
+                                    current_function_return_type_->toString() +
+                                    "' may lose precision",
+                                    node.getLocation());
+                    }
+                } else {
+                    // Types are incompatible
+                    add_error("Return type mismatch: expected '" +
+                              current_function_return_type_->toString() +
+                              "', got '" + return_type->toString() + "'",
+                              node.getLocation());
+                }
+            }
+        }
     }
 }
 
@@ -222,12 +444,56 @@ void SemanticAnalyzer::visit(ExpressionStmt &node) {
 // ============================================================================
 
 void SemanticAnalyzer::visit(BinaryExpr &node) {
-    // Visit left and right operands
+    // Visit left and right operands first to get their types
     if (node.getLeft()) {
         node.getLeft()->accept(*this);
     }
     if (node.getRight()) {
         node.getRight()->accept(*this);
+    }
+
+    // Get types of operands
+    auto left_type = get_expression_type(node.getLeft());
+    auto right_type = get_expression_type(node.getRight());
+
+    // If either operand doesn't have a type, we can't check the operation
+    if (!left_type || !right_type) {
+        return;
+    }
+
+    const std::string& op = node.getOperator();
+
+    // Check if the binary operator is valid for these operand types
+    if (!isValidBinaryOperator(*left_type, *right_type, op)) {
+        std::string error_msg = "Type error: invalid operands to binary " + op +
+                                " ('" + left_type->toString() + "' and '" +
+                                right_type->toString() + "')";
+        add_error(error_msg, node.getLocation());
+        return;
+    }
+
+    // Determine the result type
+    std::shared_ptr<Type> result_type;
+
+    // For arithmetic operators, use type promotion rules
+    if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
+        result_type = getArithmeticResultType(*left_type, *right_type, op);
+    }
+    // For comparison operators, result is int (representing boolean in C)
+    else if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=") {
+        result_type = Type::makeInt();
+    }
+    // For logical operators, result is int (representing boolean in C)
+    else if (op == "&&" || op == "||") {
+        result_type = Type::makeInt();
+    }
+    // For bitwise operators, result follows integer promotion
+    else if (op == "&" || op == "|" || op == "^" || op == "<<" || op == ">>") {
+        result_type = getArithmeticResultType(*left_type, *right_type, op);
+    }
+
+    if (result_type) {
+        set_expression_type(&node, result_type);
     }
 }
 
@@ -236,15 +502,147 @@ void SemanticAnalyzer::visit(UnaryExpr &node) {
     if (node.getOperand()) {
         node.getOperand()->accept(*this);
     }
+
+    std::string op = node.getOperator();
+    auto operand_type = get_expression_type(node.getOperand());
+
+    if (!operand_type) {
+        return;  // Can't check if operand type is unknown
+    }
+
+    // Validate address-of operator (&)
+    if (op == "&") {
+        // Address-of can only be applied to lvalues
+        if (!is_lvalue(node.getOperand())) {
+            add_error("Cannot take address of rvalue (non-lvalue expression)", node.getLocation());
+            return;
+        }
+
+        // Result type is pointer to operand type
+        auto result_type = Type::makePointer(operand_type->getBaseType(), operand_type->getPointerDepth() + 1);
+        set_expression_type(&node, result_type);
+        return;
+    }
+
+    // Validate dereference operator (*)
+    if (op == "*") {
+        // Dereference requires a pointer type
+        if (!operand_type->isPointer()) {
+            add_error("Cannot dereference non-pointer type '" + operand_type->toString() + "'", node.getLocation());
+            return;
+        }
+
+        // Result type is the pointed-to type
+        if (operand_type->getPointerDepth() > 0) {
+            auto result_type = Type::makePointer(operand_type->getBaseType(), operand_type->getPointerDepth() - 1);
+            set_expression_type(&node, result_type);
+        }
+        return;
+    }
+
+    // Validate increment/decrement operators (++, --)
+    if (op == "++" || op == "--") {
+        // Increment/decrement require lvalues
+        if (!is_lvalue(node.getOperand())) {
+            add_error("Increment/decrement operator requires an lvalue", node.getLocation());
+            return;
+        }
+
+        // Increment/decrement require arithmetic or pointer types
+        if (!operand_type->isArithmetic() && !operand_type->isPointer()) {
+            add_error("Increment/decrement operator requires arithmetic or pointer type", node.getLocation());
+            return;
+        }
+
+        // Result type is same as operand type
+        set_expression_type(&node, operand_type);
+        return;
+    }
+
+    // Validate unary minus and plus (-, +)
+    if (op == "-" || op == "+") {
+        // Unary minus/plus require arithmetic types
+        if (!operand_type->isArithmetic()) {
+            add_error("Unary " + op + " requires arithmetic type", node.getLocation());
+            return;
+        }
+
+        // Result type is same as operand type
+        set_expression_type(&node, operand_type);
+        return;
+    }
+
+    // Validate logical NOT (!)
+    if (op == "!") {
+        // Logical NOT can be applied to any scalar type (arithmetic or pointer)
+        // Result type is int (boolean in C is int)
+        set_expression_type(&node, Type::makeInt());
+        return;
+    }
+
+    // Validate bitwise NOT (~)
+    if (op == "~") {
+        // Bitwise NOT requires integral type
+        if (!operand_type->isIntegral()) {
+            add_error("Bitwise NOT requires integral type", node.getLocation());
+            return;
+        }
+
+        // Result type is same as operand type
+        set_expression_type(&node, operand_type);
+        return;
+    }
 }
 
 void SemanticAnalyzer::visit(LiteralExpr &node) {
-    // Literals don't need processing for declaration registration
+    // Infer type from literal
+    std::shared_ptr<Type> lit_type;
+
+    switch (node.getLiteralType()) {
+        case LiteralExpr::LiteralType::INTEGER:
+            lit_type = Type::makeInt();
+            break;
+        case LiteralExpr::LiteralType::FLOAT:
+            lit_type = Type::makeFloat();
+            break;
+        case LiteralExpr::LiteralType::CHAR:
+            lit_type = Type::makeChar();
+            break;
+        case LiteralExpr::LiteralType::STRING:
+            // String literals are char* in C
+            lit_type = Type::makePointer(Type::BaseType::CHAR, 1);
+            break;
+        case LiteralExpr::LiteralType::BOOLEAN:
+            lit_type = Type::makeInt(); // Booleans are int in C
+            break;
+    }
+
+    if (lit_type) {
+        set_expression_type(&node, lit_type);
+    }
 }
 
 void SemanticAnalyzer::visit(IdentifierExpr &node) {
-    // Future enhancement: Check if identifier is declared
-    // For now, we're just registering declarations
+    // Look up identifier in symbol table
+    auto symbol_opt = scope_manager_.lookup(node.getName());
+
+    if (symbol_opt.has_value()) {
+        // Set the expression type from the symbol's type
+        if (symbol_opt->symbol_type) {
+            set_expression_type(&node, symbol_opt->symbol_type);
+        }
+    } else {
+        // Identifier not found - report undeclared identifier error
+        std::string error_msg = "Undeclared identifier '" + node.getName() + "'";
+
+        // Try to find a similar identifier for suggestions
+        std::string suggestion = find_similar_identifier(node.getName());
+        if (!suggestion.empty()) {
+            error_msg += "; did you mean '" + suggestion + "'?";
+        }
+
+        add_error(error_msg, node.getLocation());
+    }
 }
 
 void SemanticAnalyzer::visit(CallExpr &node) {
@@ -259,6 +657,85 @@ void SemanticAnalyzer::visit(CallExpr &node) {
             arg->accept(*this);
         }
     }
+
+    // Check if callee is an identifier (function name)
+    const IdentifierExpr* callee_id = dynamic_cast<const IdentifierExpr*>(node.getCallee());
+    if (!callee_id) {
+        // For now, we only handle direct function calls (not function pointers)
+        return;
+    }
+
+    // Look up the function in symbol table
+    auto func_symbol_opt = scope_manager_.lookup(callee_id->getName());
+    if (!func_symbol_opt.has_value()) {
+        // Function not declared - this will be caught by undeclared identifier checking
+        return;
+    }
+
+    const Symbol& func_symbol = func_symbol_opt.value();
+
+    // Check if it's actually a function
+    if (!func_symbol.is_function) {
+        add_error("'" + callee_id->getName() + "' is not a function", node.getLocation());
+        return;
+    }
+
+    // Get the expected parameter types
+    const auto& expected_params = func_symbol.parameter_types;
+    const auto& actual_args = node.getArguments();
+
+    // Check argument count
+    if (actual_args.size() < expected_params.size()) {
+        add_error("Too few arguments to function '" + callee_id->getName() +
+                  "': expected " + std::to_string(expected_params.size()) +
+                  ", got " + std::to_string(actual_args.size()),
+                  node.getLocation());
+        return;
+    }
+
+    if (actual_args.size() > expected_params.size()) {
+        add_error("Too many arguments to function '" + callee_id->getName() +
+                  "': expected " + std::to_string(expected_params.size()) +
+                  ", got " + std::to_string(actual_args.size()),
+                  node.getLocation());
+        return;
+    }
+
+    // Check argument types
+    for (size_t i = 0; i < expected_params.size(); ++i) {
+        auto expected_type = expected_params[i];
+        auto actual_type = get_expression_type(actual_args[i].get());
+
+        if (!expected_type || !actual_type) {
+            continue;  // Can't check if type info is missing
+        }
+
+        // Check if types match exactly
+        if (!expected_type->equals(*actual_type)) {
+            // Check if implicit conversion is allowed
+            if (!actual_type->canConvertTo(*expected_type)) {
+                add_error("Type mismatch for argument " + std::to_string(i + 1) +
+                          " of function '" + callee_id->getName() +
+                          "': expected '" + expected_type->toString() +
+                          "', got '" + actual_type->toString() + "'",
+                          node.getLocation());
+            } else {
+                // Allow conversion but warn for lossy conversions
+                if (actual_type->isFloatingPoint() && expected_type->isIntegral()) {
+                    add_warning("Implicit conversion from '" + actual_type->toString() +
+                                "' to '" + expected_type->toString() +
+                                "' for argument " + std::to_string(i + 1) +
+                                " may lose precision",
+                                node.getLocation());
+                }
+            }
+        }
+    }
+
+    // Set the result type of the call expression to the return type
+    if (func_symbol.symbol_type) {
+        set_expression_type(&node, func_symbol.symbol_type);
+    }
 }
 
 void SemanticAnalyzer::visit(AssignmentExpr &node) {
@@ -269,6 +746,45 @@ void SemanticAnalyzer::visit(AssignmentExpr &node) {
     if (node.getValue()) {
         node.getValue()->accept(*this);
     }
+
+    // Check if target is an lvalue
+    if (node.getTarget() && !is_lvalue(node.getTarget())) {
+        add_error("Assignment target must be an lvalue", node.getLocation());
+        return;
+    }
+
+    // Get types of target and value
+    auto target_type = get_expression_type(node.getTarget());
+    auto value_type = get_expression_type(node.getValue());
+
+    // If either doesn't have a type, we can't check compatibility
+    if (!target_type || !value_type) {
+        return;
+    }
+
+    // Check type compatibility
+    if (!target_type->equals(*value_type)) {
+        // Check if implicit conversion is allowed
+        if (value_type->canConvertTo(*target_type)) {
+            // Allow conversion but warn for potentially lossy conversions
+            // (e.g., float to int)
+            if (value_type->isFloatingPoint() && target_type->isIntegral()) {
+                add_warning("Implicit conversion from '" + value_type->toString() +
+                            "' to '" + target_type->toString() +
+                            "' may lose precision",
+                            node.getLocation());
+            }
+        } else {
+            // Types are incompatible
+            add_error("Cannot assign value of type '" + value_type->toString() +
+                      "' to variable of type '" + target_type->toString() + "'",
+                      node.getLocation());
+            return;
+        }
+    }
+
+    // The result type of an assignment is the type of the target
+    set_expression_type(&node, target_type);
 }
 
 void SemanticAnalyzer::visit(ArrayAccessExpr &node) {

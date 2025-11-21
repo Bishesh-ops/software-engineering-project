@@ -3,8 +3,10 @@
 
 #include "ast.h"
 #include "scope_manager.h"
+#include "type.h"
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 // Semantic error information
 struct SemanticError {
@@ -15,22 +17,59 @@ struct SemanticError {
         : message(msg), location(loc) {}
 };
 
+// Semantic warning information
+struct SemanticWarning {
+    std::string message;
+    SourceLocation location;
+
+    SemanticWarning(const std::string& msg, const SourceLocation& loc)
+        : message(msg), location(loc) {}
+};
+
 // SemanticAnalyzer - Visitor that walks the AST and performs semantic analysis
 // Responsibilities:
 // - Register all declarations in appropriate scopes
 // - Detect and report redeclaration errors
 // - Manage scope entry/exit for blocks, functions, etc.
+// - Type checking for expressions and operations
 class SemanticAnalyzer : public ASTVisitor {
 private:
     ScopeManager scope_manager_;
     std::vector<SemanticError> errors_;
+    std::vector<SemanticWarning> warnings_;
     bool in_function_scope_;  // Track if we're currently inside a function
+
+    // Type tracking for expressions (maps expression pointer to its type)
+    std::unordered_map<const Expression*, std::shared_ptr<Type>> expression_types_;
+
+    // Current function context (for return type checking)
+    std::string current_function_name_;
+    std::shared_ptr<Type> current_function_return_type_;
+    bool current_function_has_return_;  // Track if we've seen a return statement
 
     // Helper to add an error
     void add_error(const std::string& message, const SourceLocation& location);
 
+    // Helper to add a warning
+    void add_warning(const std::string& message, const SourceLocation& location);
+
     // Helper to register a symbol and check for redeclaration
     bool register_symbol(const Symbol& symbol, const SourceLocation& location);
+
+    // Helper to get the type of an expression
+    std::shared_ptr<Type> get_expression_type(const Expression* expr) const;
+
+    // Helper to set the type of an expression
+    void set_expression_type(const Expression* expr, std::shared_ptr<Type> type);
+
+    // Helper to check if an expression is an lvalue
+    bool is_lvalue(const Expression* expr) const;
+
+    // Helper to find similar identifier names (for suggestions)
+    std::string find_similar_identifier(const std::string& name) const;
+
+    // Helper to calculate Levenshtein distance between two strings
+    static int levenshtein_distance(const std::string& s1, const std::string& s2);
 
 public:
     SemanticAnalyzer();
@@ -41,8 +80,14 @@ public:
     // Get all semantic errors found
     const std::vector<SemanticError>& get_errors() const { return errors_; }
 
+    // Get all semantic warnings found
+    const std::vector<SemanticWarning>& get_warnings() const { return warnings_; }
+
     // Check if analysis found any errors
     bool has_errors() const { return !errors_.empty(); }
+
+    // Check if analysis found any warnings
+    bool has_warnings() const { return !warnings_.empty(); }
 
     // Expression visitors
     void visit(BinaryExpr &node) override;

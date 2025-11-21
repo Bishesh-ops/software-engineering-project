@@ -16,7 +16,7 @@ class IdentifierExpr;
 class CallExpr;
 class AssignmentExpr;
 class ArrayAccessExpr;
-class MemberAccessExpr; // USER STORY #20
+class MemberAccessExpr;
 class IfStmt;
 class WhileStmt;
 class ForStmt;
@@ -45,7 +45,7 @@ enum class ASTNodeType
     CALL_EXPR,
     ASSIGNMENT_EXPR,
     ARRAY_ACCESS_EXPR,
-    MEMBER_ACCESS_EXPR, // USER STORY #20
+    MEMBER_ACCESS_EXPR,
 
     // Statement types
     IF_STMT,

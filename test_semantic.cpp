@@ -1276,6 +1276,2434 @@ void test_for_loop_scope() {
 }
 
 // ============================================================================
+// Binary Operation Type Checking Tests (User Story #5)
+// ============================================================================
+
+void test_binary_arithmetic_valid() {
+    cout << "\n[TEST] Binary Operations - Valid Arithmetic Operations" << endl;
+
+    // Create AST:
+    // int x;
+    // int y;
+    // float z;
+    // void foo() {
+    //     x + y;      // int + int -> valid
+    //     x - y;      // int - int -> valid
+    //     x * y;      // int * int -> valid
+    //     x / y;      // int / int -> valid
+    //     x % y;      // int % int -> valid
+    //     x + z;      // int + float -> valid (type promotion)
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Global variables
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+    program.push_back(make_unique<VarDecl>("y", "int", nullptr, loc));
+    program.push_back(make_unique<VarDecl>("z", "float", nullptr, loc));
+
+    // Function body with arithmetic operations
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // x + y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "+",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x - y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "-",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x * y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "*",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x / y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "/",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x % y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "%",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x + z
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "+",
+            make_unique<IdentifierExpr>("z", loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid arithmetic operations accepted");
+    } else {
+        fail("Valid arithmetic operations should be accepted");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_binary_arithmetic_pointer() {
+    cout << "\n[TEST] Binary Operations - Pointer Arithmetic" << endl;
+
+    // Create AST:
+    // int* ptr;
+    // int offset;
+    // void foo() {
+    //     ptr + offset;  // int* + int -> valid (pointer arithmetic)
+    //     ptr - offset;  // int* - int -> valid
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Global variables
+    program.push_back(make_unique<VarDecl>("ptr", "int", nullptr, loc, false, nullptr, 1));
+    program.push_back(make_unique<VarDecl>("offset", "int", nullptr, loc));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // ptr + offset
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("ptr", loc),
+            "+",
+            make_unique<IdentifierExpr>("offset", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // ptr - offset
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("ptr", loc),
+            "-",
+            make_unique<IdentifierExpr>("offset", loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid pointer arithmetic accepted");
+    } else {
+        fail("Pointer arithmetic should be accepted");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_binary_comparison_valid() {
+    cout << "\n[TEST] Binary Operations - Valid Comparison Operations" << endl;
+
+    // Create AST:
+    // int x;
+    // float y;
+    // void foo() {
+    //     x < y;   // int < float -> valid
+    //     x > y;   // int > float -> valid
+    //     x <= y;  // int <= float -> valid
+    //     x >= y;  // int >= float -> valid
+    //     x == y;  // int == float -> valid
+    //     x != y;  // int != float -> valid
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Global variables
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+    program.push_back(make_unique<VarDecl>("y", "float", nullptr, loc));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // x < y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "<",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x > y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            ">",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x <= y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "<=",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x >= y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            ">=",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x == y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "==",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x != y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "!=",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid comparison operations accepted");
+    } else {
+        fail("Comparison operations should be accepted");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_binary_logical_valid() {
+    cout << "\n[TEST] Binary Operations - Valid Logical Operations" << endl;
+
+    // Create AST:
+    // int x;
+    // float y;
+    // int* ptr;
+    // void foo() {
+    //     x && y;    // int && float -> valid (C treats non-zero as true)
+    //     x || y;    // int || float -> valid
+    //     x && ptr;  // int && int* -> valid (any type can be used)
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Global variables
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+    program.push_back(make_unique<VarDecl>("y", "float", nullptr, loc));
+    program.push_back(make_unique<VarDecl>("ptr", "int", nullptr, loc, false, nullptr, 1));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // x && y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "&&",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x || y
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "||",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    // x && ptr
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "&&",
+            make_unique<IdentifierExpr>("ptr", loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid logical operations accepted");
+    } else {
+        fail("Logical operations should be accepted");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_binary_invalid_modulo_float() {
+    cout << "\n[TEST] Binary Operations - Invalid: float % float" << endl;
+
+    // Create AST:
+    // float x;
+    // float y;
+    // void foo() {
+    //     x % y;  // ERROR: modulo only works on integers
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 5, 10);
+
+    // Global variables
+    program.push_back(make_unique<VarDecl>("x", "float", nullptr, loc));
+    program.push_back(make_unique<VarDecl>("y", "float", nullptr, loc));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // x % y (invalid)
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            "%",
+            make_unique<IdentifierExpr>("y", loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("Type error") != string::npos &&
+            err.message.find("%") != string::npos &&
+            err.location.line == 5 && err.location.column == 10) {
+            pass("Error detected: float % float at line 5, column 10");
+        } else {
+            fail("Correct error for float % float");
+            cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+        }
+    } else {
+        fail("Should report exactly one error for float % float");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+void test_binary_invalid_pointer_multiply() {
+    cout << "\n[TEST] Binary Operations - Invalid: pointer * pointer" << endl;
+
+    // Create AST:
+    // int* ptr1;
+    // int* ptr2;
+    // void foo() {
+    //     ptr1 * ptr2;  // ERROR: cannot multiply pointers
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 10, 5);
+
+    // Global variables
+    program.push_back(make_unique<VarDecl>("ptr1", "int", nullptr, loc, false, nullptr, 1));
+    program.push_back(make_unique<VarDecl>("ptr2", "int", nullptr, loc, false, nullptr, 1));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // ptr1 * ptr2 (invalid)
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("ptr1", loc),
+            "*",
+            make_unique<IdentifierExpr>("ptr2", loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("Type error") != string::npos &&
+            err.message.find("*") != string::npos &&
+            err.location.line == 10 && err.location.column == 5) {
+            pass("Error detected: pointer * pointer at line 10, column 5");
+        } else {
+            fail("Correct error for pointer * pointer");
+            cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+        }
+    } else {
+        fail("Should report exactly one error for pointer * pointer");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+void test_binary_invalid_incompatible_pointers() {
+    cout << "\n[TEST] Binary Operations - Invalid: incompatible pointer comparison" << endl;
+
+    // Create AST:
+    // int* ptr_int;
+    // char* ptr_char;
+    // void foo() {
+    //     ptr_int == ptr_char;  // ERROR: incompatible pointer types
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 15, 12);
+
+    // Global variables
+    program.push_back(make_unique<VarDecl>("ptr_int", "int", nullptr, loc, false, nullptr, 1));
+    program.push_back(make_unique<VarDecl>("ptr_char", "char", nullptr, loc, false, nullptr, 1));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // ptr_int == ptr_char (invalid - different pointer types)
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<BinaryExpr>(
+            make_unique<IdentifierExpr>("ptr_int", loc),
+            "==",
+            make_unique<IdentifierExpr>("ptr_char", loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("Type error") != string::npos &&
+            err.location.line == 15 && err.location.column == 12) {
+            pass("Error detected: incompatible pointer comparison at line 15, column 12");
+        } else {
+            fail("Correct error for incompatible pointer comparison");
+            cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+        }
+    } else {
+        fail("Should report exactly one error for incompatible pointer comparison");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+// ============================================================================
+// Assignment Type Checking Tests (User Story #6)
+// ============================================================================
+
+void test_assignment_valid_same_type() {
+    cout << "\n[TEST] Assignment - Valid: Same Types" << endl;
+
+    // Create AST:
+    // int x;
+    // int y;
+    // void foo() {
+    //     x = 5;       // int = int literal
+    //     y = x;       // int = int variable
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Global variables
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+    program.push_back(make_unique<VarDecl>("y", "int", nullptr, loc));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // x = 5
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc),
+            loc
+        ),
+        loc
+    ));
+
+    // y = x
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("y", loc),
+            make_unique<IdentifierExpr>("x", loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid same-type assignments accepted");
+    } else {
+        fail("Same-type assignments should be accepted");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_assignment_valid_implicit_int_to_float() {
+    cout << "\n[TEST] Assignment - Valid: Implicit int to float conversion" << endl;
+
+    // Create AST:
+    // float x;
+    // void foo() {
+    //     x = 10;  // float = int (implicit conversion, OK)
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Global variable
+    program.push_back(make_unique<VarDecl>("x", "float", nullptr, loc));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // x = 10
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            make_unique<LiteralExpr>("10", LiteralExpr::LiteralType::INTEGER, loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Implicit int to float conversion accepted");
+    } else {
+        fail("int to float conversion should be accepted");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_assignment_warning_float_to_int() {
+    cout << "\n[TEST] Assignment - Warning: Implicit float to int conversion" << endl;
+
+    // Create AST:
+    // int x;
+    // void foo() {
+    //     x = 3.14;  // int = float (warning: may lose precision)
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 5, 8);
+
+    // Global variable
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // x = 3.14
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            make_unique<LiteralExpr>("3.14", LiteralExpr::LiteralType::FLOAT, loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors() && analyzer.has_warnings()) {
+        const auto& warn = analyzer.get_warnings()[0];
+        if (warn.message.find("precision") != string::npos &&
+            warn.location.line == 5 && warn.location.column == 8) {
+            pass("Warning issued for float to int conversion at line 5, column 8");
+        } else {
+            fail("Correct warning for float to int");
+            cout << "    Got: " << warn.message << " at " << warn.location.toString() << endl;
+        }
+    } else {
+        fail("Should warn for float to int conversion (no error)");
+        cout << "    Errors: " << analyzer.get_errors().size()
+             << ", Warnings: " << analyzer.get_warnings().size() << endl;
+    }
+}
+
+void test_assignment_error_incompatible_types() {
+    cout << "\n[TEST] Assignment - Error: Incompatible types (int = string)" << endl;
+
+    // Create AST:
+    // int x;
+    // void foo() {
+    //     x = "hello";  // ERROR: cannot assign string to int
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 10, 5);
+
+    // Global variable
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // x = "hello"
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            make_unique<LiteralExpr>("hello", LiteralExpr::LiteralType::STRING, loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("Cannot assign") != string::npos &&
+            err.location.line == 10 && err.location.column == 5) {
+            pass("Error detected: int = string at line 10, column 5");
+        } else {
+            fail("Correct error for int = string");
+            cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+        }
+    } else {
+        fail("Should report exactly one error for int = string");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+void test_assignment_error_not_lvalue_literal() {
+    cout << "\n[TEST] Assignment - Error: Not lvalue (5 = x)" << endl;
+
+    // Create AST:
+    // int x;
+    // void foo() {
+    //     5 = x;  // ERROR: cannot assign to literal
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 15, 10);
+
+    // Global variable
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // 5 = x (invalid - literal is not an lvalue)
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc),
+            make_unique<IdentifierExpr>("x", loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("lvalue") != string::npos &&
+            err.location.line == 15 && err.location.column == 10) {
+            pass("Error detected: literal not lvalue at line 15, column 10");
+        } else {
+            fail("Correct error for literal assignment");
+            cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+        }
+    } else {
+        fail("Should report exactly one error for literal assignment");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+void test_assignment_error_not_lvalue_expression() {
+    cout << "\n[TEST] Assignment - Error: Not lvalue (x + y = 5)" << endl;
+
+    // Create AST:
+    // int x;
+    // int y;
+    // void foo() {
+    //     x + y = 5;  // ERROR: expression is not an lvalue
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 20, 12);
+
+    // Global variables
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+    program.push_back(make_unique<VarDecl>("y", "int", nullptr, loc));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+
+    // x + y = 5 (invalid - binary expression is not an lvalue)
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<BinaryExpr>(
+                make_unique<IdentifierExpr>("x", loc),
+                "+",
+                make_unique<IdentifierExpr>("y", loc),
+                loc
+            ),
+            make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc),
+            loc
+        ),
+        loc
+    ));
+
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() >= 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("lvalue") != string::npos &&
+            err.location.line == 20 && err.location.column == 12) {
+            pass("Error detected: expression not lvalue at line 20, column 12");
+        } else {
+            fail("Correct error for expression assignment");
+            cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+        }
+    } else {
+        fail("Should report error for expression assignment");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+void test_vardecl_valid_initialization() {
+    cout << "\n[TEST] Variable Declaration - Valid initialization" << endl;
+
+    // Create AST:
+    // int x = 5;
+    // float y = 3.14;
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // int x = 5;
+    auto init_x = make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc);
+    program.push_back(make_unique<VarDecl>("x", "int", move(init_x), loc));
+
+    // float y = 3.14;
+    auto init_y = make_unique<LiteralExpr>("3.14", LiteralExpr::LiteralType::FLOAT, loc);
+    program.push_back(make_unique<VarDecl>("y", "float", move(init_y), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid variable initializations accepted");
+    } else {
+        fail("Valid initializations should be accepted");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_vardecl_warning_float_to_int() {
+    cout << "\n[TEST] Variable Declaration - Warning: float to int initialization" << endl;
+
+    // Create AST:
+    // int x = 3.14;  // WARNING: float to int
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 5, 0);
+
+    // int x = 3.14;
+    auto init = make_unique<LiteralExpr>("3.14", LiteralExpr::LiteralType::FLOAT, loc);
+    program.push_back(make_unique<VarDecl>("x", "int", move(init), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors() && analyzer.has_warnings()) {
+        const auto& warn = analyzer.get_warnings()[0];
+        if (warn.message.find("precision") != string::npos) {
+            pass("Warning issued for float to int initialization");
+        } else {
+            fail("Correct warning message");
+            cout << "    Got: " << warn.message << endl;
+        }
+    } else {
+        fail("Should warn for float to int initialization (no error)");
+        cout << "    Errors: " << analyzer.get_errors().size()
+             << ", Warnings: " << analyzer.get_warnings().size() << endl;
+    }
+}
+
+void test_vardecl_error_incompatible_types() {
+    cout << "\n[TEST] Variable Declaration - Error: Incompatible types" << endl;
+
+    // Create AST:
+    // int x = "hello";  // ERROR: cannot initialize int with string
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 10, 0);
+
+    // int x = "hello";
+    auto init = make_unique<LiteralExpr>("hello", LiteralExpr::LiteralType::STRING, loc);
+    program.push_back(make_unique<VarDecl>("x", "int", move(init), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("Cannot initialize") != string::npos) {
+            pass("Error detected: int x = string");
+        } else {
+            fail("Correct error for incompatible initialization");
+            cout << "    Got: " << err.message << endl;
+        }
+    } else {
+        fail("Should report exactly one error for incompatible initialization");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+// ============================================================================
+// Function Call Type Checking Tests (User Story #7)
+// ============================================================================
+
+void test_function_call_valid_no_args() {
+    cout << "\n[TEST] Function Call - Valid: No arguments" << endl;
+
+    // Create AST:
+    // void foo();
+    // void main() {
+    //     foo();
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Function declaration: void foo()
+    vector<unique_ptr<ParameterDecl>> foo_params;
+    vector<unique_ptr<Statement>> foo_body_stmts;
+    auto foo_body = make_unique<CompoundStmt>(move(foo_body_stmts), loc);
+    program.push_back(make_unique<FunctionDecl>("foo", "void", move(foo_params), move(foo_body), loc));
+
+    // Function main calling foo()
+    vector<unique_ptr<Statement>> main_body_stmts;
+    vector<unique_ptr<Expression>> call_args;
+    auto call = make_unique<CallExpr>(
+        make_unique<IdentifierExpr>("foo", loc),
+        move(call_args),
+        loc
+    );
+    main_body_stmts.push_back(make_unique<ExpressionStmt>(move(call), loc));
+    auto main_body = make_unique<CompoundStmt>(move(main_body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> main_params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(main_params), move(main_body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid function call with no arguments");
+    } else {
+        fail("Function call should be valid");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_function_call_valid_matching_types() {
+    cout << "\n[TEST] Function Call - Valid: Matching argument types" << endl;
+
+    // Create AST:
+    // int add(int a, int b);
+    // void main() {
+    //     add(3, 5);
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Function declaration: int add(int a, int b)
+    vector<unique_ptr<ParameterDecl>> add_params;
+    add_params.push_back(make_unique<ParameterDecl>("a", "int", loc));
+    add_params.push_back(make_unique<ParameterDecl>("b", "int", loc));
+    vector<unique_ptr<Statement>> add_body_stmts;
+    auto add_body = make_unique<CompoundStmt>(move(add_body_stmts), loc);
+    program.push_back(make_unique<FunctionDecl>("add", "int", move(add_params), move(add_body), loc));
+
+    // Function main calling add(3, 5)
+    vector<unique_ptr<Statement>> main_body_stmts;
+    vector<unique_ptr<Expression>> call_args;
+    call_args.push_back(make_unique<LiteralExpr>("3", LiteralExpr::LiteralType::INTEGER, loc));
+    call_args.push_back(make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc));
+    auto call = make_unique<CallExpr>(
+        make_unique<IdentifierExpr>("add", loc),
+        move(call_args),
+        loc
+    );
+    main_body_stmts.push_back(make_unique<ExpressionStmt>(move(call), loc));
+    auto main_body = make_unique<CompoundStmt>(move(main_body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> main_params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(main_params), move(main_body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid function call with matching types");
+    } else {
+        fail("Function call should be valid");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_function_call_valid_implicit_conversion() {
+    cout << "\n[TEST] Function Call - Valid: Implicit int to float conversion" << endl;
+
+    // Create AST:
+    // float process(float x);
+    // void main() {
+    //     process(10);  // int to float conversion is OK
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Function declaration: float process(float x)
+    vector<unique_ptr<ParameterDecl>> proc_params;
+    proc_params.push_back(make_unique<ParameterDecl>("x", "float", loc));
+    vector<unique_ptr<Statement>> proc_body_stmts;
+    auto proc_body = make_unique<CompoundStmt>(move(proc_body_stmts), loc);
+    program.push_back(make_unique<FunctionDecl>("process", "float", move(proc_params), move(proc_body), loc));
+
+    // Function main calling process(10)
+    vector<unique_ptr<Statement>> main_body_stmts;
+    vector<unique_ptr<Expression>> call_args;
+    call_args.push_back(make_unique<LiteralExpr>("10", LiteralExpr::LiteralType::INTEGER, loc));
+    auto call = make_unique<CallExpr>(
+        make_unique<IdentifierExpr>("process", loc),
+        move(call_args),
+        loc
+    );
+    main_body_stmts.push_back(make_unique<ExpressionStmt>(move(call), loc));
+    auto main_body = make_unique<CompoundStmt>(move(main_body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> main_params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(main_params), move(main_body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Implicit int to float conversion in function call");
+    } else {
+        fail("int to float conversion should be accepted");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_function_call_error_too_few_args() {
+    cout << "\n[TEST] Function Call - Error: Too few arguments" << endl;
+
+    // Create AST:
+    // int add(int a, int b);
+    // void main() {
+    //     add(3);  // ERROR: expected 2 args, got 1
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 5, 5);
+
+    // Function declaration: int add(int a, int b)
+    vector<unique_ptr<ParameterDecl>> add_params;
+    add_params.push_back(make_unique<ParameterDecl>("a", "int", loc));
+    add_params.push_back(make_unique<ParameterDecl>("b", "int", loc));
+    vector<unique_ptr<Statement>> add_body_stmts;
+    auto add_body = make_unique<CompoundStmt>(move(add_body_stmts), loc);
+    program.push_back(make_unique<FunctionDecl>("add", "int", move(add_params), move(add_body), loc));
+
+    // Function main calling add(3) - missing second argument
+    vector<unique_ptr<Statement>> main_body_stmts;
+    vector<unique_ptr<Expression>> call_args;
+    call_args.push_back(make_unique<LiteralExpr>("3", LiteralExpr::LiteralType::INTEGER, loc));
+    auto call = make_unique<CallExpr>(
+        make_unique<IdentifierExpr>("add", loc),
+        move(call_args),
+        loc
+    );
+    main_body_stmts.push_back(make_unique<ExpressionStmt>(move(call), loc));
+    auto main_body = make_unique<CompoundStmt>(move(main_body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> main_params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(main_params), move(main_body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("Too few") != string::npos &&
+            err.message.find("expected 2") != string::npos &&
+            err.message.find("got 1") != string::npos &&
+            err.location.line == 5 && err.location.column == 5) {
+            pass("Error detected: too few arguments at line 5, column 5");
+        } else {
+            fail("Correct error for too few arguments");
+            cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+        }
+    } else {
+        fail("Should report exactly one error for too few arguments");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+void test_function_call_error_too_many_args() {
+    cout << "\n[TEST] Function Call - Error: Too many arguments" << endl;
+
+    // Create AST:
+    // int add(int a, int b);
+    // void main() {
+    //     add(3, 5, 7);  // ERROR: expected 2 args, got 3
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 10, 8);
+
+    // Function declaration: int add(int a, int b)
+    vector<unique_ptr<ParameterDecl>> add_params;
+    add_params.push_back(make_unique<ParameterDecl>("a", "int", loc));
+    add_params.push_back(make_unique<ParameterDecl>("b", "int", loc));
+    vector<unique_ptr<Statement>> add_body_stmts;
+    auto add_body = make_unique<CompoundStmt>(move(add_body_stmts), loc);
+    program.push_back(make_unique<FunctionDecl>("add", "int", move(add_params), move(add_body), loc));
+
+    // Function main calling add(3, 5, 7) - extra argument
+    vector<unique_ptr<Statement>> main_body_stmts;
+    vector<unique_ptr<Expression>> call_args;
+    call_args.push_back(make_unique<LiteralExpr>("3", LiteralExpr::LiteralType::INTEGER, loc));
+    call_args.push_back(make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc));
+    call_args.push_back(make_unique<LiteralExpr>("7", LiteralExpr::LiteralType::INTEGER, loc));
+    auto call = make_unique<CallExpr>(
+        make_unique<IdentifierExpr>("add", loc),
+        move(call_args),
+        loc
+    );
+    main_body_stmts.push_back(make_unique<ExpressionStmt>(move(call), loc));
+    auto main_body = make_unique<CompoundStmt>(move(main_body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> main_params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(main_params), move(main_body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("Too many") != string::npos &&
+            err.message.find("expected 2") != string::npos &&
+            err.message.find("got 3") != string::npos &&
+            err.location.line == 10 && err.location.column == 8) {
+            pass("Error detected: too many arguments at line 10, column 8");
+        } else {
+            fail("Correct error for too many arguments");
+            cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+        }
+    } else {
+        fail("Should report exactly one error for too many arguments");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+void test_function_call_error_type_mismatch() {
+    cout << "\n[TEST] Function Call - Error: Type mismatch on argument 2" << endl;
+
+    // Create AST:
+    // int add(int a, int b);
+    // void main() {
+    //     add(3, "hi");  // ERROR: arg 2 should be int, got char*
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 15, 10);
+
+    // Function declaration: int add(int a, int b)
+    vector<unique_ptr<ParameterDecl>> add_params;
+    add_params.push_back(make_unique<ParameterDecl>("a", "int", loc));
+    add_params.push_back(make_unique<ParameterDecl>("b", "int", loc));
+    vector<unique_ptr<Statement>> add_body_stmts;
+    auto add_body = make_unique<CompoundStmt>(move(add_body_stmts), loc);
+    program.push_back(make_unique<FunctionDecl>("add", "int", move(add_params), move(add_body), loc));
+
+    // Function main calling add(3, "hi") - wrong type for arg 2
+    vector<unique_ptr<Statement>> main_body_stmts;
+    vector<unique_ptr<Expression>> call_args;
+    call_args.push_back(make_unique<LiteralExpr>("3", LiteralExpr::LiteralType::INTEGER, loc));
+    call_args.push_back(make_unique<LiteralExpr>("hi", LiteralExpr::LiteralType::STRING, loc));
+    auto call = make_unique<CallExpr>(
+        make_unique<IdentifierExpr>("add", loc),
+        move(call_args),
+        loc
+    );
+    main_body_stmts.push_back(make_unique<ExpressionStmt>(move(call), loc));
+    auto main_body = make_unique<CompoundStmt>(move(main_body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> main_params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(main_params), move(main_body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
+        const auto& err = analyzer.get_errors()[0];
+        if (err.message.find("Type mismatch") != string::npos &&
+            err.message.find("argument 2") != string::npos &&
+            err.message.find("expected 'int'") != string::npos &&
+            err.location.line == 15 && err.location.column == 10) {
+            pass("Error detected: type mismatch on argument 2 at line 15, column 10");
+        } else {
+            fail("Correct error for type mismatch");
+            cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+        }
+    } else {
+        fail("Should report exactly one error for type mismatch");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+void test_function_call_warning_lossy_conversion() {
+    cout << "\n[TEST] Function Call - Warning: Lossy conversion (float to int)" << endl;
+
+    // Create AST:
+    // void process(int x);
+    // void main() {
+    //     process(3.14);  // WARNING: float to int may lose precision
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 20, 5);
+
+    // Function declaration: void process(int x)
+    vector<unique_ptr<ParameterDecl>> proc_params;
+    proc_params.push_back(make_unique<ParameterDecl>("x", "int", loc));
+    vector<unique_ptr<Statement>> proc_body_stmts;
+    auto proc_body = make_unique<CompoundStmt>(move(proc_body_stmts), loc);
+    program.push_back(make_unique<FunctionDecl>("process", "void", move(proc_params), move(proc_body), loc));
+
+    // Function main calling process(3.14)
+    vector<unique_ptr<Statement>> main_body_stmts;
+    vector<unique_ptr<Expression>> call_args;
+    call_args.push_back(make_unique<LiteralExpr>("3.14", LiteralExpr::LiteralType::FLOAT, loc));
+    auto call = make_unique<CallExpr>(
+        make_unique<IdentifierExpr>("process", loc),
+        move(call_args),
+        loc
+    );
+    main_body_stmts.push_back(make_unique<ExpressionStmt>(move(call), loc));
+    auto main_body = make_unique<CompoundStmt>(move(main_body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> main_params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(main_params), move(main_body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors() && analyzer.has_warnings()) {
+        const auto& warn = analyzer.get_warnings()[0];
+        if (warn.message.find("precision") != string::npos &&
+            warn.message.find("argument 1") != string::npos &&
+            warn.location.line == 20 && warn.location.column == 5) {
+            pass("Warning issued for lossy conversion at line 20, column 5");
+        } else {
+            fail("Correct warning for lossy conversion");
+            cout << "    Got: " << warn.message << " at " << warn.location.toString() << endl;
+        }
+    } else {
+        fail("Should warn for lossy conversion (no error)");
+        cout << "    Errors: " << analyzer.get_errors().size()
+             << ", Warnings: " << analyzer.get_warnings().size() << endl;
+    }
+}
+
+void test_function_call_error_multiple_type_mismatches() {
+    cout << "\n[TEST] Function Call - Error: Multiple arguments with wrong types" << endl;
+
+    // Create AST:
+    // void func(int a, int b, int c);
+    // void main() {
+    //     func("x", 5, "y");  // ERROR: arg 1 and 3 have wrong types
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 25, 7);
+
+    // Function declaration: void func(int a, int b, int c)
+    vector<unique_ptr<ParameterDecl>> func_params;
+    func_params.push_back(make_unique<ParameterDecl>("a", "int", loc));
+    func_params.push_back(make_unique<ParameterDecl>("b", "int", loc));
+    func_params.push_back(make_unique<ParameterDecl>("c", "int", loc));
+    vector<unique_ptr<Statement>> func_body_stmts;
+    auto func_body = make_unique<CompoundStmt>(move(func_body_stmts), loc);
+    program.push_back(make_unique<FunctionDecl>("func", "void", move(func_params), move(func_body), loc));
+
+    // Function main calling func("x", 5, "y")
+    vector<unique_ptr<Statement>> main_body_stmts;
+    vector<unique_ptr<Expression>> call_args;
+    call_args.push_back(make_unique<LiteralExpr>("x", LiteralExpr::LiteralType::STRING, loc));
+    call_args.push_back(make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc));
+    call_args.push_back(make_unique<LiteralExpr>("y", LiteralExpr::LiteralType::STRING, loc));
+    auto call = make_unique<CallExpr>(
+        make_unique<IdentifierExpr>("func", loc),
+        move(call_args),
+        loc
+    );
+    main_body_stmts.push_back(make_unique<ExpressionStmt>(move(call), loc));
+    auto main_body = make_unique<CompoundStmt>(move(main_body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> main_params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(main_params), move(main_body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() == 2) {
+        // Should have 2 errors: one for arg 1, one for arg 3
+        bool has_arg1_error = false;
+        bool has_arg3_error = false;
+
+        for (const auto& err : analyzer.get_errors()) {
+            if (err.message.find("argument 1") != string::npos) has_arg1_error = true;
+            if (err.message.find("argument 3") != string::npos) has_arg3_error = true;
+        }
+
+        if (has_arg1_error && has_arg3_error) {
+            pass("Errors detected for arguments 1 and 3");
+        } else {
+            fail("Should report errors for both arguments 1 and 3");
+            for (const auto& err : analyzer.get_errors()) {
+                cout << "    Error: " << err.message << endl;
+            }
+        }
+    } else {
+        fail("Should report exactly 2 errors for wrong argument types");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+// ============================================================================
+// Undeclared Identifier Detection Tests (User Story #8)
+// ============================================================================
+
+void test_undeclared_identifier_valid_reference() {
+    cout << "\n[TEST] Undeclared Identifier - Valid: Declared variable" << endl;
+
+    // Create AST:
+    // int x;
+    // void main() {
+    //     x = 5;  // Valid: x is declared
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Global variable
+    program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc),
+            loc
+        ),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid reference to declared variable");
+    } else {
+        fail("Should accept declared variable");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_undeclared_identifier_error_simple() {
+    cout << "\n[TEST] Undeclared Identifier - Error: Undeclared variable" << endl;
+
+    // Create AST:
+    // void main() {
+    //     x = 5;  // ERROR: x is not declared
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 5, 5);
+
+    // Function body using undeclared variable
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc),
+            loc
+        ),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        bool found_undeclared = false;
+        for (const auto& err : analyzer.get_errors()) {
+            if (err.message.find("Undeclared identifier 'x'") != string::npos &&
+                err.location.line == 5 && err.location.column == 5) {
+                found_undeclared = true;
+                break;
+            }
+        }
+
+        if (found_undeclared) {
+            pass("Error detected: undeclared identifier 'x' at line 5, column 5");
+        } else {
+            fail("Should report undeclared identifier error");
+            for (const auto& err : analyzer.get_errors()) {
+                cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+            }
+        }
+    } else {
+        fail("Should report error for undeclared identifier");
+    }
+}
+
+void test_undeclared_identifier_suggestion_single_char() {
+    cout << "\n[TEST] Undeclared Identifier - Suggestion: Single character typo" << endl;
+
+    // Create AST:
+    // int count;
+    // void main() {
+    //     cont = 5;  // ERROR: should suggest 'count'
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 10, 7);
+
+    // Global variable
+    program.push_back(make_unique<VarDecl>("count", "int", nullptr, loc));
+
+    // Function body using typo
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("cont", loc),  // Typo: missing 'u'
+            make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc),
+            loc
+        ),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        bool found_suggestion = false;
+        for (const auto& err : analyzer.get_errors()) {
+            if (err.message.find("Undeclared identifier 'cont'") != string::npos &&
+                err.message.find("did you mean 'count'?") != string::npos &&
+                err.location.line == 10 && err.location.column == 7) {
+                found_suggestion = true;
+                break;
+            }
+        }
+
+        if (found_suggestion) {
+            pass("Suggestion provided: did you mean 'count'? at line 10, column 7");
+        } else {
+            fail("Should suggest 'count'");
+            for (const auto& err : analyzer.get_errors()) {
+                cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+            }
+        }
+    } else {
+        fail("Should report error for undeclared identifier");
+    }
+}
+
+void test_undeclared_identifier_suggestion_transposition() {
+    cout << "\n[TEST] Undeclared Identifier - Suggestion: Character transposition" << endl;
+
+    // Create AST:
+    // int value;
+    // void main() {
+    //     vlaue = 10;  // ERROR: should suggest 'value'
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 15, 3);
+
+    // Global variable
+    program.push_back(make_unique<VarDecl>("value", "int", nullptr, loc));
+
+    // Function body using typo (transposed characters)
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("vlaue", loc),  // Typo: transposed 'l' and 'a'
+            make_unique<LiteralExpr>("10", LiteralExpr::LiteralType::INTEGER, loc),
+            loc
+        ),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        bool found_suggestion = false;
+        for (const auto& err : analyzer.get_errors()) {
+            if (err.message.find("Undeclared identifier 'vlaue'") != string::npos &&
+                err.message.find("did you mean 'value'?") != string::npos &&
+                err.location.line == 15 && err.location.column == 3) {
+                found_suggestion = true;
+                break;
+            }
+        }
+
+        if (found_suggestion) {
+            pass("Suggestion provided: did you mean 'value'? at line 15, column 3");
+        } else {
+            fail("Should suggest 'value'");
+            for (const auto& err : analyzer.get_errors()) {
+                cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+            }
+        }
+    } else {
+        fail("Should report error for undeclared identifier");
+    }
+}
+
+void test_undeclared_identifier_no_suggestion() {
+    cout << "\n[TEST] Undeclared Identifier - No suggestion for distant typo" << endl;
+
+    // Create AST:
+    // int count;
+    // void main() {
+    //     xyz = 5;  // ERROR: too different, no suggestion
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 20, 2);
+
+    // Global variable
+    program.push_back(make_unique<VarDecl>("count", "int", nullptr, loc));
+
+    // Function body using completely different name
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("xyz", loc),  // Too different from 'count'
+            make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc),
+            loc
+        ),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        bool found_error_without_suggestion = false;
+        for (const auto& err : analyzer.get_errors()) {
+            if (err.message.find("Undeclared identifier 'xyz'") != string::npos &&
+                err.message.find("did you mean") == string::npos &&
+                err.location.line == 20 && err.location.column == 2) {
+                found_error_without_suggestion = true;
+                break;
+            }
+        }
+
+        if (found_error_without_suggestion) {
+            pass("No suggestion for distant typo at line 20, column 2");
+        } else {
+            fail("Should report error without suggestion");
+            for (const auto& err : analyzer.get_errors()) {
+                cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+            }
+        }
+    } else {
+        fail("Should report error for undeclared identifier");
+    }
+}
+
+void test_undeclared_identifier_multiple_errors() {
+    cout << "\n[TEST] Undeclared Identifier - Multiple undeclared identifiers" << endl;
+
+    // Create AST:
+    // void main() {
+    //     x = y + z;  // ERROR: all three undeclared
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 25, 1);
+
+    // Function body using multiple undeclared variables
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ExpressionStmt>(
+        make_unique<AssignmentExpr>(
+            make_unique<IdentifierExpr>("x", loc),
+            make_unique<BinaryExpr>(
+                make_unique<IdentifierExpr>("y", loc),
+                "+",
+                make_unique<IdentifierExpr>("z", loc),
+                loc
+            ),
+            loc
+        ),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("main", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors() && analyzer.get_errors().size() >= 3) {
+        bool has_x = false, has_y = false, has_z = false;
+        for (const auto& err : analyzer.get_errors()) {
+            if (err.message.find("Undeclared identifier 'x'") != string::npos) has_x = true;
+            if (err.message.find("Undeclared identifier 'y'") != string::npos) has_y = true;
+            if (err.message.find("Undeclared identifier 'z'") != string::npos) has_z = true;
+        }
+
+        if (has_x && has_y && has_z) {
+            pass("All three undeclared identifiers detected");
+        } else {
+            fail("Should detect all three undeclared identifiers");
+            for (const auto& err : analyzer.get_errors()) {
+                cout << "    Error: " << err.message << endl;
+            }
+        }
+    } else {
+        fail("Should report errors for all undeclared identifiers");
+        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+    }
+}
+
+// ============================================================================
+// Return Type Validation Tests (User Story #9)
+// ============================================================================
+
+void test_return_valid_int_function() {
+    cout << "\n[TEST] Return Type - Valid: int function returns int" << endl;
+
+    // Create AST:
+    // int get_value() {
+    //     return 42;
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Function body with return
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ReturnStmt>(
+        make_unique<LiteralExpr>("42", LiteralExpr::LiteralType::INTEGER, loc),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("get_value", "int", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid int return from int function");
+    } else {
+        fail("int function returning int should be valid");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_return_valid_void_function() {
+    cout << "\n[TEST] Return Type - Valid: void function with return;" << endl;
+
+    // Create AST:
+    // void do_something() {
+    //     return;
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Function body with void return
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ReturnStmt>(nullptr, loc));  // void return
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("do_something", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid void return from void function");
+    } else {
+        fail("void function with return; should be valid");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_return_valid_implicit_conversion() {
+    cout << "\n[TEST] Return Type - Valid: Implicit int to float conversion" << endl;
+
+    // Create AST:
+    // float get_pi() {
+    //     return 3;  // int to float is OK
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 1, 0);
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ReturnStmt>(
+        make_unique<LiteralExpr>("3", LiteralExpr::LiteralType::INTEGER, loc),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("get_pi", "float", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Implicit int to float conversion in return");
+    } else {
+        fail("int to float conversion should be valid");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+void test_return_error_type_mismatch() {
+    cout << "\n[TEST] Return Type - Error: Type mismatch (int vs string)" << endl;
+
+    // Create AST:
+    // int get_value() {
+    //     return "hello";  // ERROR: wrong type
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 5, 5);
+
+    // Function body with wrong return type
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ReturnStmt>(
+        make_unique<LiteralExpr>("hello", LiteralExpr::LiteralType::STRING, loc),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("get_value", "int", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        bool found_mismatch = false;
+        for (const auto& err : analyzer.get_errors()) {
+            if (err.message.find("Return type mismatch") != string::npos &&
+                err.message.find("expected 'int'") != string::npos &&
+                err.location.line == 5 && err.location.column == 5) {
+                found_mismatch = true;
+                break;
+            }
+        }
+
+        if (found_mismatch) {
+            pass("Error detected: return type mismatch at line 5, column 5");
+        } else {
+            fail("Should report return type mismatch");
+            for (const auto& err : analyzer.get_errors()) {
+                cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+            }
+        }
+    } else {
+        fail("Should report error for return type mismatch");
+    }
+}
+
+void test_return_error_void_with_value() {
+    cout << "\n[TEST] Return Type - Error: void function returns value" << endl;
+
+    // Create AST:
+    // void do_something() {
+    //     return 42;  // ERROR: void function shouldn't return value
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 10, 5);
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ReturnStmt>(
+        make_unique<LiteralExpr>("42", LiteralExpr::LiteralType::INTEGER, loc),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("do_something", "void", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        bool found_error = false;
+        for (const auto& err : analyzer.get_errors()) {
+            if (err.message.find("Void function") != string::npos &&
+                err.message.find("should not return a value") != string::npos &&
+                err.location.line == 10 && err.location.column == 5) {
+                found_error = true;
+                break;
+            }
+        }
+
+        if (found_error) {
+            pass("Error detected: void function returns value at line 10, column 5");
+        } else {
+            fail("Should report error for void function returning value");
+            for (const auto& err : analyzer.get_errors()) {
+                cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+            }
+        }
+    } else {
+        fail("Should report error for void function returning value");
+    }
+}
+
+void test_return_error_nonvoid_without_value() {
+    cout << "\n[TEST] Return Type - Error: non-void function returns without value" << endl;
+
+    // Create AST:
+    // int get_value() {
+    //     return;  // ERROR: int function must return value
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 15, 5);
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ReturnStmt>(nullptr, loc));  // return without value
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("get_value", "int", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        bool found_error = false;
+        for (const auto& err : analyzer.get_errors()) {
+            if (err.message.find("Non-void function") != string::npos &&
+                err.message.find("must return a value") != string::npos &&
+                err.location.line == 15 && err.location.column == 5) {
+                found_error = true;
+                break;
+            }
+        }
+
+        if (found_error) {
+            pass("Error detected: non-void function without return value at line 15, column 5");
+        } else {
+            fail("Should report error for non-void function without return value");
+            for (const auto& err : analyzer.get_errors()) {
+                cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
+            }
+        }
+    } else {
+        fail("Should report error for non-void function without return value");
+    }
+}
+
+void test_return_warning_missing_return() {
+    cout << "\n[TEST] Return Type - Warning: non-void function lacks return statement" << endl;
+
+    // Create AST:
+    // int get_value() {
+    //     int x = 5;  // No return statement
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 20, 0);
+
+    // Function body without return
+    vector<unique_ptr<Statement>> body_stmts;
+    auto init = make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc);
+    program.push_back(make_unique<VarDecl>("x", "int", move(init), loc));
+
+    // Empty function body (no return)
+    vector<unique_ptr<Statement>> func_body_stmts;
+    auto body = make_unique<CompoundStmt>(move(func_body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("get_value", "int", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors() && analyzer.has_warnings()) {
+        bool found_warning = false;
+        for (const auto& warn : analyzer.get_warnings()) {
+            if (warn.message.find("does not return a value") != string::npos) {
+                found_warning = true;
+                break;
+            }
+        }
+
+        if (found_warning) {
+            pass("Warning issued: function lacks return statement");
+        } else {
+            fail("Should warn about missing return");
+            for (const auto& warn : analyzer.get_warnings()) {
+                cout << "    Got: " << warn.message << endl;
+            }
+        }
+    } else {
+        fail("Should warn for missing return (no error)");
+        cout << "    Errors: " << analyzer.get_errors().size()
+             << ", Warnings: " << analyzer.get_warnings().size() << endl;
+    }
+}
+
+void test_return_warning_lossy_conversion() {
+    cout << "\n[TEST] Return Type - Warning: Lossy conversion (float to int)" << endl;
+
+    // Create AST:
+    // int truncate(float x) {
+    //     return 3.14;  // WARNING: float to int may lose precision
+    // }
+
+    vector<unique_ptr<Declaration>> program;
+    SourceLocation loc("test.c", 25, 5);
+
+    // Function body
+    vector<unique_ptr<Statement>> body_stmts;
+    body_stmts.push_back(make_unique<ReturnStmt>(
+        make_unique<LiteralExpr>("3.14", LiteralExpr::LiteralType::FLOAT, loc),
+        loc
+    ));
+    auto body = make_unique<CompoundStmt>(move(body_stmts), loc);
+    vector<unique_ptr<ParameterDecl>> params;
+    program.push_back(make_unique<FunctionDecl>("truncate", "int", move(params), move(body), loc));
+
+    // Analyze
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors() && analyzer.has_warnings()) {
+        bool found_warning = false;
+        for (const auto& warn : analyzer.get_warnings()) {
+            if (warn.message.find("precision") != string::npos &&
+                warn.location.line == 25 && warn.location.column == 5) {
+                found_warning = true;
+                break;
+            }
+        }
+
+        if (found_warning) {
+            pass("Warning issued: lossy conversion at line 25, column 5");
+        } else {
+            fail("Should warn about lossy conversion");
+            for (const auto& warn : analyzer.get_warnings()) {
+                cout << "    Got: " << warn.message << " at " << warn.location.toString() << endl;
+            }
+        }
+    } else {
+        fail("Should warn for lossy conversion (no error)");
+        cout << "    Errors: " << analyzer.get_errors().size()
+             << ", Warnings: " << analyzer.get_warnings().size() << endl;
+    }
+}
+
+// ============================================================================
+// USER STORY #10: LVALUE ANALYSIS
+// ============================================================================
+
+// Test 1: Valid lvalues - variables
+void test_lvalue_valid_variables() {
+    cout << "\n[TEST] Lvalue Analysis - Valid: Variables as lvalues" << endl;
+
+    SourceLocation loc("test.c", 1, 1);
+    vector<unique_ptr<Declaration>> program;
+
+    // Create: int x; int y; x = 10; y = x;
+    {
+        program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+        program.push_back(make_unique<VarDecl>("y", "int", nullptr, loc));
+
+        // x = 10
+        auto target1 = make_unique<IdentifierExpr>("x", loc);
+        auto value1 = make_unique<LiteralExpr>("10", LiteralExpr::LiteralType::INTEGER, loc);
+        auto assign1 = make_unique<AssignmentExpr>(std::move(target1), std::move(value1), loc);
+        auto stmt1 = make_unique<ExpressionStmt>(std::move(assign1), loc);
+        vector<unique_ptr<Statement>> stmts;
+        stmts.push_back(std::move(stmt1));
+        program.push_back(make_unique<FunctionDecl>("test", "void", vector<unique_ptr<ParameterDecl>>{},
+            make_unique<CompoundStmt>(std::move(stmts), loc), loc));
+    }
+
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors() && !analyzer.has_warnings()) {
+        pass("Valid variable lvalues accepted");
+    } else {
+        fail("Should not have errors/warnings for valid lvalues");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+// Test 2: Valid lvalues - array access
+void test_lvalue_valid_array_access() {
+    cout << "\n[TEST] Lvalue Analysis - Valid: Array access as lvalue" << endl;
+
+    SourceLocation loc("test.c", 5, 5);
+    vector<unique_ptr<Declaration>> program;
+
+    // Create: int arr[10]; arr[0] = 5;
+    {
+        program.push_back(make_unique<VarDecl>("arr", "int", nullptr, loc, 10));
+
+        // arr[0] = 5
+        auto arr_id = make_unique<IdentifierExpr>("arr", loc);
+        auto index = make_unique<LiteralExpr>("0", LiteralExpr::LiteralType::INTEGER, loc);
+        auto target = make_unique<ArrayAccessExpr>(std::move(arr_id), std::move(index), loc);
+        auto value = make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc);
+        auto assign = make_unique<AssignmentExpr>(std::move(target), std::move(value), loc);
+        auto stmt = make_unique<ExpressionStmt>(std::move(assign), loc);
+        vector<unique_ptr<Statement>> stmts;
+        stmts.push_back(std::move(stmt));
+        program.push_back(make_unique<FunctionDecl>("test", "void", vector<unique_ptr<ParameterDecl>>{},
+            make_unique<CompoundStmt>(std::move(stmts), loc), loc));
+    }
+
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid array access lvalue accepted");
+    } else {
+        fail("Should not have errors for array access lvalue");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+// Test 3: Valid lvalues - dereferenced pointer
+void test_lvalue_valid_dereference() {
+    cout << "\n[TEST] Lvalue Analysis - Valid: Dereferenced pointer as lvalue" << endl;
+
+    SourceLocation loc("test.c", 10, 3);
+    vector<unique_ptr<Declaration>> program;
+
+    // Create: int* ptr; *ptr = 42;
+    {
+        program.push_back(make_unique<VarDecl>("ptr", "int*", nullptr, loc));
+
+        // *ptr = 42
+        auto ptr_id = make_unique<IdentifierExpr>("ptr", loc);
+        auto target = make_unique<UnaryExpr>("*", std::move(ptr_id), true, loc);
+        auto value = make_unique<LiteralExpr>("42", LiteralExpr::LiteralType::INTEGER, loc);
+        auto assign = make_unique<AssignmentExpr>(std::move(target), std::move(value), loc);
+        auto stmt = make_unique<ExpressionStmt>(std::move(assign), loc);
+        vector<unique_ptr<Statement>> stmts;
+        stmts.push_back(std::move(stmt));
+        program.push_back(make_unique<FunctionDecl>("test", "void", vector<unique_ptr<ParameterDecl>>{},
+            make_unique<CompoundStmt>(std::move(stmts), loc), loc));
+    }
+
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid dereferenced pointer lvalue accepted");
+    } else {
+        fail("Should not have errors for dereferenced pointer lvalue");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+// Test 4: Valid address-of on variable
+void test_lvalue_valid_address_of_variable() {
+    cout << "\n[TEST] Lvalue Analysis - Valid: Address-of on variable" << endl;
+
+    SourceLocation loc("test.c", 15, 8);
+    vector<unique_ptr<Declaration>> program;
+
+    // Create: int x; int* p; p = &x;
+    {
+        program.push_back(make_unique<VarDecl>("x", "int", nullptr, loc));
+        program.push_back(make_unique<VarDecl>("p", "int*", nullptr, loc));
+
+        // p = &x
+        auto x_id = make_unique<IdentifierExpr>("x", loc);
+        auto addr = make_unique<UnaryExpr>("&", std::move(x_id), true, loc);
+        auto p_id = make_unique<IdentifierExpr>("p", loc);
+        auto assign = make_unique<AssignmentExpr>(std::move(p_id), std::move(addr), loc);
+        auto stmt = make_unique<ExpressionStmt>(std::move(assign), loc);
+        vector<unique_ptr<Statement>> stmts;
+        stmts.push_back(std::move(stmt));
+        program.push_back(make_unique<FunctionDecl>("test", "void", vector<unique_ptr<ParameterDecl>>{},
+            make_unique<CompoundStmt>(std::move(stmts), loc), loc));
+    }
+
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (!analyzer.has_errors()) {
+        pass("Valid address-of on variable accepted");
+    } else {
+        fail("Should not have errors for address-of on variable");
+        for (const auto& err : analyzer.get_errors()) {
+            cout << "    Error: " << err.message << endl;
+        }
+    }
+}
+
+// Test 5: Error - assignment to literal
+void test_lvalue_error_assign_to_literal() {
+    cout << "\n[TEST] Lvalue Analysis - Error: Assignment to literal" << endl;
+
+    SourceLocation loc("test.c", 20, 5);
+    vector<unique_ptr<Declaration>> program;
+
+    // Create: 42 = 10; (invalid)
+    {
+        auto target = make_unique<LiteralExpr>("42", LiteralExpr::LiteralType::INTEGER, loc);
+        auto value = make_unique<LiteralExpr>("10", LiteralExpr::LiteralType::INTEGER, loc);
+        auto assign = make_unique<AssignmentExpr>(std::move(target), std::move(value), loc);
+        auto stmt = make_unique<ExpressionStmt>(std::move(assign), loc);
+        vector<unique_ptr<Statement>> stmts;
+        stmts.push_back(std::move(stmt));
+        program.push_back(make_unique<FunctionDecl>("test", "void", vector<unique_ptr<ParameterDecl>>{},
+            make_unique<CompoundStmt>(std::move(stmts), loc), loc));
+    }
+
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        const auto& errors = analyzer.get_errors();
+        if (errors.size() == 1 &&
+            errors[0].message.find("lvalue") != string::npos &&
+            errors[0].location.line == 20 && errors[0].location.column == 5) {
+            pass("Error detected: assignment to literal at line 20, column 5");
+        } else {
+            fail("Wrong error message or location");
+            for (const auto& err : errors) {
+                cout << "    Error: " << err.message << " at line "
+                     << err.location.line << ", column " << err.location.column << endl;
+            }
+        }
+    } else {
+        fail("Should detect error: assignment to literal");
+    }
+}
+
+// Test 6: Error - assignment to binary expression
+void test_lvalue_error_assign_to_expression() {
+    cout << "\n[TEST] Lvalue Analysis - Error: Assignment to expression result" << endl;
+
+    SourceLocation loc("test.c", 25, 10);
+    vector<unique_ptr<Declaration>> program;
+
+    // Create: int a; int b; (a + b) = 5; (invalid)
+    {
+        program.push_back(make_unique<VarDecl>("a", "int", nullptr, loc));
+        program.push_back(make_unique<VarDecl>("b", "int", nullptr, loc));
+
+        auto a_id = make_unique<IdentifierExpr>("a", loc);
+        auto b_id = make_unique<IdentifierExpr>("b", loc);
+        auto target = make_unique<BinaryExpr>(std::move(a_id), "+", std::move(b_id), loc);
+        auto value = make_unique<LiteralExpr>("5", LiteralExpr::LiteralType::INTEGER, loc);
+        auto assign = make_unique<AssignmentExpr>(std::move(target), std::move(value), loc);
+        auto stmt = make_unique<ExpressionStmt>(std::move(assign), loc);
+        vector<unique_ptr<Statement>> stmts;
+        stmts.push_back(std::move(stmt));
+        program.push_back(make_unique<FunctionDecl>("test", "void", vector<unique_ptr<ParameterDecl>>{},
+            make_unique<CompoundStmt>(std::move(stmts), loc), loc));
+    }
+
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        const auto& errors = analyzer.get_errors();
+        if (errors.size() == 1 &&
+            errors[0].message.find("lvalue") != string::npos &&
+            errors[0].location.line == 25 && errors[0].location.column == 10) {
+            pass("Error detected: assignment to expression at line 25, column 10");
+        } else {
+            fail("Wrong error message or location");
+            for (const auto& err : errors) {
+                cout << "    Error: " << err.message << " at line "
+                     << err.location.line << ", column " << err.location.column << endl;
+            }
+        }
+    } else {
+        fail("Should detect error: assignment to expression");
+    }
+}
+
+// Test 7: Error - address-of on literal
+void test_lvalue_error_address_of_literal() {
+    cout << "\n[TEST] Lvalue Analysis - Error: Address-of on literal" << endl;
+
+    SourceLocation loc("test.c", 30, 12);
+    vector<unique_ptr<Declaration>> program;
+
+    // Create: int* p; p = &42; (invalid)
+    {
+        program.push_back(make_unique<VarDecl>("p", "int*", nullptr, loc));
+
+        auto literal = make_unique<LiteralExpr>("42", LiteralExpr::LiteralType::INTEGER, loc);
+        auto addr = make_unique<UnaryExpr>("&", std::move(literal), true, loc);
+        auto p_id = make_unique<IdentifierExpr>("p", loc);
+        auto assign = make_unique<AssignmentExpr>(std::move(p_id), std::move(addr), loc);
+        auto stmt = make_unique<ExpressionStmt>(std::move(assign), loc);
+        vector<unique_ptr<Statement>> stmts;
+        stmts.push_back(std::move(stmt));
+        program.push_back(make_unique<FunctionDecl>("test", "void", vector<unique_ptr<ParameterDecl>>{},
+            make_unique<CompoundStmt>(std::move(stmts), loc), loc));
+    }
+
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        const auto& errors = analyzer.get_errors();
+        if (errors.size() == 1 &&
+            errors[0].message.find("rvalue") != string::npos &&
+            errors[0].location.line == 30 && errors[0].location.column == 12) {
+            pass("Error detected: address-of on literal at line 30, column 12");
+        } else {
+            fail("Wrong error message or location");
+            for (const auto& err : errors) {
+                cout << "    Error: " << err.message << " at line "
+                     << err.location.line << ", column " << err.location.column << endl;
+            }
+        }
+    } else {
+        fail("Should detect error: address-of on literal");
+    }
+}
+
+// Test 8: Error - address-of on function call result
+void test_lvalue_error_address_of_call() {
+    cout << "\n[TEST] Lvalue Analysis - Error: Address-of on function call" << endl;
+
+    SourceLocation loc("test.c", 35, 7);
+    vector<unique_ptr<Declaration>> program;
+
+    // Create: int foo(); int* p; p = &foo(); (invalid)
+    {
+        // Declare function foo
+        program.push_back(make_unique<FunctionDecl>("foo", "int", vector<unique_ptr<ParameterDecl>>{},
+            make_unique<CompoundStmt>(vector<unique_ptr<Statement>>{}, loc), loc));
+
+        program.push_back(make_unique<VarDecl>("p", "int*", nullptr, loc));
+
+        // p = &foo()
+        auto callee = make_unique<IdentifierExpr>("foo", loc);
+        auto call = make_unique<CallExpr>(std::move(callee), vector<unique_ptr<Expression>>{}, loc);
+        auto addr = make_unique<UnaryExpr>("&", std::move(call), true, loc);
+        auto p_id = make_unique<IdentifierExpr>("p", loc);
+        auto assign = make_unique<AssignmentExpr>(std::move(p_id), std::move(addr), loc);
+        auto stmt = make_unique<ExpressionStmt>(std::move(assign), loc);
+        vector<unique_ptr<Statement>> stmts;
+        stmts.push_back(std::move(stmt));
+        program.push_back(make_unique<FunctionDecl>("test", "void", vector<unique_ptr<ParameterDecl>>{},
+            make_unique<CompoundStmt>(std::move(stmts), loc), loc));
+    }
+
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        const auto& errors = analyzer.get_errors();
+        bool found = false;
+        for (const auto& err : errors) {
+            if (err.message.find("rvalue") != string::npos &&
+                err.location.line == 35 && err.location.column == 7) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            pass("Error detected: address-of on function call at line 35, column 7");
+        } else {
+            fail("Wrong error message or location");
+            for (const auto& err : errors) {
+                cout << "    Error: " << err.message << " at line "
+                     << err.location.line << ", column " << err.location.column << endl;
+            }
+        }
+    } else {
+        fail("Should detect error: address-of on function call");
+    }
+}
+
+// Test 9: Error - increment on rvalue
+void test_lvalue_error_increment_rvalue() {
+    cout << "\n[TEST] Lvalue Analysis - Error: Increment on rvalue" << endl;
+
+    SourceLocation loc("test.c", 40, 2);
+    vector<unique_ptr<Declaration>> program;
+
+    // Create: int a; int b; ++(a + b); (invalid)
+    {
+        program.push_back(make_unique<VarDecl>("a", "int", nullptr, loc));
+        program.push_back(make_unique<VarDecl>("b", "int", nullptr, loc));
+
+        auto a_id = make_unique<IdentifierExpr>("a", loc);
+        auto b_id = make_unique<IdentifierExpr>("b", loc);
+        auto expr = make_unique<BinaryExpr>(std::move(a_id), "+", std::move(b_id), loc);
+        auto inc = make_unique<UnaryExpr>("++", std::move(expr), true, loc);
+        auto stmt = make_unique<ExpressionStmt>(std::move(inc), loc);
+        vector<unique_ptr<Statement>> stmts;
+        stmts.push_back(std::move(stmt));
+        program.push_back(make_unique<FunctionDecl>("test", "void", vector<unique_ptr<ParameterDecl>>{},
+            make_unique<CompoundStmt>(std::move(stmts), loc), loc));
+    }
+
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
+
+    if (analyzer.has_errors()) {
+        const auto& errors = analyzer.get_errors();
+        if (errors.size() == 1 &&
+            errors[0].message.find("lvalue") != string::npos &&
+            errors[0].location.line == 40 && errors[0].location.column == 2) {
+            pass("Error detected: increment on rvalue at line 40, column 2");
+        } else {
+            fail("Wrong error message or location");
+            for (const auto& err : errors) {
+                cout << "    Error: " << err.message << " at line "
+                     << err.location.line << ", column " << err.location.column << endl;
+            }
+        }
+    } else {
+        fail("Should detect error: increment on rvalue");
+    }
+}
+
+// ============================================================================
 // Main Test Runner
 // ============================================================================
 
@@ -1348,6 +3776,124 @@ int main() {
     test_variable_shadowing();            // Shadowing across different scopes is legal
     test_complex_program();               // Complex realistic program
     test_for_loop_scope();                // For loops create their own scope
+
+    // ========================================
+    // PART 6: Binary Operation Type Checking (USER STORY #5)
+    // ========================================
+    cout << "\n--- PART 6: BINARY OPERATION TYPE CHECKING (USER STORY #5) ---" << endl;
+
+    test_binary_arithmetic_valid();       // Valid arithmetic operations
+    test_binary_arithmetic_pointer();     // Pointer arithmetic
+    test_binary_comparison_valid();       // Valid comparison operations
+    test_binary_logical_valid();          // Valid logical operations
+    test_binary_invalid_modulo_float();   // ERROR: float % float
+    test_binary_invalid_pointer_multiply(); // ERROR: pointer * pointer
+    test_binary_invalid_incompatible_pointers(); // ERROR: int* == char*
+
+    // ========================================
+    // PART 7: Assignment Type Checking (USER STORY #6)
+    // ========================================
+    cout << "\n--- PART 7: ASSIGNMENT TYPE CHECKING (USER STORY #6) ---" << endl;
+
+    // Valid assignments
+    test_assignment_valid_same_type();          // int = int
+    test_assignment_valid_implicit_int_to_float(); // float = int (OK)
+
+    // Warnings
+    test_assignment_warning_float_to_int();     // int = float (WARNING)
+
+    // Errors - incompatible types
+    test_assignment_error_incompatible_types(); // int = string (ERROR)
+
+    // Errors - lvalue required
+    test_assignment_error_not_lvalue_literal();    // 5 = x (ERROR)
+    test_assignment_error_not_lvalue_expression(); // x+y = 5 (ERROR)
+
+    // Variable declaration initialization
+    test_vardecl_valid_initialization();        // int x = 5 (OK)
+    test_vardecl_warning_float_to_int();        // int x = 3.14 (WARNING)
+    test_vardecl_error_incompatible_types();    // int x = "hello" (ERROR)
+
+    // ========================================
+    // PART 8: Function Call Type Checking (USER STORY #7)
+    // ========================================
+    cout << "\n--- PART 8: FUNCTION CALL TYPE CHECKING (USER STORY #7) ---" << endl;
+
+    // Valid function calls
+    test_function_call_valid_no_args();             // foo() with no params
+    test_function_call_valid_matching_types();      // add(3, 5) with matching types
+    test_function_call_valid_implicit_conversion(); // process(10) with int->float
+
+    // Error: argument count
+    test_function_call_error_too_few_args();        // add(3) - missing arg
+    test_function_call_error_too_many_args();       // add(3, 5, 7) - extra arg
+
+    // Error: type mismatch
+    test_function_call_error_type_mismatch();       // add(3, "hi") - wrong type arg 2
+    test_function_call_error_multiple_type_mismatches(); // func("x", 5, "y") - multiple errors
+
+    // Warning: lossy conversion
+    test_function_call_warning_lossy_conversion();  // process(3.14) - float to int
+
+    // ========================================
+    // PART 9: Undeclared Identifier Detection (USER STORY #8)
+    // ========================================
+    cout << "\n--- PART 9: UNDECLARED IDENTIFIER DETECTION (USER STORY #8) ---" << endl;
+
+    // Valid references
+    test_undeclared_identifier_valid_reference();   // Valid declared variable
+
+    // Error: undeclared identifier
+    test_undeclared_identifier_error_simple();      // Undeclared variable 'x'
+
+    // Suggestions
+    test_undeclared_identifier_suggestion_single_char();  // 'cont' -> 'count'
+    test_undeclared_identifier_suggestion_transposition(); // 'vlaue' -> 'value'
+    test_undeclared_identifier_no_suggestion();     // 'xyz' - too different
+
+    // Multiple errors
+    test_undeclared_identifier_multiple_errors();   // x, y, z all undeclared
+
+    // ========================================
+    // PART 10: Return Type Validation (USER STORY #9)
+    // ========================================
+    cout << "\n--- PART 10: RETURN TYPE VALIDATION (USER STORY #9) ---" << endl;
+
+    // Valid returns
+    test_return_valid_int_function();           // int function returns int
+    test_return_valid_void_function();          // void function with return;
+    test_return_valid_implicit_conversion();    // int to float OK
+
+    // Errors
+    test_return_error_type_mismatch();          // int function returns string
+    test_return_error_void_with_value();        // void function returns value
+    test_return_error_nonvoid_without_value();  // int function with return;
+
+    // Warnings
+    test_return_warning_missing_return();       // no return statement
+    test_return_warning_lossy_conversion();     // float to int warning
+
+    // ========================================
+    // PART 11: Lvalue Analysis (USER STORY #10)
+    // ========================================
+    cout << "\n--- PART 11: LVALUE ANALYSIS (USER STORY #10) ---" << endl;
+
+    // Valid lvalues
+    test_lvalue_valid_variables();              // Variables are lvalues
+    test_lvalue_valid_array_access();           // arr[i] is lvalue
+    test_lvalue_valid_dereference();            // *ptr is lvalue
+    test_lvalue_valid_address_of_variable();    // &x is valid
+
+    // Errors - assignment to rvalues
+    test_lvalue_error_assign_to_literal();      // 42 = 10 is error
+    test_lvalue_error_assign_to_expression();   // (a + b) = 5 is error
+
+    // Errors - address-of on rvalues
+    test_lvalue_error_address_of_literal();     // &42 is error
+    test_lvalue_error_address_of_call();        // &foo() is error
+
+    // Errors - increment/decrement on rvalues
+    test_lvalue_error_increment_rvalue();       // ++(a + b) is error
 
     cout << "\n========================================" << endl;
     cout << "ALL TESTS COMPLETE" << endl;
