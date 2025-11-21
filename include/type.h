@@ -185,6 +185,25 @@ public:
      */
     bool hasMember(const std::string& member_name) const;
 
+    /**
+     * @brief Get the offset of a struct member (USER STORY #13)
+     * @param member_name Name of the member
+     * @return Byte offset of the member, or -1 if not found
+     *
+     * Calculates the offset based on member sizes and alignment.
+     * Simplified version assumes no padding for now.
+     */
+    int getMemberOffset(const std::string& member_name) const;
+
+    /**
+     * @brief Get the size of this type in bytes (USER STORY #13)
+     * @return Size in bytes
+     *
+     * Returns the size needed for this type.
+     * Simplified version for basic types.
+     */
+    int getSizeInBytes() const;
+
     // ========================================
     // String Representation
     // ========================================
@@ -226,5 +245,42 @@ std::shared_ptr<Type> getArithmeticResultType(const Type& left,
  */
 bool isValidUnaryOperator(const Type& type, const std::string& op);
 bool isValidBinaryOperator(const Type& left, const Type& right, const std::string& op);
+
+// ========================================
+// USER STORY #11: Implicit Type Conversions
+// ========================================
+
+/**
+ * @brief Apply integer promotion rules
+ * @param type The type to promote
+ * @return Promoted type (char/short -> int), or original type if no promotion needed
+ *
+ * Integer promotion converts char and short to int for use in expressions.
+ * This follows C standard integer promotion rules.
+ */
+std::shared_ptr<Type> applyIntegerPromotion(std::shared_ptr<Type> type);
+
+/**
+ * @brief Get the common type for usual arithmetic conversions
+ * @param left Left operand type
+ * @param right Right operand type
+ * @return Common type to which both operands should be converted
+ *
+ * Implements C's "usual arithmetic conversions" rules:
+ * - double > float > long > int > short > char
+ * - Both operands are converted to the higher-ranking type
+ */
+std::shared_ptr<Type> getCommonArithmeticType(std::shared_ptr<Type> left,
+                                              std::shared_ptr<Type> right);
+
+/**
+ * @brief Apply array-to-pointer decay
+ * @param type The array type
+ * @return Pointer type if input is array, nullptr otherwise
+ *
+ * In most contexts, arrays decay to pointers to their first element.
+ * For example: int[10] -> int*
+ */
+std::shared_ptr<Type> applyArrayToPointerDecay(std::shared_ptr<Type> type);
 
 #endif // TYPE_H

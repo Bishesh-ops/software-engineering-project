@@ -42,6 +42,9 @@ private:
     // Type tracking for expressions (maps expression pointer to its type)
     std::unordered_map<const Expression*, std::shared_ptr<Type>> expression_types_;
 
+    // USER STORY #13: Struct type registry (maps struct name to Type)
+    std::unordered_map<std::string, std::shared_ptr<Type>> struct_types_;
+
     // Current function context (for return type checking)
     std::string current_function_name_;
     std::shared_ptr<Type> current_function_return_type_;
@@ -71,6 +74,19 @@ private:
     // Helper to calculate Levenshtein distance between two strings
     static int levenshtein_distance(const std::string& s1, const std::string& s2);
 
+    // USER STORY #11: Implicit Type Conversion Helpers
+
+    // Apply integer promotion (char/short -> int)
+    std::shared_ptr<Type> apply_integer_promotion(std::shared_ptr<Type> type) const;
+
+    // Get common type for arithmetic operation (usual arithmetic conversions)
+    std::shared_ptr<Type> get_common_type(std::shared_ptr<Type> left,
+                                          std::shared_ptr<Type> right) const;
+
+    // Check if conversion is needed and return target type (nullptr if no conversion needed)
+    std::shared_ptr<Type> needs_conversion(std::shared_ptr<Type> from,
+                                          std::shared_ptr<Type> to) const;
+
 public:
     SemanticAnalyzer();
 
@@ -98,6 +114,7 @@ public:
     void visit(AssignmentExpr &node) override;
     void visit(ArrayAccessExpr &node) override;
     void visit(MemberAccessExpr &node) override;
+    void visit(TypeCastExpr &node) override;
 
     // Statement visitors
     void visit(IfStmt &node) override;

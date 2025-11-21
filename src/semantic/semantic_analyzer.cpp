@@ -154,14 +154,40 @@ std::string SemanticAnalyzer::find_similar_identifier(const std::string& name) c
 // ============================================================================
 
 void SemanticAnalyzer::visit(VarDecl &node) {
+    // USER STORY #13: Check if the type is a struct type
+    std::shared_ptr<Type> var_type;
+
+    // Check if this is a struct type
+    auto struct_it = struct_types_.find(node.getType());
+    if (struct_it != struct_types_.end()) {
+        // It's a struct type - use the registered struct type
+        var_type = struct_it->second;
+
+        // Handle pointers to structs
+        if (node.getPointerLevel() > 0) {
+            var_type = Type::makePointer(Type::BaseType::STRUCT, node.getPointerLevel());
+            // Note: This loses struct member information for pointers
+            // A better approach would be to store the struct name with the pointer
+        }
+    } else {
+        // Regular type - convert from string
+        var_type = Type::fromString(node.getType());
+
+        // Handle pointer level
+        if (node.getPointerLevel() > 0 && var_type) {
+            var_type = Type::makePointer(var_type->getBaseType(), node.getPointerLevel());
+        }
+        // Handle arrays
+        else if (node.getIsArray() && var_type) {
+            var_type = Type::makeArray(var_type->getBaseType(), 0);  // Size TBD
+        }
+    }
+
     // Create symbol for this variable
     Symbol symbol(
         node.getName(),
-        node.getType(),
-        scope_manager_.get_current_scope_level(),
-        node.getIsArray(),
-        node.getArraySize() ? 0 : 0,  // Size would need to be evaluated
-        node.getPointerLevel()
+        var_type,
+        scope_manager_.get_current_scope_level()
     );
 
     // Register the variable
@@ -209,19 +235,39 @@ void SemanticAnalyzer::visit(TypeDecl &node) {
     // For typedef, we could register it as a type
     // For now, we'll just note it exists but not add to symbol table
     // Future enhancement: maintain a separate type table
+    (void)node; // Suppress unused parameter warning
 }
 
 void SemanticAnalyzer::visit(StructDecl &node) {
-    // Register the struct name as a type
-    // Future enhancement: maintain struct field information
-    // For now, just visit the fields to check for any issues
+    // USER STORY #13: Register the struct type with its members
+
+    // Build the list of struct members
+    std::vector<Type::StructMember> members;
     for (const auto& field : node.getFields()) {
         if (field) {
-            // Note: struct fields are in their own namespace, not the current scope
-            // We visit them but don't register in the main symbol table
-            // Future enhancement: maintain struct field tables
+            // Convert field to struct member
+            auto field_type = Type::fromString(field->getType());
+
+            // Handle pointer fields
+            if (field->isPointer()) {
+                field_type = Type::makePointer(field_type->getBaseType(), field->getPointerLevel());
+            }
+            // Handle array fields
+            else if (field->getIsArray()) {
+                // Note: array size would need to be evaluated from the expression
+                field_type = Type::makeArray(field_type->getBaseType(), 0);  // 0 for now
+            }
+
+            members.emplace_back(field->getName(), field_type);
         }
     }
+
+    // Create and register the struct type
+    auto struct_type = Type::makeStruct(node.getName(), members);
+    struct_types_[node.getName()] = struct_type;
+
+    // Also register the struct name as a symbol (for type checking)
+    // Note: In C, struct tags are in a separate namespace, but we'll keep it simple
 }
 
 void SemanticAnalyzer::visit(FunctionDecl &node) {
@@ -463,11 +509,92 @@ void SemanticAnalyzer::visit(BinaryExpr &node) {
 
     const std::string& op = node.getOperator();
 
+    // USER STORY #11: Apply array-to-pointer decay if needed
+    auto left_type_decayed = applyArrayToPointerDecay(left_type);
+    auto right_type_decayed = applyArrayToPointerDecay(right_type);
+
+    // If array decay occurred, insert implicit conversion nodes
+    if (!left_type->equals(*left_type_decayed)) {
+        auto cast_node = std::make_unique<TypeCastExpr>(
+            node.releaseLeft(),
+            left_type_decayed->toString(),
+            true,  // implicit conversion
+            node.getLocation()
+        );
+        set_expression_type(cast_node.get(), left_type_decayed);
+        node.setLeft(std::move(cast_node));
+        left_type = left_type_decayed;
+    }
+
+    if (!right_type->equals(*right_type_decayed)) {
+        auto cast_node = std::make_unique<TypeCastExpr>(
+            node.releaseRight(),
+            right_type_decayed->toString(),
+            true,  // implicit conversion
+            node.getLocation()
+        );
+        set_expression_type(cast_node.get(), right_type_decayed);
+        node.setRight(std::move(cast_node));
+        right_type = right_type_decayed;
+    }
+
     // Check if the binary operator is valid for these operand types
     if (!isValidBinaryOperator(*left_type, *right_type, op)) {
-        std::string error_msg = "Type error: invalid operands to binary " + op +
-                                " ('" + left_type->toString() + "' and '" +
-                                right_type->toString() + "')";
+        // USER STORY #12: Provide specific error messages for pointer arithmetic
+        std::string error_msg;
+
+        // Special error messages for pointer operations
+        if (left_type->isPointer() || right_type->isPointer()) {
+            if (op == "*") {
+                error_msg = "Invalid operation: cannot multiply pointers ('" +
+                            left_type->toString() + "' * '" + right_type->toString() + "')";
+            }
+            else if (op == "/") {
+                error_msg = "Invalid operation: cannot divide pointers ('" +
+                            left_type->toString() + "' / '" + right_type->toString() + "')";
+            }
+            else if (op == "%") {
+                error_msg = "Invalid operation: cannot use modulo with pointers ('" +
+                            left_type->toString() + "' % '" + right_type->toString() + "')";
+            }
+            else if (op == "-" && left_type->isPointer() && right_type->isPointer()) {
+                error_msg = "Invalid operation: cannot subtract pointers of different types ('" +
+                            left_type->toString() + "' - '" + right_type->toString() + "')";
+            }
+            else if (op == "+" && left_type->isPointer() && right_type->isPointer()) {
+                error_msg = "Invalid operation: cannot add two pointers ('" +
+                            left_type->toString() + "' + '" + right_type->toString() + "')";
+            }
+            else if ((op == "+" || op == "-") && left_type->isPointer() && !right_type->isIntegral()) {
+                error_msg = "Invalid operation: pointer arithmetic requires integer operand ('" +
+                            left_type->toString() + "' " + op + " '" + right_type->toString() + "')";
+            }
+            else if ((op == "+" || op == "-") && right_type->isPointer() && !left_type->isIntegral()) {
+                error_msg = "Invalid operation: pointer arithmetic requires integer operand ('" +
+                            left_type->toString() + "' " + op + " '" + right_type->toString() + "')";
+            }
+            else if ((op == "+" || op == "-") && left_type->isPointer() &&
+                     left_type->getBaseType() == Type::BaseType::VOID) {
+                error_msg = "Invalid operation: arithmetic on void pointer ('" +
+                            left_type->toString() + "' " + op + " '" + right_type->toString() + "')";
+            }
+            else if ((op == "+" || op == "-") && right_type->isPointer() &&
+                     right_type->getBaseType() == Type::BaseType::VOID) {
+                error_msg = "Invalid operation: arithmetic on void pointer ('" +
+                            left_type->toString() + "' " + op + " '" + right_type->toString() + "')";
+            }
+            else {
+                error_msg = "Type error: invalid operands to binary " + op +
+                            " ('" + left_type->toString() + "' and '" +
+                            right_type->toString() + "')";
+            }
+        }
+        else {
+            error_msg = "Type error: invalid operands to binary " + op +
+                        " ('" + left_type->toString() + "' and '" +
+                        right_type->toString() + "')";
+        }
+
         add_error(error_msg, node.getLocation());
         return;
     }
@@ -475,12 +602,70 @@ void SemanticAnalyzer::visit(BinaryExpr &node) {
     // Determine the result type
     std::shared_ptr<Type> result_type;
 
-    // For arithmetic operators, use type promotion rules
+    // For arithmetic operators, use type promotion rules and insert conversion nodes
     if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
+        // USER STORY #11: Apply implicit conversions for arithmetic operations
+        // Get the common type (applies integer promotion + usual arithmetic conversions)
+        auto common_type = get_common_type(left_type, right_type);
+
+        if (common_type) {
+            // Insert conversion nodes if types don't match the common type
+            if (!left_type->equals(*common_type)) {
+                auto cast_node = std::make_unique<TypeCastExpr>(
+                    node.releaseLeft(),
+                    common_type->toString(),
+                    true,  // implicit conversion
+                    node.getLocation()
+                );
+                set_expression_type(cast_node.get(), common_type);
+                node.setLeft(std::move(cast_node));
+            }
+
+            if (!right_type->equals(*common_type)) {
+                auto cast_node = std::make_unique<TypeCastExpr>(
+                    node.releaseRight(),
+                    common_type->toString(),
+                    true,  // implicit conversion
+                    node.getLocation()
+                );
+                set_expression_type(cast_node.get(), common_type);
+                node.setRight(std::move(cast_node));
+            }
+        }
+
         result_type = getArithmeticResultType(*left_type, *right_type, op);
     }
     // For comparison operators, result is int (representing boolean in C)
     else if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=") {
+        // USER STORY #11: Apply usual arithmetic conversions for comparisons
+        if (left_type->isArithmetic() && right_type->isArithmetic()) {
+            auto common_type = get_common_type(left_type, right_type);
+
+            if (common_type) {
+                if (!left_type->equals(*common_type)) {
+                    auto cast_node = std::make_unique<TypeCastExpr>(
+                        node.releaseLeft(),
+                        common_type->toString(),
+                        true,
+                        node.getLocation()
+                    );
+                    set_expression_type(cast_node.get(), common_type);
+                    node.setLeft(std::move(cast_node));
+                }
+
+                if (!right_type->equals(*common_type)) {
+                    auto cast_node = std::make_unique<TypeCastExpr>(
+                        node.releaseRight(),
+                        common_type->toString(),
+                        true,
+                        node.getLocation()
+                    );
+                    set_expression_type(cast_node.get(), common_type);
+                    node.setRight(std::move(cast_node));
+                }
+            }
+        }
+
         result_type = Type::makeInt();
     }
     // For logical operators, result is int (representing boolean in C)
@@ -489,6 +674,32 @@ void SemanticAnalyzer::visit(BinaryExpr &node) {
     }
     // For bitwise operators, result follows integer promotion
     else if (op == "&" || op == "|" || op == "^" || op == "<<" || op == ">>") {
+        // USER STORY #11: Apply integer promotion for bitwise operators
+        auto left_promoted = apply_integer_promotion(left_type);
+        auto right_promoted = apply_integer_promotion(right_type);
+
+        if (!left_type->equals(*left_promoted)) {
+            auto cast_node = std::make_unique<TypeCastExpr>(
+                node.releaseLeft(),
+                left_promoted->toString(),
+                true,
+                node.getLocation()
+            );
+            set_expression_type(cast_node.get(), left_promoted);
+            node.setLeft(std::move(cast_node));
+        }
+
+        if (!right_type->equals(*right_promoted)) {
+            auto cast_node = std::make_unique<TypeCastExpr>(
+                node.releaseRight(),
+                right_promoted->toString(),
+                true,
+                node.getLocation()
+            );
+            set_expression_type(cast_node.get(), right_promoted);
+            node.setRight(std::move(cast_node));
+        }
+
         result_type = getArithmeticResultType(*left_type, *right_type, op);
     }
 
@@ -798,8 +1009,149 @@ void SemanticAnalyzer::visit(ArrayAccessExpr &node) {
 }
 
 void SemanticAnalyzer::visit(MemberAccessExpr &node) {
+    // USER STORY #13: Validate struct member access
+
     // Visit object
     if (node.getObject()) {
         node.getObject()->accept(*this);
     }
+
+    // Get the type of the object being accessed
+    auto object_type = get_expression_type(node.getObject());
+    if (!object_type) {
+        return;  // Type unknown, can't validate
+    }
+
+    const std::string& member_name = node.getMemberName();
+    bool is_arrow = node.getIsArrow();
+
+    // Validate arrow operator (->)
+    if (is_arrow) {
+        // Arrow operator requires a pointer to struct
+        if (!object_type->isPointer()) {
+            add_error("Member access with '->' requires pointer type, got '" +
+                      object_type->toString() + "'",
+                      node.getLocation());
+            return;
+        }
+
+        // Get the pointed-to type
+        if (object_type->getPointerDepth() > 0) {
+            // Dereference the pointer to get struct type
+            auto pointed_type = Type::makePointer(
+                object_type->getBaseType(),
+                object_type->getPointerDepth() - 1
+            );
+
+            // If it's a single pointer, we get the base type
+            if (object_type->getPointerDepth() == 1) {
+                // Check if it's a pointer to struct
+                if (object_type->getBaseType() != Type::BaseType::STRUCT) {
+                    // Need to look up struct type by name
+                    // For now, check if base type is struct
+                    pointed_type = std::make_shared<Type>(object_type->getBaseType());
+                }
+            }
+
+            object_type = pointed_type;
+        }
+    }
+    else {
+        // Dot operator (.) requires struct type (not pointer)
+        if (object_type->isPointer()) {
+            add_error("Member access with '.' on pointer type '" +
+                      object_type->toString() + "'; did you mean '->'?",
+                      node.getLocation());
+            return;
+        }
+    }
+
+    // Check if the object is a struct type
+    if (!object_type->isStruct()) {
+        add_error("Member access on non-struct type '" + object_type->toString() + "'",
+                  node.getLocation());
+        return;
+    }
+
+    // Check if the member exists in the struct
+    if (!object_type->hasMember(member_name)) {
+        add_error("Struct '" + object_type->getStructName() +
+                  "' has no member named '" + member_name + "'",
+                  node.getLocation());
+        return;
+    }
+
+    // Get and set the type of the member
+    auto member_type = object_type->getMemberType(member_name);
+    if (member_type) {
+        set_expression_type(&node, member_type);
+    }
+}
+
+void SemanticAnalyzer::visit(TypeCastExpr &node) {
+    // Visit operand
+    if (node.getOperand()) {
+        node.getOperand()->accept(*this);
+    }
+
+    // Get operand type
+    auto operand_type = get_expression_type(node.getOperand());
+    if (!operand_type) {
+        return;
+    }
+
+    // Determine the target type
+    auto target_type = Type::fromString(node.getTargetType());
+    if (!target_type) {
+        add_error("Unknown type '" + node.getTargetType() + "' in type cast",
+                  node.getLocation());
+        return;
+    }
+
+    // Set the result type to the target type
+    set_expression_type(&node, target_type);
+
+    // For implicit casts, we can add warnings if needed
+    if (node.getIsImplicit()) {
+        // Check for potentially lossy conversions
+        if (operand_type->isFloatingPoint() && target_type->isIntegral()) {
+            add_warning("Implicit conversion from '" + operand_type->toString() +
+                        "' to '" + target_type->toString() +
+                        "' may lose precision",
+                        node.getLocation());
+        }
+    }
+}
+
+// ============================================================================
+// USER STORY #11: Implicit Type Conversion Helpers
+// ============================================================================
+
+std::shared_ptr<Type> SemanticAnalyzer::apply_integer_promotion(std::shared_ptr<Type> type) const {
+    return applyIntegerPromotion(type);
+}
+
+std::shared_ptr<Type> SemanticAnalyzer::get_common_type(std::shared_ptr<Type> left,
+                                                        std::shared_ptr<Type> right) const {
+    return getCommonArithmeticType(left, right);
+}
+
+std::shared_ptr<Type> SemanticAnalyzer::needs_conversion(std::shared_ptr<Type> from,
+                                                         std::shared_ptr<Type> to) const {
+    if (!from || !to) {
+        return nullptr;
+    }
+
+    // If types are equal, no conversion needed
+    if (from->equals(*to)) {
+        return nullptr;
+    }
+
+    // If conversion is possible, return the target type
+    if (from->canConvertTo(*to)) {
+        return to;
+    }
+
+    // No valid conversion
+    return nullptr;
 }

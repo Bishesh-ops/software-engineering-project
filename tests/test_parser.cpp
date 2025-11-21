@@ -1,6 +1,6 @@
-#include "include/parser.h"
-#include "include/lexer.h"
-#include "include/ast.h"
+#include "../include/parser.h"
+#include "../include/lexer.h"
+#include "../include/ast.h"
 #include <iostream>
 #include <string>
 

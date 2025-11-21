@@ -13,11 +13,11 @@
  * - Redeclaration error detection
  */
 
-#include "include/type.h"
-#include "include/symbol_table.h"
-#include "include/scope_manager.h"
-#include "include/ast.h"
-#include "include/semantic_analyzer.h"
+#include "../include/type.h"
+#include "../include/symbol_table.h"
+#include "../include/scope_manager.h"
+#include "../include/ast.h"
+#include "../include/semantic_analyzer.h"
 #include <iostream>
 #include <string>
 #include <vector>

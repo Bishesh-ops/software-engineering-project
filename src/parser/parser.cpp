@@ -700,7 +700,41 @@ std::unique_ptr<Statement> Parser::parseCompoundStatement()
 }
 
 // ============================================================================
-// Declaration Parsing 
+// Program Parsing (Top-Level Entry Point)
+// ============================================================================
+
+std::vector<std::unique_ptr<Declaration>> Parser::parseProgram()
+{
+    std::vector<std::unique_ptr<Declaration>> declarations;
+
+    // Parse all top-level declarations until we reach EOF
+    while (!check(TokenType::EOF_TOKEN))
+    {
+        auto decl = parseDeclaration();
+        if (decl)
+        {
+            declarations.push_back(std::move(decl));
+        }
+
+        // If we had an error and didn't get a declaration,
+        // skip to the next potential declaration to continue parsing
+        if (!decl && hadError())
+        {
+            synchronizeToDeclaration();
+        }
+
+        // Break if we're stuck at EOF
+        if (check(TokenType::EOF_TOKEN))
+        {
+            break;
+        }
+    }
+
+    return declarations;
+}
+
+// ============================================================================
+// Declaration Parsing
 // ============================================================================
 
 std::unique_ptr<Declaration> Parser::parseDeclaration()

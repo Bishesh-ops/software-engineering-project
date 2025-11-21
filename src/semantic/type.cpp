@@ -304,6 +304,66 @@ bool Type::hasMember(const std::string& member_name) const {
     return false;
 }
 
+int Type::getMemberOffset(const std::string& member_name) const {
+    // USER STORY #13: Calculate member offset
+    if (base_type_ != BaseType::STRUCT) {
+        return -1;
+    }
+
+    int offset = 0;
+    for (const auto& member : struct_members_) {
+        if (member.name == member_name) {
+            return offset;
+        }
+        // Add the size of this member to the offset
+        if (member.type) {
+            offset += member.type->getSizeInBytes();
+        }
+    }
+
+    return -1;  // Member not found
+}
+
+int Type::getSizeInBytes() const {
+    // USER STORY #13: Calculate type size
+    // Simplified version - actual sizes may vary by platform
+
+    // Pointers are typically 8 bytes on 64-bit systems, 4 on 32-bit
+    if (pointer_depth_ > 0) {
+        return 8;  // Assume 64-bit pointers
+    }
+
+    // Arrays
+    if (is_array_) {
+        int element_size = std::make_shared<Type>(base_type_)->getSizeInBytes();
+        return element_size * array_size_;
+    }
+
+    // Base types
+    switch (base_type_) {
+        case BaseType::CHAR:   return 1;
+        case BaseType::SHORT:  return 2;
+        case BaseType::INT:    return 4;
+        case BaseType::LONG:   return 8;
+        case BaseType::FLOAT:  return 4;
+        case BaseType::DOUBLE: return 8;
+        case BaseType::VOID:   return 0;  // void has no size
+        case BaseType::STRUCT: {
+            // Sum up all member sizes (no padding for simplicity)
+            int total_size = 0;
+            for (const auto& member : struct_members_) {
+                if (member.type) {
+                    total_size += member.type->getSizeInBytes();
+                }
+            }
+            return total_size;
+        }
+        case BaseType::UNKNOWN: return 0;
+    }
+
+    return 0;
+}
+
 // ========================================
 // String Representation
 // ========================================
@@ -439,12 +499,31 @@ bool isValidBinaryOperator(const Type& left, const Type& right, const std::strin
 
         // Check pointer arithmetic for + and -
         if (op == "+" || op == "-") {
+            // USER STORY #12: Pointer arithmetic validation
+
             // Pointer + int or int + pointer
-            if (left.isPointer() && right.isIntegral()) return true;
-            if (left.isIntegral() && right.isPointer() && op == "+") return true;
+            if (left.isPointer() && right.isIntegral()) {
+                // Disallow void pointer arithmetic (GNU extension, but not standard C)
+                if (left.getBaseType() == Type::BaseType::VOID) {
+                    return false; // void pointer arithmetic is invalid
+                }
+                return true;
+            }
+            if (left.isIntegral() && right.isPointer() && op == "+") {
+                // Disallow void pointer arithmetic
+                if (right.getBaseType() == Type::BaseType::VOID) {
+                    return false; // void pointer arithmetic is invalid
+                }
+                return true;
+            }
 
             // Pointer - pointer (only if same type)
             if (left.isPointer() && right.isPointer() && op == "-") {
+                // Disallow void pointer subtraction
+                if (left.getBaseType() == Type::BaseType::VOID ||
+                    right.getBaseType() == Type::BaseType::VOID) {
+                    return false;
+                }
                 // Only allow subtraction of same pointer types
                 return left.equals(right);
             }
@@ -486,4 +565,89 @@ bool isValidBinaryOperator(const Type& left, const Type& right, const std::strin
     }
 
     return false;
+}
+
+// ========================================
+// USER STORY #11: Implicit Type Conversions
+// ========================================
+
+std::shared_ptr<Type> applyIntegerPromotion(std::shared_ptr<Type> type) {
+    if (!type) {
+        return nullptr;
+    }
+
+    // Integer promotion only applies to non-pointer, non-array types
+    if (type->isPointer() || type->isArray()) {
+        return type;
+    }
+
+    // Promote char and short to int
+    Type::BaseType base = type->getBaseType();
+    if (base == Type::BaseType::CHAR || base == Type::BaseType::SHORT) {
+        return Type::makeInt();
+    }
+
+    // All other types remain unchanged
+    return type;
+}
+
+std::shared_ptr<Type> getCommonArithmeticType(std::shared_ptr<Type> left,
+                                              std::shared_ptr<Type> right) {
+    if (!left || !right) {
+        return nullptr;
+    }
+
+    // First apply integer promotion to both operands
+    left = applyIntegerPromotion(left);
+    right = applyIntegerPromotion(right);
+
+    // If types are already equal, return that type
+    if (left->equals(*right)) {
+        return left;
+    }
+
+    // Only arithmetic types participate in usual arithmetic conversions
+    if (!left->isArithmetic() || !right->isArithmetic()) {
+        return nullptr;
+    }
+
+    // Usual arithmetic conversions hierarchy:
+    // double > float > long > int
+
+    Type::BaseType left_base = left->getBaseType();
+    Type::BaseType right_base = right->getBaseType();
+
+    // If either is double, convert to double
+    if (left_base == Type::BaseType::DOUBLE || right_base == Type::BaseType::DOUBLE) {
+        return Type::makeDouble();
+    }
+
+    // If either is float, convert to float
+    if (left_base == Type::BaseType::FLOAT || right_base == Type::BaseType::FLOAT) {
+        return Type::makeFloat();
+    }
+
+    // If either is long, convert to long
+    if (left_base == Type::BaseType::LONG || right_base == Type::BaseType::LONG) {
+        return Type::makeLong();
+    }
+
+    // Otherwise, both are int (after integer promotion)
+    return Type::makeInt();
+}
+
+std::shared_ptr<Type> applyArrayToPointerDecay(std::shared_ptr<Type> type) {
+    if (!type) {
+        return nullptr;
+    }
+
+    // Only arrays decay to pointers
+    if (!type->isArray()) {
+        return type;
+    }
+
+    // Array decays to pointer to its element type
+    // For example: int[10] -> int*
+    // char[5] -> char*
+    return Type::makePointer(type->getBaseType(), 1);
 }
