@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "scope_manager.h"
 #include "type.h"
+#include <algorithm>
 #include <vector>
 #include <string>
 #include <unordered_map>
