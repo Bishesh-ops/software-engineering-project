@@ -170,15 +170,85 @@ int IROptimizer::constantFoldingPass(IRFunction* function)
 }
 
 // ============================================================================
-// Dead Code Elimination Pass (Future)
+// Dead Code Elimination Pass
 // ============================================================================
+// Removes unreachable code after unconditional jumps and return statements
+// User Story: As a compiler, I want to remove unreachable code so that output
+//             is cleaner
+// Acceptance Criteria:
+// - Code after unconditional jump removed
+// - Code after return removed
 
 int IROptimizer::deadCodeEliminationPass(IRFunction* function)
 {
-    // TODO: Implement dead code elimination
-    // This will identify and remove instructions whose results are never used
-    (void)function;  // Suppress unused parameter warning
-    return 0;
+    int totalRemovals = 0;
+
+    // Iterate through all basic blocks in the function
+    auto& blocks = const_cast<std::vector<std::unique_ptr<IRBasicBlock>>&>(
+        function->getBasicBlocks());
+
+    for (auto& block : blocks) {
+        auto& instructions = const_cast<std::vector<std::unique_ptr<IRInstruction>>&>(
+            block->getInstructions());
+
+        // Find the position of the first unconditional jump or return
+        size_t terminatorPos = instructions.size();
+        bool foundTerminator = false;
+
+        for (size_t i = 0; i < instructions.size(); ++i) {
+            IROpcode opcode = instructions[i]->getOpcode();
+
+            // Check for unconditional jump or return
+            if (opcode == IROpcode::JUMP || opcode == IROpcode::RETURN) {
+                terminatorPos = i;
+                foundTerminator = true;
+                break;
+            }
+        }
+
+        // If we found a terminator and there are instructions after it
+        if (foundTerminator && terminatorPos + 1 < instructions.size()) {
+            // Count dead instructions (excluding labels, as they may be jump targets)
+            size_t deadCodeStart = terminatorPos + 1;
+            size_t deadCodeCount = 0;
+
+            // Check if the next instruction after terminator is a label
+            // If so, we stop - code after a label is potentially reachable
+            if (deadCodeStart < instructions.size()) {
+                IROpcode nextOpcode = instructions[deadCodeStart]->getOpcode();
+                if (nextOpcode == IROpcode::LABEL) {
+                    // Code after label is reachable, don't remove
+                    continue;
+                }
+            }
+
+            // Count and remove dead instructions until we hit a label or end
+            for (size_t i = deadCodeStart; i < instructions.size(); ++i) {
+                IROpcode opcode = instructions[i]->getOpcode();
+
+                // Stop if we encounter a label (it's a potential jump target)
+                if (opcode == IROpcode::LABEL) {
+                    break;
+                }
+
+                deadCodeCount++;
+            }
+
+            // Remove the dead instructions
+            if (deadCodeCount > 0) {
+                instructions.erase(
+                    instructions.begin() + deadCodeStart,
+                    instructions.begin() + deadCodeStart + deadCodeCount
+                );
+                totalRemovals += deadCodeCount;
+            }
+        }
+    }
+
+    // Update statistics
+    deadCodeEliminationCount += totalRemovals;
+
+    return totalRemovals;
 }
 
 // ============================================================================
@@ -202,8 +272,10 @@ void IROptimizer::optimize(IRFunction* function)
     // Run constant folding pass
     constantFoldingPass(function);
 
+    // Run dead code elimination pass
+    deadCodeEliminationPass(function);
+
     // Future passes:
-    // deadCodeEliminationPass(function);
     // commonSubexpressionEliminationPass(function);
 }
 
