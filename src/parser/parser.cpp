@@ -109,12 +109,21 @@ void Parser::synchronizeToDeclaration()
 {
     while (current_token_.type != TokenType::EOF_TOKEN)
     {
-        // Look for type keywords or struct keyword
+        // If we find a semicolon, consume it and we're ready for next declaration
+        if (current_token_.type == TokenType::SEMICOLON)
+        {
+            advance(); // consume semicolon
+            return;
+        }
+
+        // Look for type keywords or struct keyword (start of next declaration)
         if (current_token_.type == TokenType::KW_INT ||
             current_token_.type == TokenType::KW_FLOAT ||
             current_token_.type == TokenType::KW_DOUBLE ||
             current_token_.type == TokenType::KW_CHAR ||
             current_token_.type == TokenType::KW_VOID ||
+            current_token_.type == TokenType::KW_LONG ||
+            current_token_.type == TokenType::KW_UNSIGNED ||
             current_token_.type == TokenType::KW_STRUCT ||
             current_token_.type == TokenType::RBRACE)
         {
@@ -691,7 +700,41 @@ std::unique_ptr<Statement> Parser::parseCompoundStatement()
 }
 
 // ============================================================================
-// Declaration Parsing 
+// Program Parsing (Top-Level Entry Point)
+// ============================================================================
+
+std::vector<std::unique_ptr<Declaration>> Parser::parseProgram()
+{
+    std::vector<std::unique_ptr<Declaration>> declarations;
+
+    // Parse all top-level declarations until we reach EOF
+    while (!check(TokenType::EOF_TOKEN))
+    {
+        auto decl = parseDeclaration();
+        if (decl)
+        {
+            declarations.push_back(std::move(decl));
+        }
+
+        // If we had an error and didn't get a declaration,
+        // skip to the next potential declaration to continue parsing
+        if (!decl && hadError())
+        {
+            synchronizeToDeclaration();
+        }
+
+        // Break if we're stuck at EOF
+        if (check(TokenType::EOF_TOKEN))
+        {
+            break;
+        }
+    }
+
+    return declarations;
+}
+
+// ============================================================================
+// Declaration Parsing
 // ============================================================================
 
 std::unique_ptr<Declaration> Parser::parseDeclaration()
@@ -778,7 +821,14 @@ std::unique_ptr<Declaration> Parser::parseDeclaration()
             initializer = parseExpression();
         }
 
-        consume(TokenType::SEMICOLON, "Expected ';' after array declaration");
+        if (!check(TokenType::SEMICOLON))
+        {
+            // USER STORY #21: Semicolon is missing, report error and synchronize
+            reportError("Expected ';'");
+            synchronizeToDeclaration();
+            return nullptr;
+        }
+        advance(); // Consume semicolon
 
         SourceLocation loc(start_token.filename, start_token.line, start_token.column);
         return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, true, std::move(arraySize), pointerLevel);
@@ -794,7 +844,14 @@ std::unique_ptr<Declaration> Parser::parseDeclaration()
             initializer = parseExpression();
         }
 
-        consume(TokenType::SEMICOLON, "Expected ';' after variable declaration");
+        if (!check(TokenType::SEMICOLON))
+        {
+            // USER STORY #21: Semicolon is missing, report error and synchronize
+            reportError("Expected ';'");
+            synchronizeToDeclaration();
+            return nullptr;
+        }
+        advance(); // Consume semicolon
 
         SourceLocation loc(start_token.filename, start_token.line, start_token.column);
         return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, false, nullptr, pointerLevel);

@@ -16,7 +16,8 @@ class IdentifierExpr;
 class CallExpr;
 class AssignmentExpr;
 class ArrayAccessExpr;
-class MemberAccessExpr; // USER STORY #20
+class MemberAccessExpr;
+class TypeCastExpr;
 class IfStmt;
 class WhileStmt;
 class ForStmt;
@@ -45,7 +46,8 @@ enum class ASTNodeType
     CALL_EXPR,
     ASSIGNMENT_EXPR,
     ARRAY_ACCESS_EXPR,
-    MEMBER_ACCESS_EXPR, // USER STORY #20
+    MEMBER_ACCESS_EXPR,
+    TYPE_CAST_EXPR,
 
     // Statement types
     IF_STMT,
@@ -119,6 +121,7 @@ public:
     virtual void visit(AssignmentExpr &node) = 0;
     virtual void visit(ArrayAccessExpr &node) = 0;
     virtual void visit(MemberAccessExpr &node) = 0; // USER STORY #20
+    virtual void visit(TypeCastExpr &node) = 0;     // USER STORY #11
 
     // Statement visitors
     virtual void visit(IfStmt &node) = 0;
@@ -187,6 +190,12 @@ public:
     Expression *getLeft() const { return left.get(); }
     Expression *getRight() const { return right.get(); }
     const std::string &getOperator() const { return op; }
+
+    // USER STORY #11: Allow AST modification for implicit conversions
+    void setLeft(std::unique_ptr<Expression> expr) { left = std::move(expr); }
+    void setRight(std::unique_ptr<Expression> expr) { right = std::move(expr); }
+    std::unique_ptr<Expression> releaseLeft() { return std::move(left); }
+    std::unique_ptr<Expression> releaseRight() { return std::move(right); }
 };
 
 // Unary Expression (e.g., -x, !flag, *ptr, &var)
@@ -334,6 +343,32 @@ public:
     Expression *getObject() const { return object.get(); }
     const std::string &getMemberName() const { return memberName; }
     bool getIsArrow() const { return isArrow; }
+};
+
+// Type Cast Expression (implicit or explicit conversions)
+// USER STORY #11: Implicit Type Conversions
+class TypeCastExpr : public Expression
+{
+private:
+    std::unique_ptr<Expression> operand;  // expression being cast
+    std::string targetType;               // target type name (e.g., "int", "float")
+    bool isImplicit;                      // true for implicit conversions, false for explicit
+
+public:
+    TypeCastExpr(std::unique_ptr<Expression> expr,
+                 std::string target,
+                 bool implicit,
+                 const SourceLocation &loc)
+        : Expression(ASTNodeType::TYPE_CAST_EXPR, loc),
+          operand(std::move(expr)), targetType(target), isImplicit(implicit) {}
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+    Expression *getOperand() const { return operand.get(); }
+    std::unique_ptr<Expression> releaseOperand() { return std::move(operand); }
+    void setOperand(std::unique_ptr<Expression> expr) { operand = std::move(expr); }
+    const std::string &getTargetType() const { return targetType; }
+    bool getIsImplicit() const { return isImplicit; }
 };
 
 // ============================================================================

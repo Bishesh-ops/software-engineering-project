@@ -43,6 +43,9 @@ public:
     std::unique_ptr<Statement> parseExpressionStatement();
     std::unique_ptr<Statement> parseCompoundStatement();
 
+    // Program parsing (top-level entry point)
+    std::vector<std::unique_ptr<Declaration>> parseProgram();
+
     // Declaration parsing
     std::unique_ptr<Declaration> parseDeclaration();
     std::unique_ptr<Declaration> parseVariableDeclaration();
