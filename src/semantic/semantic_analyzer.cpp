@@ -158,7 +158,16 @@ void SemanticAnalyzer::visit(VarDecl &node) {
     std::shared_ptr<Type> var_type;
 
     // Check if this is a struct type
-    auto struct_it = struct_types_.find(node.getType());
+    // Type string might be "struct Point" or just "Point"
+    std::string type_name = node.getType();
+
+    // Strip "struct " prefix if present
+    const std::string struct_prefix = "struct ";
+    if (type_name.find(struct_prefix) == 0) {
+        type_name = type_name.substr(struct_prefix.length());
+    }
+
+    auto struct_it = struct_types_.find(type_name);
     if (struct_it != struct_types_.end()) {
         // It's a struct type - use the registered struct type
         var_type = struct_it->second;
@@ -482,6 +491,13 @@ void SemanticAnalyzer::visit(ExpressionStmt &node) {
     // Visit the expression
     if (node.getExpression()) {
         node.getExpression()->accept(*this);
+    }
+}
+
+void SemanticAnalyzer::visit(DeclStmt &node) {
+    // Visit the wrapped declaration - this will register the variable in the symbol table
+    if (node.getDeclaration()) {
+        node.getDeclaration()->accept(*this);
     }
 }
 

@@ -128,6 +128,7 @@ public:
     void visit(ReturnStmt &node) override;
     void visit(CompoundStmt &node) override;
     void visit(ExpressionStmt &node) override;
+    void visit(DeclStmt &node) override;
 
     // Declaration visitors - these are the main ones for registration
     void visit(VarDecl &node) override;
