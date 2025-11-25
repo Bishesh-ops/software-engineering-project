@@ -4,6 +4,8 @@
 #include "ir.h"
 #include <memory>
 #include <vector>
+#include <unordered_map>
+#include <string>
 
 // ============================================================================
 // IR Optimizer - Performs optimization passes on SSA IR
@@ -32,6 +34,12 @@ private:
 
     // Helper: Check if an arithmetic operation can be optimized
     bool canOptimizeArithmetic(const IRInstruction* inst) const;
+
+    // Helper for CSE: Generate a unique key for an expression
+    std::string getExpressionKey(const IRInstruction* inst) const;
+
+    // Helper for CSE: Check if instruction is a common subexpression candidate
+    bool isCSECandidate(const IRInstruction* inst) const;
 
 public:
     IROptimizer();

@@ -252,15 +252,110 @@ int IROptimizer::deadCodeEliminationPass(IRFunction* function)
 }
 
 // ============================================================================
-// Common Subexpression Elimination Pass (Future)
+// Common Subexpression Elimination Pass
 // ============================================================================
+// Eliminates redundant computations by reusing previously computed values
+// User Story: As a compiler, I want to eliminate redundant computations so
+//             that performance is improved
+// Acceptance Criteria:
+// - t0 = a + b; t1 = a + b; → t0 = a + b; t1 = t0;
+
+std::string IROptimizer::getExpressionKey(const IRInstruction* inst) const
+{
+    // Generate a unique string key for an expression
+    // Format: "opcode:operand1:operand2" for binary ops
+    std::string key;
+
+    IROpcode opcode = inst->getOpcode();
+    const auto& operands = inst->getOperands();
+
+    // Add opcode
+    key += std::to_string(static_cast<int>(opcode)) + ":";
+
+    // Add operands
+    for (const auto& operand : operands) {
+        key += operand.toString() + ":";
+    }
+
+    return key;
+}
+
+bool IROptimizer::isCSECandidate(const IRInstruction* inst) const
+{
+    // Check if instruction is eligible for CSE
+    IROpcode opcode = inst->getOpcode();
+
+    // Must have a result (destination)
+    if (inst->getResult() == nullptr) {
+        return false;
+    }
+
+    // Only optimize pure operations (no side effects)
+    // Arithmetic and comparison operations are pure
+    return (opcode == IROpcode::ADD || opcode == IROpcode::SUB ||
+            opcode == IROpcode::MUL || opcode == IROpcode::DIV ||
+            opcode == IROpcode::MOD || opcode == IROpcode::EQ ||
+            opcode == IROpcode::NE || opcode == IROpcode::LT ||
+            opcode == IROpcode::GT || opcode == IROpcode::LE ||
+            opcode == IROpcode::GE);
+}
 
 int IROptimizer::commonSubexpressionEliminationPass(IRFunction* function)
 {
-    // TODO: Implement common subexpression elimination
-    // This will identify repeated computations and reuse previous results
-    (void)function;  // Suppress unused parameter warning
-    return 0;
+    int totalOptimizations = 0;
+
+    // Process each basic block independently
+    // (More advanced: could use dominator analysis for inter-block CSE)
+    auto& blocks = const_cast<std::vector<std::unique_ptr<IRBasicBlock>>&>(
+        function->getBasicBlocks());
+
+    for (auto& block : blocks) {
+        auto& instructions = const_cast<std::vector<std::unique_ptr<IRInstruction>>&>(
+            block->getInstructions());
+
+        // Map: expression key -> SSA value that holds the result
+        std::unordered_map<std::string, SSAValue*> availableExpressions;
+
+        for (size_t i = 0; i < instructions.size(); ++i) {
+            IRInstruction* inst = instructions[i].get();
+
+            // Skip if not a CSE candidate
+            if (!isCSECandidate(inst)) {
+                continue;
+            }
+
+            // Generate key for this expression
+            std::string key = getExpressionKey(inst);
+
+            // Check if we've seen this expression before
+            auto it = availableExpressions.find(key);
+
+            if (it != availableExpressions.end()) {
+                // Found a common subexpression!
+                // Replace this instruction with a MOVE from the previous result
+                SSAValue* previousResult = it->second;
+                SSAValue* currentResult = inst->getResult();
+
+                // Create MOVE instruction: currentResult = previousResult
+                IROperand sourceOperand(*previousResult);
+                instructions[i] = std::make_unique<MoveInst>(currentResult, sourceOperand);
+
+                totalOptimizations++;
+
+                // Note: We don't add this MOVE to availableExpressions
+                // because moves are already handled implicitly
+            } else {
+                // First time seeing this expression
+                // Record it for future reuse
+                availableExpressions[key] = inst->getResult();
+            }
+        }
+    }
+
+    // Update statistics
+    cseCount += totalOptimizations;
+
+    return totalOptimizations;
 }
 
 // ============================================================================
@@ -272,11 +367,11 @@ void IROptimizer::optimize(IRFunction* function)
     // Run constant folding pass
     constantFoldingPass(function);
 
+    // Run common subexpression elimination pass
+    commonSubexpressionEliminationPass(function);
+
     // Run dead code elimination pass
     deadCodeEliminationPass(function);
-
-    // Future passes:
-    // commonSubexpressionEliminationPass(function);
 }
 
 void IROptimizer::optimize(std::vector<std::unique_ptr<IRFunction>>& functions)
