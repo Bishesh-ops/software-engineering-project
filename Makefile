@@ -28,6 +28,7 @@ TEST_SEMANTIC_US12_SRCS := tests/test_semantic_us12_pointer_arithmetic.cpp
 TEST_SEMANTIC_US13_SRCS := tests/test_semantic_us13_struct_checking.cpp
 TEST_INTEGRATION_SRCS := tests/test_integration.cpp
 TEST_IR_SRCS := tests/test_ir.cpp
+TEST_TEMP_GEN_SRCS := tests/test_temp_generator.cpp
 
 # --- Object Files ---
 LEXER_OBJS := $(LEXER_SRCS:src/lexer/%.cpp=$(OBJ_DIR)/%.o)
@@ -43,15 +44,16 @@ TEST_SEMANTIC_US12_OBJS := $(TEST_SEMANTIC_US12_SRCS:tests/%.cpp=$(OBJ_DIR)/test
 TEST_SEMANTIC_US13_OBJS := $(TEST_SEMANTIC_US13_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_INTEGRATION_OBJS := $(TEST_INTEGRATION_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_IR_OBJS := $(TEST_IR_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
+TEST_TEMP_GEN_OBJS := $(TEST_TEMP_GEN_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 
 # --- Targets ---
-.PHONY: all test test_lexer test_parser test_semantic test_integration test_ir clean dirs
+.PHONY: all test test_lexer test_parser test_semantic test_integration test_ir test_temp_gen clean dirs
 
-all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe
+all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe $(BIN_DIR)/test_temp_generator.exe
 	@echo All test executables built successfully.
 
 # Run all tests
-test: test_lexer test_parser test_semantic test_integration test_ir
+test: test_lexer test_parser test_semantic test_integration test_ir test_temp_gen
 
 # Run lexer tests
 test_lexer: $(BIN_DIR)/test_lexer.exe
@@ -107,6 +109,16 @@ test_ir: $(BIN_DIR)/test_ir.exe
 	@echo IR Tests Complete!
 	@echo ========================================
 
+# Run Temp Generator tests
+test_temp_gen: $(BIN_DIR)/test_temp_generator.exe
+	@echo ========================================
+	@echo Running Temporary Variable Generator Tests
+	@echo ========================================
+	@./$(BIN_DIR)/test_temp_generator.exe
+	@echo ========================================
+	@echo Temp Generator Tests Complete!
+	@echo ========================================
+
 # Create directories
 dirs:
 	@mkdir -p $(OBJ_DIR)
@@ -144,6 +156,10 @@ $(BIN_DIR)/test_integration.exe: $(LEXER_OBJS) $(PARSER_OBJS) $(AST_OBJS) $(SEMA
 
 $(BIN_DIR)/test_ir.exe: $(IR_OBJS) $(TEST_IR_OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(TEST_IR_OBJS) -o $@
+	@echo Linked $@.
+
+$(BIN_DIR)/test_temp_generator.exe: $(IR_OBJS) $(TEST_TEMP_GEN_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(TEST_TEMP_GEN_OBJS) -o $@
 	@echo Linked $@.
 
 # --- Compilation Rules ---

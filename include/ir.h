@@ -16,6 +16,7 @@
 class IRInstruction;
 class IRBasicBlock;
 class IRFunction;
+class TempVarGenerator;
 
 // ============================================================================
 // SSA Value - Represents a value in SSA form
@@ -442,6 +443,105 @@ public:
     }
 
     std::string toString() const;
+};
+
+// ============================================================================
+// Temporary Variable Generator
+// ============================================================================
+// Generates unique temporary variable names for intermediate values
+// Format: t0, t1, t2, t3, ...
+class TempVarGenerator
+{
+private:
+    int tempCount;              // Counter for temporary variables
+    std::string prefix;         // Prefix for temp variable names (default: "t")
+
+public:
+    // Constructor with optional custom prefix
+    TempVarGenerator(const std::string& pfx = "t")
+        : tempCount(0), prefix(pfx) {}
+
+    // Generate a new unique temporary variable name
+    // Returns: "t0", "t1", "t2", etc.
+    std::string newTemp() {
+        return prefix + std::to_string(tempCount++);
+    }
+
+    // Generate a new SSA temporary value with type
+    // Returns: SSAValue with name "t0", "t1", etc.
+    SSAValue newTempSSA(const std::string& type) {
+        std::string name = newTemp();
+        return SSAValue(name, type, 0);
+    }
+
+    // Get current temp count (useful for debugging/testing)
+    int getTempCount() const {
+        return tempCount;
+    }
+
+    // Reset the counter (useful when starting a new function)
+    void reset() {
+        tempCount = 0;
+    }
+
+    // Set custom prefix for temp variables
+    void setPrefix(const std::string& pfx) {
+        prefix = pfx;
+    }
+
+    // Get current prefix
+    const std::string& getPrefix() const {
+        return prefix;
+    }
+};
+
+// ============================================================================
+// Label Generator
+// ============================================================================
+// Generates unique label names for basic blocks
+// Format: L0, L1, L2, L3, ...
+class LabelGenerator
+{
+private:
+    int labelCount;             // Counter for labels
+    std::string prefix;         // Prefix for label names (default: "L")
+
+public:
+    // Constructor with optional custom prefix
+    LabelGenerator(const std::string& pfx = "L")
+        : labelCount(0), prefix(pfx) {}
+
+    // Generate a new unique label name
+    // Returns: "L0", "L1", "L2", etc.
+    std::string newLabel() {
+        return prefix + std::to_string(labelCount++);
+    }
+
+    // Generate a named label with counter
+    // Returns: "loop_0", "if_1", etc.
+    std::string newLabel(const std::string& name) {
+        return name + "_" + std::to_string(labelCount++);
+    }
+
+    // Get current label count (useful for debugging/testing)
+    int getLabelCount() const {
+        return labelCount;
+    }
+
+    // Reset the counter
+    void reset() {
+        labelCount = 0;
+    }
+
+    // Set custom prefix
+    void setPrefix(const std::string& pfx) {
+        prefix = pfx;
+    }
+
+    // Get current prefix
+    const std::string& getPrefix() const {
+        return prefix;
+    }
 };
 
 #endif // IR_H
