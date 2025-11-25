@@ -238,6 +238,13 @@ bool Type::canConvertTo(const Type& target) const {
         return false;
     }
 
+    // Array-to-pointer decay: T[] can convert to T*
+    // This is a special case where source is array and target is pointer
+    if (is_array_ && !target.is_array_ && target.pointer_depth_ == 1) {
+        // Base types must match for array-to-pointer decay
+        return base_type_ == target.base_type_;
+    }
+
     // Pointer conversions
     if (pointer_depth_ > 0 || target.pointer_depth_ > 0) {
         // Both must be pointers

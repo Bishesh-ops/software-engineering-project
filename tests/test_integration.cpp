@@ -1,12 +1,13 @@
 #include "../include/lexer.h"
 #include "../include/parser.h"
 #include "../include/semantic_analyzer.h"
+#include "../include/ir_codegen.h"
 #include <iostream>
 #include <string>
 #include <vector>
 
-// Integration Test - Full Pipeline: Lexer → Parser → Semantic Analyzer
-// Tests the complete compilation flow from source code to validated AST
+// Integration Test - Full Pipeline: Lexer → Parser → Semantic Analyzer → IR Code Generator
+// Tests the complete compilation flow from source code to IR
 
 void printTestHeader(const std::string& title) {
     std::cout << "\n========================================\n";
@@ -18,12 +19,15 @@ void printTestResult(const std::string& testName, bool passed) {
     std::cout << "[" << (passed ? "PASS" : "FAIL") << "] " << testName << "\n";
 }
 
+
 // Test helper: Run full pipeline on source code
 struct TestResult {
     bool lexer_success;
     bool parser_success;
     bool semantic_success;
+    bool ir_generation_success;
     std::vector<std::string> errors;
+    std::vector<std::unique_ptr<IRFunction>> ir_functions;
 };
 
 TestResult runFullPipeline(const std::string& sourceCode, const std::string& filename = "test.c") {
@@ -31,6 +35,7 @@ TestResult runFullPipeline(const std::string& sourceCode, const std::string& fil
     result.lexer_success = false;
     result.parser_success = false;
     result.semantic_success = false;
+    result.ir_generation_success = false;
 
     // STAGE 1: Lexer - Create lexer with source code
     Lexer lexer(sourceCode, filename);
@@ -81,7 +86,52 @@ TestResult runFullPipeline(const std::string& sourceCode, const std::string& fil
         return result;
     }
 
+    // STAGE 4: IR Code Generator - Generate IR from AST
+    IRCodeGenerator irCodegen;
+
+    try {
+        // Generate IR for each function declaration
+        for (auto& decl : ast) {
+            if (decl->getNodeType() == ASTNodeType::FUNCTION_DECL) {
+                FunctionDecl* funcDecl = static_cast<FunctionDecl*>(decl.get());
+                auto irFunc = irCodegen.generateFunctionIR(funcDecl);
+                result.ir_functions.push_back(std::move(irFunc));
+            }
+        }
+
+        result.ir_generation_success = true;
+    } catch (const std::exception& e) {
+        result.errors.push_back(std::string("IR generation error: ") + e.what());
+        return result;
+    }
+
     return result;
+}
+
+// Helper to print test results and IR
+void printFullPipelineResults(const TestResult& result, bool showIR = true) {
+    printTestResult("Lexer stage", result.lexer_success);
+    printTestResult("Parser stage", result.parser_success);
+    printTestResult("Semantic analysis stage", result.semantic_success);
+    printTestResult("IR generation stage", result.ir_generation_success);
+
+    bool allPassed = result.lexer_success && result.parser_success &&
+                     result.semantic_success && result.ir_generation_success;
+    printTestResult("Complete pipeline (all 4 stages)", allPassed);
+
+    if (!result.errors.empty()) {
+        std::cout << "Errors:\n";
+        for (const auto& error : result.errors) {
+            std::cout << "  - " << error << "\n";
+        }
+    }
+
+    if (showIR && allPassed && !result.ir_functions.empty()) {
+        std::cout << "\nGenerated IR:\n";
+        for (const auto& func : result.ir_functions) {
+            std::cout << func->toString();
+        }
+    }
 }
 
 // ============================================================================
@@ -101,20 +151,7 @@ void testSimpleProgram() {
     )";
 
     TestResult result = runFullPipeline(code);
-
-    printTestResult("Lexer stage", result.lexer_success);
-    printTestResult("Parser stage", result.parser_success);
-    printTestResult("Semantic analysis stage", result.semantic_success);
-
-    bool allPassed = result.lexer_success && result.parser_success && result.semantic_success;
-    printTestResult("Complete pipeline", allPassed);
-
-    if (!result.errors.empty()) {
-        std::cout << "Errors:\n";
-        for (const auto& error : result.errors) {
-            std::cout << "  - " << error << "\n";
-        }
-    }
+    printFullPipelineResults(result);
 }
 
 void testFunctionDeclaration() {
@@ -132,20 +169,7 @@ void testFunctionDeclaration() {
     )";
 
     TestResult result = runFullPipeline(code);
-
-    printTestResult("Lexer stage", result.lexer_success);
-    printTestResult("Parser stage", result.parser_success);
-    printTestResult("Semantic analysis stage", result.semantic_success);
-
-    bool allPassed = result.lexer_success && result.parser_success && result.semantic_success;
-    printTestResult("Complete pipeline", allPassed);
-
-    if (!result.errors.empty()) {
-        std::cout << "Errors:\n";
-        for (const auto& error : result.errors) {
-            std::cout << "  - " << error << "\n";
-        }
-    }
+    printFullPipelineResults(result);
 }
 
 void testStructOperations() {
@@ -167,20 +191,7 @@ void testStructOperations() {
     )";
 
     TestResult result = runFullPipeline(code);
-
-    printTestResult("Lexer stage", result.lexer_success);
-    printTestResult("Parser stage", result.parser_success);
-    printTestResult("Semantic analysis stage", result.semantic_success);
-
-    bool allPassed = result.lexer_success && result.parser_success && result.semantic_success;
-    printTestResult("Complete pipeline", allPassed);
-
-    if (!result.errors.empty()) {
-        std::cout << "Errors:\n";
-        for (const auto& error : result.errors) {
-            std::cout << "  - " << error << "\n";
-        }
-    }
+    printFullPipelineResults(result);
 }
 
 void testControlFlow() {
@@ -212,20 +223,7 @@ void testControlFlow() {
     )";
 
     TestResult result = runFullPipeline(code);
-
-    printTestResult("Lexer stage", result.lexer_success);
-    printTestResult("Parser stage", result.parser_success);
-    printTestResult("Semantic analysis stage", result.semantic_success);
-
-    bool allPassed = result.lexer_success && result.parser_success && result.semantic_success;
-    printTestResult("Complete pipeline", allPassed);
-
-    if (!result.errors.empty()) {
-        std::cout << "Errors:\n";
-        for (const auto& error : result.errors) {
-            std::cout << "  - " << error << "\n";
-        }
-    }
+    printFullPipelineResults(result);
 }
 
 void testPointerOperations() {
@@ -246,20 +244,7 @@ void testPointerOperations() {
     )";
 
     TestResult result = runFullPipeline(code);
-
-    printTestResult("Lexer stage", result.lexer_success);
-    printTestResult("Parser stage", result.parser_success);
-    printTestResult("Semantic analysis stage", result.semantic_success);
-
-    bool allPassed = result.lexer_success && result.parser_success && result.semantic_success;
-    printTestResult("Complete pipeline", allPassed);
-
-    if (!result.errors.empty()) {
-        std::cout << "Errors:\n";
-        for (const auto& error : result.errors) {
-            std::cout << "  - " << error << "\n";
-        }
-    }
+    printFullPipelineResults(result);
 }
 
 void testTypeConversions() {
@@ -281,20 +266,7 @@ void testTypeConversions() {
     )";
 
     TestResult result = runFullPipeline(code);
-
-    printTestResult("Lexer stage", result.lexer_success);
-    printTestResult("Parser stage", result.parser_success);
-    printTestResult("Semantic analysis stage", result.semantic_success);
-
-    bool allPassed = result.lexer_success && result.parser_success && result.semantic_success;
-    printTestResult("Complete pipeline", allPassed);
-
-    if (!result.errors.empty()) {
-        std::cout << "Errors:\n";
-        for (const auto& error : result.errors) {
-            std::cout << "  - " << error << "\n";
-        }
-    }
+    printFullPipelineResults(result);
 }
 
 void testErrorDetection() {
@@ -312,6 +284,7 @@ void testErrorDetection() {
 
     printTestResult("Lexer stage", result.lexer_success);
     printTestResult("Parser stage", result.parser_success);
+    printTestResult("Semantic analysis stage", result.semantic_success);
 
     // This SHOULD fail semantic analysis
     bool correctlyFailed = !result.semantic_success && !result.errors.empty();
@@ -339,6 +312,7 @@ void testErrorDetection2() {
 
     printTestResult("Lexer stage", result.lexer_success);
     printTestResult("Parser stage", result.parser_success);
+    printTestResult("Semantic analysis stage", result.semantic_success);
 
     // This SHOULD fail semantic analysis
     bool correctlyFailed = !result.semantic_success && !result.errors.empty();
@@ -368,6 +342,7 @@ void testErrorDetection3() {
 
     printTestResult("Lexer stage", result.lexer_success);
     printTestResult("Parser stage", result.parser_success);
+    printTestResult("Semantic analysis stage", result.semantic_success);
 
     // This SHOULD fail semantic analysis
     bool correctlyFailed = !result.semantic_success && !result.errors.empty();
@@ -432,20 +407,7 @@ void testComplexProgram() {
     )";
 
     TestResult result = runFullPipeline(code);
-
-    printTestResult("Lexer stage", result.lexer_success);
-    printTestResult("Parser stage", result.parser_success);
-    printTestResult("Semantic analysis stage", result.semantic_success);
-
-    bool allPassed = result.lexer_success && result.parser_success && result.semantic_success;
-    printTestResult("Complete pipeline", allPassed);
-
-    if (!result.errors.empty()) {
-        std::cout << "Errors:\n";
-        for (const auto& error : result.errors) {
-            std::cout << "  - " << error << "\n";
-        }
-    }
+    printFullPipelineResults(result);
 }
 
 // ============================================================================
@@ -455,7 +417,7 @@ void testComplexProgram() {
 int main() {
     std::cout << "========================================\n";
     std::cout << "INTEGRATION TEST SUITE\n";
-    std::cout << "Testing: Lexer → Parser → Semantic Analyzer\n";
+    std::cout << "Testing: Lexer → Parser → Semantic Analyzer → IR Code Generator\n";
     std::cout << "========================================\n";
 
     int totalTests = 10;

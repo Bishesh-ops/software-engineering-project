@@ -682,10 +682,11 @@ std::unique_ptr<Statement> Parser::parseCompoundStatement()
         // Handle declarations (int x = 5;) or statements
         if (isTypeKeyword(current_token_.type))
         {
-            // Parse as declaration, wrap in expression statement
+            // Parse as declaration and wrap in DeclStmt
+            Token decl_token = current_token_;
             auto decl = parseVariableDeclaration();
-            // For now, we can't directly add declarations to statement list
-            // This is a simplification - real compilers handle this differently
+            SourceLocation loc(decl_token.filename, decl_token.line, decl_token.column);
+            statements.push_back(std::make_unique<DeclStmt>(std::move(decl), loc));
         }
         else
         {
@@ -739,10 +740,152 @@ std::vector<std::unique_ptr<Declaration>> Parser::parseProgram()
 
 std::unique_ptr<Declaration> Parser::parseDeclaration()
 {
-    // USER STORY #19: Check for struct definition first
+    // USER STORY #19: Check for struct definition vs struct variable declaration
     if (check(TokenType::KW_STRUCT))
     {
-        return parseStructDefinition();
+        // Need to look ahead to distinguish:
+        // struct Point { ... };  -> struct definition
+        // struct Point p;        -> variable declaration
+
+        // Save tokens as we advance
+        Token structToken = current_token_;
+        advance(); // consume 'struct'
+
+        if (check(TokenType::IDENTIFIER))
+        {
+            Token nameToken = current_token_;
+            advance(); // consume struct name
+
+            // Check what follows the struct name
+            if (check(TokenType::LBRACE))
+            {
+                // It's a struct definition: struct Name { ... }
+                // We've already consumed 'struct' and the name, but parseStructDefinition expects them
+                // So we need to "put them back" - reconstruct by calling parseStructDefinition
+                // after manually backing up
+
+                // Back up: set current_token_ to the saved structToken and re-advance through lexer
+                // This is a limitation - we can't truly rewind. Instead, we'll modify parseStructDefinition
+                // to accept that struct keyword may already be consumed.
+
+                // For now, let's just call parseStructDefinition and let it re-consume
+                // Actually, the simplest fix is to make parseStructDefinition work when called
+                // after we've peeked ahead.  We'll pass the name directly.
+
+                // Simpler approach: just check the third token without consuming
+                // Unfortunately the lexer doesn't support this.
+
+                // Alternative: Create the struct definition here directly
+                consume(TokenType::LBRACE, "Expected '{' after struct name");
+
+                // Parse member fields
+                std::vector<std::unique_ptr<VarDecl>> fields;
+
+                while (!check(TokenType::RBRACE) && current_token_.type != TokenType::EOF_TOKEN)
+                {
+                    if (!isTypeKeyword(current_token_.type) && current_token_.type != TokenType::KW_STRUCT)
+                    {
+                        reportError("Expected type keyword for struct field");
+                        while (current_token_.type != TokenType::SEMICOLON &&
+                               current_token_.type != TokenType::RBRACE &&
+                               current_token_.type != TokenType::EOF_TOKEN)
+                        {
+                            advance();
+                        }
+                        if (current_token_.type == TokenType::SEMICOLON)
+                            advance();
+                        continue;
+                    }
+
+                    Token field_start = current_token_;
+                    std::string fieldType = parseType();
+
+                    int pointerLevel = 0;
+                    while (check(TokenType::OP_STAR))
+                    {
+                        advance();
+                        pointerLevel++;
+                    }
+
+                    Token field_name_token = consume(TokenType::IDENTIFIER, "Expected field name");
+                    std::string fieldName(field_name_token.value);
+
+                    bool isArray = false;
+                    std::unique_ptr<Expression> arraySize = nullptr;
+
+                    if (check(TokenType::LBRACKET))
+                    {
+                        advance();
+                        isArray = true;
+
+                        if (!check(TokenType::RBRACKET))
+                        {
+                            arraySize = parseExpression();
+                        }
+
+                        consume(TokenType::RBRACKET, "Expected ']' after array size");
+                    }
+
+                    consume(TokenType::SEMICOLON, "Expected ';' after struct field");
+
+                    SourceLocation fieldLoc(field_start.filename, field_start.line, field_start.column);
+                    fields.push_back(std::make_unique<VarDecl>(
+                        fieldName, fieldType, nullptr, fieldLoc, isArray, std::move(arraySize), pointerLevel
+                    ));
+                }
+
+                consume(TokenType::RBRACE, "Expected '}' after struct fields");
+                consume(TokenType::SEMICOLON, "Expected ';' after struct definition");
+
+                SourceLocation loc(structToken.filename, structToken.line, structToken.column);
+                return std::make_unique<StructDecl>(std::string(nameToken.value), std::move(fields), loc);
+            }
+            else
+            {
+                // It's a variable declaration with struct type: struct Point p;
+                // We've already consumed 'struct' and 'Point', now we need the variable name
+                // The 'type' is "struct Point", and 'nameToken' is actually the struct type name
+                // The NEXT token (current_token_) should be the variable name
+
+                // Build the type string
+                std::string type = std::string(structToken.value) + " " + std::string(nameToken.value);
+                Token var_name_token = consume(TokenType::IDENTIFIER, "Expected identifier in declaration");
+                std::string var_name(var_name_token.value);
+
+                // Handle array declaration
+                bool isArray = false;
+                std::unique_ptr<Expression> arraySize = nullptr;
+
+                if (check(TokenType::LBRACKET))
+                {
+                    advance();
+                    isArray = true;
+                    if (!check(TokenType::RBRACKET))
+                    {
+                        arraySize = parseExpression();
+                    }
+                    consume(TokenType::RBRACKET, "Expected ']'");
+                }
+
+                // Handle initialization
+                std::unique_ptr<Expression> initializer = nullptr;
+                if (match(TokenType::OP_ASSIGN))
+                {
+                    initializer = parseExpression();
+                }
+
+                consume(TokenType::SEMICOLON, "Expected ';' after declaration");
+
+                SourceLocation loc(structToken.filename, structToken.line, structToken.column);
+                return std::make_unique<VarDecl>(var_name, type, std::move(initializer), loc, isArray, std::move(arraySize), 0);
+            }
+        }
+        else
+        {
+            reportError("Expected struct name after 'struct' keyword");
+            synchronizeToDeclaration();
+            return nullptr;
+        }
     }
 
     // Parse type and name first, then determine if function or variable
@@ -972,7 +1115,8 @@ bool Parser::isTypeKeyword(TokenType type) const
            type == TokenType::KW_CHAR ||
            type == TokenType::KW_VOID ||
            type == TokenType::KW_LONG ||
-           type == TokenType::KW_SHORT;
+           type == TokenType::KW_SHORT ||
+           type == TokenType::KW_STRUCT;
 }
 
 std::string Parser::parseType()

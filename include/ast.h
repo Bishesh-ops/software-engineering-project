@@ -24,6 +24,7 @@ class ForStmt;
 class ReturnStmt;
 class CompoundStmt;
 class ExpressionStmt;
+class DeclStmt;
 class VarDecl;
 class TypeDecl;
 class StructDecl;
@@ -130,6 +131,7 @@ public:
     virtual void visit(ReturnStmt &node) = 0;
     virtual void visit(CompoundStmt &node) = 0;
     virtual void visit(ExpressionStmt &node) = 0;
+    virtual void visit(DeclStmt &node) = 0;
 
     // Declaration visitors
     virtual void visit(VarDecl &node) = 0;
@@ -489,6 +491,21 @@ public:
     void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
 
     Expression *getExpression() const { return expression.get(); }
+};
+
+// Declaration Statement (wraps a declaration as a statement, e.g., int x = 5; inside a function)
+class DeclStmt : public Statement
+{
+private:
+    std::unique_ptr<Declaration> declaration;
+
+public:
+    DeclStmt(std::unique_ptr<Declaration> decl, const SourceLocation &loc)
+        : Statement(ASTNodeType::EXPRESSION_STMT, loc), declaration(std::move(decl)) {}
+
+    void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+    Declaration *getDeclaration() const { return declaration.get(); }
 };
 
 // ============================================================================
