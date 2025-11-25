@@ -308,8 +308,8 @@ All tests are designed to be:
 1. **Lexer** - Source code → Tokens
 2. **Parser** - Tokens → AST
 3. **Semantic Analyzer** - AST → Validated AST (with symbol table)
-4. **IR Generator** - AST → IR (future enhancement)
-5. **Optimizer** - IR → Optimized IR (future enhancement)
+4. **IR Generator** - AST → SSA-form IR
+5. **Optimizer** - IR → Optimized IR (with constant folding)
 6. **Code Generator** - IR → Target code (future enhancement)
 7. **VM/Execution** - Run the generated code (future enhancement)
 
@@ -328,15 +328,43 @@ make test
 # Run only semantic tests
 make test_semantic
 
+# Run optimization tests
+make test_constant_folding
+
+# Run optimization example
+./bin/constant_folding_example.exe
+
 # Clean and rebuild
 make clean && make all
 ```
 
+## Optimization Features
+
+### Constant Folding
+
+The compiler includes a **constant folding optimization** pass that evaluates constant expressions at compile time, reducing runtime computation.
+
+**Examples:**
+- `2 + 3` → `5` at compile time
+- `10 * 0` → `0` at compile time
+- Works on SSA-form IR
+
+**Testing:**
+```bash
+make test_constant_folding
+```
+
+**Documentation:** See [CONSTANT_FOLDING_OPTIMIZATION.md](CONSTANT_FOLDING_OPTIMIZATION.md) for detailed documentation.
+
 ## Future Enhancements
 
 Potential areas for expansion:
-- Code generation (assembly/LLVM IR)
-- Optimization passes
+- **Code generation** (assembly/LLVM IR)
+- **Additional optimization passes:**
+  - Dead code elimination
+  - Common subexpression elimination
+  - Constant propagation
+  - Algebraic simplifications
 - More advanced type features (unions, enums, typedefs)
 - Preprocessor support
 - Error recovery in parser

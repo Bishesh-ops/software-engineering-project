@@ -19,7 +19,7 @@ LEXER_SRCS := src/lexer/lexer.cpp src/lexer/token.cpp
 PARSER_SRCS := src/parser/parser.cpp
 AST_SRCS := src/AST/ast_printer.cpp
 SEMANTIC_SRCS := src/semantic/type.cpp src/semantic/symbol_table.cpp src/semantic/scope_manager.cpp src/semantic/semantic_analyzer.cpp
-IR_SRCS := src/ir/ir.cpp src/ir/ir_codegen.cpp
+IR_SRCS := src/ir/ir.cpp src/ir/ir_codegen.cpp src/ir/ir_optimizer.cpp
 TEST_LEXER_SRCS := tests/test_lexer.cpp
 TEST_PARSER_SRCS := tests/test_parser.cpp
 TEST_SEMANTIC_MAIN_SRCS := tests/test_semantic_main.cpp
@@ -29,6 +29,7 @@ TEST_SEMANTIC_US13_SRCS := tests/test_semantic_us13_struct_checking.cpp
 TEST_INTEGRATION_SRCS := tests/test_integration.cpp
 TEST_IR_SRCS := tests/test_ir.cpp
 TEST_TEMP_GEN_SRCS := tests/test_temp_generator.cpp
+TEST_CONSTANT_FOLDING_SRCS := tests/test_constant_folding.cpp
 EXAMPLE_EXPR_LOWERING_SRCS := examples/expression_lowering_example.cpp
 EXAMPLE_ASSIGN_LOWERING_SRCS := examples/assignment_lowering_example.cpp
 EXAMPLE_IF_LOWERING_SRCS := examples/if_lowering_example.cpp
@@ -38,6 +39,7 @@ EXAMPLE_CALL_LOWERING_SRCS := examples/call_lowering_example.cpp
 EXAMPLE_FUNC_LOWERING_SRCS := examples/function_lowering_example.cpp
 EXAMPLE_MEMORY_LOWERING_SRCS := examples/memory_lowering_example.cpp
 EXAMPLE_IR_PRINTER_SRCS := examples/ir_printer_example.cpp
+EXAMPLE_CONSTANT_FOLDING_SRCS := examples/constant_folding_example.cpp
 
 # --- Object Files ---
 LEXER_OBJS := $(LEXER_SRCS:src/lexer/%.cpp=$(OBJ_DIR)/%.o)
@@ -54,6 +56,7 @@ TEST_SEMANTIC_US13_OBJS := $(TEST_SEMANTIC_US13_SRCS:tests/%.cpp=$(OBJ_DIR)/test
 TEST_INTEGRATION_OBJS := $(TEST_INTEGRATION_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_IR_OBJS := $(TEST_IR_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_TEMP_GEN_OBJS := $(TEST_TEMP_GEN_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
+TEST_CONSTANT_FOLDING_OBJS := $(TEST_CONSTANT_FOLDING_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 EXAMPLE_EXPR_LOWERING_OBJS := $(EXAMPLE_EXPR_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_ASSIGN_LOWERING_OBJS := $(EXAMPLE_ASSIGN_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_IF_LOWERING_OBJS := $(EXAMPLE_IF_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
@@ -63,15 +66,16 @@ EXAMPLE_CALL_LOWERING_OBJS := $(EXAMPLE_CALL_LOWERING_SRCS:examples/%.cpp=$(OBJ_
 EXAMPLE_FUNC_LOWERING_OBJS := $(EXAMPLE_FUNC_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_MEMORY_LOWERING_OBJS := $(EXAMPLE_MEMORY_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_IR_PRINTER_OBJS := $(EXAMPLE_IR_PRINTER_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
+EXAMPLE_CONSTANT_FOLDING_OBJS := $(EXAMPLE_CONSTANT_FOLDING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 
 # --- Targets ---
-.PHONY: all test test_lexer test_parser test_semantic test_integration test_ir test_temp_gen example_expr_lowering example_assign_lowering example_if_lowering example_while_lowering example_for_lowering example_call_lowering example_func_lowering example_memory_lowering example_ir_printer clean dirs
+.PHONY: all test test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding example_expr_lowering example_assign_lowering example_if_lowering example_while_lowering example_for_lowering example_call_lowering example_func_lowering example_memory_lowering example_ir_printer example_constant_folding clean dirs
 
-all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe $(BIN_DIR)/test_temp_generator.exe $(BIN_DIR)/expression_lowering_example.exe $(BIN_DIR)/assignment_lowering_example.exe $(BIN_DIR)/if_lowering_example.exe $(BIN_DIR)/while_lowering_example.exe $(BIN_DIR)/for_lowering_example.exe $(BIN_DIR)/call_lowering_example.exe $(BIN_DIR)/function_lowering_example.exe $(BIN_DIR)/memory_lowering_example.exe $(BIN_DIR)/ir_printer_example.exe
+all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe $(BIN_DIR)/test_temp_generator.exe $(BIN_DIR)/test_constant_folding.exe $(BIN_DIR)/expression_lowering_example.exe $(BIN_DIR)/assignment_lowering_example.exe $(BIN_DIR)/if_lowering_example.exe $(BIN_DIR)/while_lowering_example.exe $(BIN_DIR)/for_lowering_example.exe $(BIN_DIR)/call_lowering_example.exe $(BIN_DIR)/function_lowering_example.exe $(BIN_DIR)/memory_lowering_example.exe $(BIN_DIR)/ir_printer_example.exe $(BIN_DIR)/constant_folding_example.exe
 	@echo All test executables built successfully.
 
 # Run all tests
-test: test_lexer test_parser test_semantic test_integration test_ir test_temp_gen
+test: test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding
 
 # Run lexer tests
 test_lexer: $(BIN_DIR)/test_lexer.exe
@@ -135,6 +139,16 @@ test_temp_gen: $(BIN_DIR)/test_temp_generator.exe
 	@./$(BIN_DIR)/test_temp_generator.exe
 	@echo ========================================
 	@echo Temp Generator Tests Complete!
+	@echo ========================================
+
+# Run Constant Folding tests
+test_constant_folding: $(BIN_DIR)/test_constant_folding.exe
+	@echo ========================================
+	@echo Running Constant Folding Optimization Tests
+	@echo ========================================
+	@./$(BIN_DIR)/test_constant_folding.exe
+	@echo ========================================
+	@echo Constant Folding Tests Complete!
 	@echo ========================================
 
 # Run Expression Lowering Example
@@ -271,6 +285,10 @@ $(BIN_DIR)/test_temp_generator.exe: $(IR_OBJS) $(TEST_TEMP_GEN_OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(TEST_TEMP_GEN_OBJS) -o $@
 	@echo Linked $@.
 
+$(BIN_DIR)/test_constant_folding.exe: $(IR_OBJS) $(TEST_CONSTANT_FOLDING_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(TEST_CONSTANT_FOLDING_OBJS) -o $@
+	@echo Linked $@.
+
 $(BIN_DIR)/expression_lowering_example.exe: $(IR_OBJS) $(AST_OBJS) $(EXAMPLE_EXPR_LOWERING_OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(AST_OBJS) $(EXAMPLE_EXPR_LOWERING_OBJS) -o $@
 	@echo Linked $@.
@@ -305,6 +323,10 @@ $(BIN_DIR)/memory_lowering_example.exe: $(IR_OBJS) $(AST_OBJS) $(EXAMPLE_MEMORY_
 
 $(BIN_DIR)/ir_printer_example.exe: $(IR_OBJS) $(AST_OBJS) $(EXAMPLE_IR_PRINTER_OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(AST_OBJS) $(EXAMPLE_IR_PRINTER_OBJS) -o $@
+	@echo Linked $@.
+
+$(BIN_DIR)/constant_folding_example.exe: $(IR_OBJS) $(EXAMPLE_CONSTANT_FOLDING_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(EXAMPLE_CONSTANT_FOLDING_OBJS) -o $@
 	@echo Linked $@.
 
 # --- Compilation Rules ---
