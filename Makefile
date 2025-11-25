@@ -19,6 +19,7 @@ LEXER_SRCS := src/lexer/lexer.cpp src/lexer/token.cpp
 PARSER_SRCS := src/parser/parser.cpp
 AST_SRCS := src/AST/ast_printer.cpp
 SEMANTIC_SRCS := src/semantic/type.cpp src/semantic/symbol_table.cpp src/semantic/scope_manager.cpp src/semantic/semantic_analyzer.cpp
+IR_SRCS := src/ir/ir.cpp
 TEST_LEXER_SRCS := tests/test_lexer.cpp
 TEST_PARSER_SRCS := tests/test_parser.cpp
 TEST_SEMANTIC_MAIN_SRCS := tests/test_semantic_main.cpp
@@ -26,12 +27,14 @@ TEST_SEMANTIC_US11_SRCS := tests/test_semantic_us11_implicit_conversions.cpp
 TEST_SEMANTIC_US12_SRCS := tests/test_semantic_us12_pointer_arithmetic.cpp
 TEST_SEMANTIC_US13_SRCS := tests/test_semantic_us13_struct_checking.cpp
 TEST_INTEGRATION_SRCS := tests/test_integration.cpp
+TEST_IR_SRCS := tests/test_ir.cpp
 
 # --- Object Files ---
 LEXER_OBJS := $(LEXER_SRCS:src/lexer/%.cpp=$(OBJ_DIR)/%.o)
 PARSER_OBJS := $(PARSER_SRCS:src/parser/%.cpp=$(OBJ_DIR)/%.o)
 AST_OBJS := $(patsubst src/%.cpp,$(OBJ_DIR)/%.o,$(AST_SRCS))
 SEMANTIC_OBJS := $(SEMANTIC_SRCS:src/semantic/%.cpp=$(OBJ_DIR)/%.o)
+IR_OBJS := $(IR_SRCS:src/ir/%.cpp=$(OBJ_DIR)/%.o)
 TEST_LEXER_OBJS := $(TEST_LEXER_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_PARSER_OBJS := $(TEST_PARSER_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_SEMANTIC_MAIN_OBJS := $(TEST_SEMANTIC_MAIN_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
@@ -39,15 +42,16 @@ TEST_SEMANTIC_US11_OBJS := $(TEST_SEMANTIC_US11_SRCS:tests/%.cpp=$(OBJ_DIR)/test
 TEST_SEMANTIC_US12_OBJS := $(TEST_SEMANTIC_US12_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_SEMANTIC_US13_OBJS := $(TEST_SEMANTIC_US13_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_INTEGRATION_OBJS := $(TEST_INTEGRATION_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
+TEST_IR_OBJS := $(TEST_IR_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 
 # --- Targets ---
-.PHONY: all test test_lexer test_parser test_semantic test_integration clean dirs
+.PHONY: all test test_lexer test_parser test_semantic test_integration test_ir clean dirs
 
-all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe
+all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe
 	@echo All test executables built successfully.
 
 # Run all tests
-test: test_lexer test_parser test_semantic test_integration
+test: test_lexer test_parser test_semantic test_integration test_ir
 
 # Run lexer tests
 test_lexer: $(BIN_DIR)/test_lexer.exe
@@ -93,6 +97,16 @@ test_integration: $(BIN_DIR)/test_integration.exe
 	@echo Integration Tests Complete!
 	@echo ========================================
 
+# Run IR tests
+test_ir: $(BIN_DIR)/test_ir.exe
+	@echo ========================================
+	@echo Running IR Instruction Tests
+	@echo ========================================
+	@./$(BIN_DIR)/test_ir.exe
+	@echo ========================================
+	@echo IR Tests Complete!
+	@echo ========================================
+
 # Create directories
 dirs:
 	@mkdir -p $(OBJ_DIR)
@@ -128,6 +142,10 @@ $(BIN_DIR)/test_integration.exe: $(LEXER_OBJS) $(PARSER_OBJS) $(AST_OBJS) $(SEMA
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LEXER_OBJS) $(PARSER_OBJS) $(AST_OBJS) $(SEMANTIC_OBJS) $(TEST_INTEGRATION_OBJS) -o $@
 	@echo Linked $@.
 
+$(BIN_DIR)/test_ir.exe: $(IR_OBJS) $(TEST_IR_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(TEST_IR_OBJS) -o $@
+	@echo Linked $@.
+
 # --- Compilation Rules ---
 $(OBJ_DIR)/%.o: src/lexer/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
@@ -140,6 +158,9 @@ $(OBJ_DIR)/AST/%.o: src/AST/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(OBJ_DIR)/%.o: src/semantic/%.cpp | dirs
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(OBJ_DIR)/%.o: src/ir/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(OBJ_DIR)/tests/%.o: tests/%.cpp | dirs
