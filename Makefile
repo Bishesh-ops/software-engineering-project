@@ -1,10 +1,14 @@
 # --- Compiler and Flags ---
 CXX := g++
 CXXFLAGS := -Wall -Wextra -std=c++17 -g
-# macOS uses LLVM linker, Linux uses GNU ld
+# macOS uses LLVM linker, Linux/Windows use GNU ld
 UNAME := $(shell uname -s)
 ifeq ($(UNAME),Darwin)
     LDFLAGS :=
+else ifneq (,$(findstring MINGW,$(UNAME)))
+    LDFLAGS := -Xlinker --allow-multiple-definition
+else ifneq (,$(findstring MSYS,$(UNAME)))
+    LDFLAGS := -Xlinker --allow-multiple-definition
 else
     LDFLAGS := -Wl,--allow-multiple-definition
 endif
@@ -20,6 +24,7 @@ PARSER_SRCS := src/parser/parser.cpp
 AST_SRCS := src/AST/ast_printer.cpp
 SEMANTIC_SRCS := src/semantic/type.cpp src/semantic/symbol_table.cpp src/semantic/scope_manager.cpp src/semantic/semantic_analyzer.cpp
 IR_SRCS := src/ir/ir.cpp src/ir/ir_codegen.cpp src/ir/ir_optimizer.cpp
+CODEGEN_SRCS := src/codegen/codegen.cpp
 TEST_LEXER_SRCS := tests/test_lexer.cpp
 TEST_PARSER_SRCS := tests/test_parser.cpp
 TEST_SEMANTIC_MAIN_SRCS := tests/test_semantic_main.cpp
@@ -32,6 +37,7 @@ TEST_TEMP_GEN_SRCS := tests/test_temp_generator.cpp
 TEST_CONSTANT_FOLDING_SRCS := tests/test_constant_folding.cpp
 TEST_DEAD_CODE_ELIM_SRCS := tests/test_dead_code_elimination.cpp
 TEST_CSE_SRCS := tests/test_cse.cpp
+TEST_CODEGEN_SRCS := tests/test_codegen.cpp
 EXAMPLE_EXPR_LOWERING_SRCS := examples/expression_lowering_example.cpp
 EXAMPLE_ASSIGN_LOWERING_SRCS := examples/assignment_lowering_example.cpp
 EXAMPLE_IF_LOWERING_SRCS := examples/if_lowering_example.cpp
@@ -44,6 +50,7 @@ EXAMPLE_IR_PRINTER_SRCS := examples/ir_printer_example.cpp
 EXAMPLE_CONSTANT_FOLDING_SRCS := examples/constant_folding_example.cpp
 EXAMPLE_DEAD_CODE_ELIM_SRCS := examples/dead_code_elimination_example.cpp
 EXAMPLE_CSE_SRCS := examples/cse_example.cpp
+EXAMPLE_CODEGEN_SRCS := examples/codegen_example.cpp
 
 # --- Object Files ---
 LEXER_OBJS := $(LEXER_SRCS:src/lexer/%.cpp=$(OBJ_DIR)/%.o)
@@ -51,6 +58,7 @@ PARSER_OBJS := $(PARSER_SRCS:src/parser/%.cpp=$(OBJ_DIR)/%.o)
 AST_OBJS := $(patsubst src/%.cpp,$(OBJ_DIR)/%.o,$(AST_SRCS))
 SEMANTIC_OBJS := $(SEMANTIC_SRCS:src/semantic/%.cpp=$(OBJ_DIR)/%.o)
 IR_OBJS := $(IR_SRCS:src/ir/%.cpp=$(OBJ_DIR)/%.o)
+CODEGEN_OBJS := $(CODEGEN_SRCS:src/codegen/%.cpp=$(OBJ_DIR)/%.o)
 TEST_LEXER_OBJS := $(TEST_LEXER_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_PARSER_OBJS := $(TEST_PARSER_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_SEMANTIC_MAIN_OBJS := $(TEST_SEMANTIC_MAIN_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
@@ -63,6 +71,7 @@ TEST_TEMP_GEN_OBJS := $(TEST_TEMP_GEN_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_CONSTANT_FOLDING_OBJS := $(TEST_CONSTANT_FOLDING_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_DEAD_CODE_ELIM_OBJS := $(TEST_DEAD_CODE_ELIM_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_CSE_OBJS := $(TEST_CSE_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
+TEST_CODEGEN_OBJS := $(TEST_CODEGEN_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 EXAMPLE_EXPR_LOWERING_OBJS := $(EXAMPLE_EXPR_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_ASSIGN_LOWERING_OBJS := $(EXAMPLE_ASSIGN_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_IF_LOWERING_OBJS := $(EXAMPLE_IF_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
@@ -75,15 +84,16 @@ EXAMPLE_IR_PRINTER_OBJS := $(EXAMPLE_IR_PRINTER_SRCS:examples/%.cpp=$(OBJ_DIR)/e
 EXAMPLE_CONSTANT_FOLDING_OBJS := $(EXAMPLE_CONSTANT_FOLDING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_DEAD_CODE_ELIM_OBJS := $(EXAMPLE_DEAD_CODE_ELIM_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_CSE_OBJS := $(EXAMPLE_CSE_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
+EXAMPLE_CODEGEN_OBJS := $(EXAMPLE_CODEGEN_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 
 # --- Targets ---
-.PHONY: all test test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse example_expr_lowering example_assign_lowering example_if_lowering example_while_lowering example_for_lowering example_call_lowering example_func_lowering example_memory_lowering example_ir_printer example_constant_folding example_dead_code_elim example_cse clean dirs
+.PHONY: all test test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse test_codegen example_expr_lowering example_assign_lowering example_if_lowering example_while_lowering example_for_lowering example_call_lowering example_func_lowering example_memory_lowering example_ir_printer example_constant_folding example_dead_code_elim example_cse example_codegen clean dirs
 
-all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe $(BIN_DIR)/test_temp_generator.exe $(BIN_DIR)/test_constant_folding.exe $(BIN_DIR)/test_dead_code_elimination.exe $(BIN_DIR)/test_cse.exe $(BIN_DIR)/expression_lowering_example.exe $(BIN_DIR)/assignment_lowering_example.exe $(BIN_DIR)/if_lowering_example.exe $(BIN_DIR)/while_lowering_example.exe $(BIN_DIR)/for_lowering_example.exe $(BIN_DIR)/call_lowering_example.exe $(BIN_DIR)/function_lowering_example.exe $(BIN_DIR)/memory_lowering_example.exe $(BIN_DIR)/ir_printer_example.exe $(BIN_DIR)/constant_folding_example.exe $(BIN_DIR)/dead_code_elimination_example.exe $(BIN_DIR)/cse_example.exe
+all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe $(BIN_DIR)/test_temp_generator.exe $(BIN_DIR)/test_constant_folding.exe $(BIN_DIR)/test_dead_code_elimination.exe $(BIN_DIR)/test_cse.exe $(BIN_DIR)/test_codegen.exe $(BIN_DIR)/expression_lowering_example.exe $(BIN_DIR)/assignment_lowering_example.exe $(BIN_DIR)/if_lowering_example.exe $(BIN_DIR)/while_lowering_example.exe $(BIN_DIR)/for_lowering_example.exe $(BIN_DIR)/call_lowering_example.exe $(BIN_DIR)/function_lowering_example.exe $(BIN_DIR)/memory_lowering_example.exe $(BIN_DIR)/ir_printer_example.exe $(BIN_DIR)/constant_folding_example.exe $(BIN_DIR)/dead_code_elimination_example.exe $(BIN_DIR)/cse_example.exe $(BIN_DIR)/codegen_example.exe
 	@echo All test executables built successfully.
 
 # Run all tests
-test: test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse
+test: test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse test_codegen
 
 # Run lexer tests
 test_lexer: $(BIN_DIR)/test_lexer.exe
@@ -177,6 +187,16 @@ test_cse: $(BIN_DIR)/test_cse.exe
 	@./$(BIN_DIR)/test_cse.exe
 	@echo ========================================
 	@echo CSE Tests Complete!
+	@echo ========================================
+
+# Run Code Generation tests
+test_codegen: $(BIN_DIR)/test_codegen.exe
+	@echo ========================================
+	@echo Running x86-64 Code Generation Tests
+	@echo ========================================
+	@./$(BIN_DIR)/test_codegen.exe
+	@echo ========================================
+	@echo Code Generation Tests Complete!
 	@echo ========================================
 
 # Run Expression Lowering Example
@@ -325,6 +345,10 @@ $(BIN_DIR)/test_cse.exe: $(IR_OBJS) $(TEST_CSE_OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(TEST_CSE_OBJS) -o $@
 	@echo Linked $@.
 
+$(BIN_DIR)/test_codegen.exe: $(IR_OBJS) $(CODEGEN_OBJS) $(TEST_CODEGEN_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(CODEGEN_OBJS) $(TEST_CODEGEN_OBJS) -o $@
+	@echo Linked $@.
+
 $(BIN_DIR)/expression_lowering_example.exe: $(IR_OBJS) $(AST_OBJS) $(EXAMPLE_EXPR_LOWERING_OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(AST_OBJS) $(EXAMPLE_EXPR_LOWERING_OBJS) -o $@
 	@echo Linked $@.
@@ -373,6 +397,10 @@ $(BIN_DIR)/cse_example.exe: $(IR_OBJS) $(EXAMPLE_CSE_OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(EXAMPLE_CSE_OBJS) -o $@
 	@echo Linked $@.
 
+$(BIN_DIR)/codegen_example.exe: $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_CODEGEN_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_CODEGEN_OBJS) -o $@
+	@echo Linked $@.
+
 # --- Compilation Rules ---
 $(OBJ_DIR)/%.o: src/lexer/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
@@ -388,6 +416,9 @@ $(OBJ_DIR)/%.o: src/semantic/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(OBJ_DIR)/%.o: src/ir/%.cpp | dirs
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(OBJ_DIR)/%.o: src/codegen/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(OBJ_DIR)/tests/%.o: tests/%.cpp | dirs
