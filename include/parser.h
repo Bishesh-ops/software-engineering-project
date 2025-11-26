@@ -85,6 +85,28 @@ private:
     bool isTypeKeyword(TokenType type) const;
     std::string parseType();
     std::vector<std::unique_ptr<ParameterDecl>> parseParameterList();
+
+    // Declaration parsing helpers (refactored for clarity)
+    std::unique_ptr<Declaration> parseStructDeclarationOrDefinition();
+    std::vector<std::unique_ptr<VarDecl>> parseStructFieldList();
+    std::unique_ptr<Declaration> parseFunctionDeclarationImpl(
+        const Token& start_token,
+        const std::string& type,
+        const std::string& name,
+        int pointerLevel
+    );
+    std::unique_ptr<Declaration> parseArrayDeclaration(
+        const Token& start_token,
+        const std::string& type,
+        const std::string& name,
+        int pointerLevel
+    );
+    std::unique_ptr<Declaration> parseVariableDeclarationImpl(
+        const Token& start_token,
+        const std::string& type,
+        const std::string& name,
+        int pointerLevel
+    );
 };
 
 #endif // PARSER_H
