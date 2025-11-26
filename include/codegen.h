@@ -60,6 +60,10 @@ struct LiveInterval
 
 class LinearScanAllocator
 {
+public:
+    // All live intervals sorted by start point (public for CodeGenerator access)
+    std::vector<LiveInterval> intervals;
+
 private:
     // Available general-purpose registers for allocation
     // RSP and RBP are reserved for stack management
@@ -67,9 +71,6 @@ private:
 
     // Active intervals currently using registers
     std::vector<LiveInterval*> active;
-
-    // All live intervals sorted by start point
-    std::vector<LiveInterval> intervals;
 
     // Spill counter
     int nextSpillSlot;
@@ -113,6 +114,56 @@ public:
 };
 
 // ============================================================================
+// Peephole Optimizer - Assembly-level optimizations
+// ============================================================================
+// Performs local optimizations on generated assembly code
+// - Removes redundant instructions (mov %rax, %rax)
+// - Optimizes arithmetic with constants (add $0, mul by powers of 2)
+// - Eliminates consecutive push/pop pairs
+// - Simplifies instruction sequences
+
+class PeepholeOptimizer
+{
+private:
+    std::vector<std::string> instructions;  // Assembly instructions
+    bool optimizationEnabled;
+
+    // Optimization pattern detection
+    bool isRedundantMove(const std::string& inst) const;
+    bool isArithmeticWithZero(const std::string& inst) const;
+    bool isMultiplyByPowerOfTwo(const std::string& inst, int& shiftAmount) const;
+    bool isPushPopPair(size_t index) const;
+    bool isRedundantComparison(size_t index) const;
+
+    // Optimization transformations
+    std::string optimizeMultiplyToShift(const std::string& inst, int shiftAmount) const;
+    void removeInstruction(size_t index);
+    void replaceInstruction(size_t index, const std::string& newInst);
+
+public:
+    PeepholeOptimizer();
+
+    // Enable/disable optimizations
+    void setEnabled(bool enable) { optimizationEnabled = enable; }
+    bool isEnabled() const { return optimizationEnabled; }
+
+    // Add instruction to optimizer
+    void addInstruction(const std::string& inst);
+
+    // Run optimization passes
+    void optimize();
+
+    // Get optimized assembly
+    std::string getOptimizedCode() const;
+
+    // Get optimization statistics
+    int getInstructionCount() const { return instructions.size(); }
+
+    // Reset optimizer
+    void reset();
+};
+
+// ============================================================================
 // x86-64 Code Generator
 // ============================================================================
 // Generates AT&T syntax x86-64 assembly from SSA IR
@@ -124,13 +175,40 @@ class CodeGenerator
 {
 private:
     std::ostringstream output;
+    std::ostringstream dataSection;  // For .data section (string literals, globals)
     LinearScanAllocator allocator;
+    PeepholeOptimizer peepholeOptimizer;  // Assembly-level optimizer
 
     // Current function being generated
     IRFunction* currentFunction;
 
     // Stack frame size (in bytes)
     int stackFrameSize;
+
+    // Callee-saved registers used in function (for save/restore)
+    std::set<X86Register> calleeSavedUsed;
+
+    // Track if we need stack alignment adjustment
+    bool needsStackAlignment;
+
+    // Track external symbols (functions not defined in this module)
+    std::set<std::string> externalSymbols;
+
+    // Track defined functions (functions defined in this module)
+    std::set<std::string> definedFunctions;
+
+    // String literal management
+    std::unordered_map<std::string, std::string> stringLiterals;  // content -> label
+    int stringLiteralCounter;
+
+    // Debug information support
+    bool debugMode;                    // Enable debug symbol generation
+    std::string sourceFileName;        // Current source file name
+    int currentSourceLine;             // Current source line number
+    std::set<std::string> emittedFiles; // Track which files have been declared
+
+    // Optimization control
+    bool peepholeOptimizationEnabled;  // Enable peephole optimizations
 
     // ========================================================================
     // Helper Methods - Register Names
@@ -158,10 +236,40 @@ private:
     void emitSpillStore(const SSAValue* value, X86Register tempReg);
 
     // ========================================================================
+    // Helper Methods - ABI Compliance
+    // ========================================================================
+
+    void determineCalleeSavedRegisters();
+    void saveCalleeSavedRegisters();
+    void restoreCalleeSavedRegisters();
+    void alignStackForCall(int numStackArgs);
+    void cleanupStackAfterCall(int numStackArgs);
+    bool isCalleeSaved(X86Register reg) const;
+
+    // ========================================================================
+    // Helper Methods - External Symbols & Data Section
+    // ========================================================================
+
+    void emitDataSection();
+    void emitExternalDeclarations();
+    void markExternalSymbol(const std::string& symbol);
+    void markDefinedFunction(const std::string& funcName);
+
+    // ========================================================================
+    // Helper Methods - Debug Information
+    // ========================================================================
+
+    void emitFileDirective(const std::string& filename);
+    void emitLocationDirective(int line, int column = 0);
+    void emitFunctionDebugInfo(const std::string& funcName);
+    void emitCFIDirectives();
+
+    // ========================================================================
     // Instruction Emission
     // ========================================================================
 
     void emitArithmeticInst(const IRInstruction* inst);
+    void emitDivisionInst(const IRInstruction* inst);
     void emitComparisonInst(const IRInstruction* inst);
     void emitMoveInst(const IRInstruction* inst);
     void emitJumpInst(const IRInstruction* inst);
@@ -169,6 +277,9 @@ private:
     void emitReturnInst(const IRInstruction* inst);
     void emitLabelInst(const IRInstruction* inst);
     void emitCallInst(const IRInstruction* inst);
+    void emitLoadInst(const IRInstruction* inst);
+    void emitStoreInst(const IRInstruction* inst);
+    void emitParamInst(const IRInstruction* inst);
 
 public:
     CodeGenerator();
@@ -189,6 +300,32 @@ public:
 
     // Reset generator state
     void reset();
+
+    // ========================================================================
+    // Public API for External Symbols & Data Section
+    // ========================================================================
+
+    // Add a string literal to the data section (returns label name)
+    std::string addStringLiteral(const std::string& str);
+
+    // ========================================================================
+    // Public API for Debug Information
+    // ========================================================================
+
+    // Enable/disable debug symbol generation
+    void setDebugMode(bool enable) { debugMode = enable; }
+    bool isDebugMode() const { return debugMode; }
+
+    // Set source file for debug info
+    void setSourceFile(const std::string& filename) { sourceFileName = filename; }
+
+    // ========================================================================
+    // Public API for Peephole Optimization
+    // ========================================================================
+
+    // Enable/disable peephole optimizations
+    void setPeepholeOptimization(bool enable) { peepholeOptimizationEnabled = enable; }
+    bool isPeepholeOptimizationEnabled() const { return peepholeOptimizationEnabled; }
 };
 
 // ============================================================================

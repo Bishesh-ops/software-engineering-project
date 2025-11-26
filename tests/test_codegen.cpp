@@ -553,6 +553,78 @@ void test_CodeGenMultipleComparisons()
 }
 
 // ============================================================================
+// Test 16: Code Generator - Division
+// ============================================================================
+void test_CodeGenDivision()
+{
+    std::string testName = "CodeGen: Division (a / b)";
+
+    IRFunction func("divide", "int");
+    auto block = std::make_unique<IRBasicBlock>("entry");
+
+    SSAValue a("a", "int", 0);
+    SSAValue b("b", "int", 0);
+    SSAValue result("result", "int", 0);
+
+    // result = a / b
+    block->addInstruction(std::make_unique<ArithmeticInst>(
+        IROpcode::DIV, &result, IROperand(a), IROperand(b)));
+
+    // return result
+    block->addInstruction(std::make_unique<ReturnInst>(IROperand(result)));
+
+    func.addBasicBlock(std::move(block));
+
+    CodeGenerator codegen;
+    std::string assembly = codegen.generateFunction(&func);
+
+    // Verify division instruction and RAX/RDX handling
+    bool hasIdiv = assembly.find("idivq") != std::string::npos;
+    bool hasCqto = assembly.find("cqto") != std::string::npos;
+    bool hasReturn = assembly.find("ret") != std::string::npos;
+
+    bool passed = hasIdiv && hasCqto && hasReturn;
+
+    reportTest(testName, passed);
+}
+
+// ============================================================================
+// Test 17: Code Generator - Modulo
+// ============================================================================
+void test_CodeGenModulo()
+{
+    std::string testName = "CodeGen: Modulo (a % b)";
+
+    IRFunction func("modulo", "int");
+    auto block = std::make_unique<IRBasicBlock>("entry");
+
+    SSAValue a("a", "int", 0);
+    SSAValue b("b", "int", 0);
+    SSAValue result("result", "int", 0);
+
+    // result = a % b
+    block->addInstruction(std::make_unique<ArithmeticInst>(
+        IROpcode::MOD, &result, IROperand(a), IROperand(b)));
+
+    // return result
+    block->addInstruction(std::make_unique<ReturnInst>(IROperand(result)));
+
+    func.addBasicBlock(std::move(block));
+
+    CodeGenerator codegen;
+    std::string assembly = codegen.generateFunction(&func);
+
+    // Verify modulo uses division instruction
+    bool hasIdiv = assembly.find("idivq") != std::string::npos;
+    bool hasCqto = assembly.find("cqto") != std::string::npos;
+    bool hasReturn = assembly.find("ret") != std::string::npos;
+
+    bool passed = hasIdiv && hasCqto && hasReturn;
+
+    reportTest(testName, passed);
+}
+
+// ============================================================================
 // Main - Run All Tests
 // ============================================================================
 
@@ -572,6 +644,8 @@ int main()
     test_CodeGenSimpleArithmetic();
     test_CodeGenSubtraction();
     test_CodeGenMultiplication();
+    test_CodeGenDivision();
+    test_CodeGenModulo();
     test_CodeGenComparison();
     test_CodeGenMove();
     test_CodeGenConstant();

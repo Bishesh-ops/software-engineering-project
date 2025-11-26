@@ -256,11 +256,271 @@ void LinearScanAllocator::printAllocation() const
 }
 
 // ============================================================================
+// Peephole Optimizer - Implementation
+// ============================================================================
+
+PeepholeOptimizer::PeepholeOptimizer()
+    : optimizationEnabled(true)
+{
+}
+
+void PeepholeOptimizer::reset()
+{
+    instructions.clear();
+}
+
+void PeepholeOptimizer::addInstruction(const std::string& inst)
+{
+    instructions.push_back(inst);
+}
+
+bool PeepholeOptimizer::isRedundantMove(const std::string& inst) const
+{
+    // Pattern: movq %rax, %rax (moving register to itself)
+    // Instructions may have leading whitespace
+    std::string trimmed = inst;
+    trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+
+    if (trimmed.find("movq ") != 0 && trimmed.find("movl ") != 0 &&
+        trimmed.find("movw ") != 0 && trimmed.find("movb ") != 0) {
+        return false;
+    }
+
+    // Extract source and destination
+    size_t commaPos = trimmed.find(',');
+    if (commaPos == std::string::npos) return false;
+
+    size_t firstSpace = trimmed.find(' ');
+    std::string src = trimmed.substr(firstSpace + 1, commaPos - firstSpace - 1);
+    std::string dst = trimmed.substr(commaPos + 1);  // Skip ","
+
+    // Trim whitespace
+    src.erase(0, src.find_first_not_of(" \t"));
+    src.erase(src.find_last_not_of(" \t\n\r") + 1);
+    dst.erase(0, dst.find_first_not_of(" \t"));
+    dst.erase(dst.find_last_not_of(" \t\n\r") + 1);
+
+    return src == dst;
+}
+
+bool PeepholeOptimizer::isArithmeticWithZero(const std::string& inst) const
+{
+    // Pattern: addq $0, %rax or subq $0, %rax
+    std::string trimmed = inst;
+    trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+
+    if (trimmed.find("addq $0,") == 0 || trimmed.find("subq $0,") == 0 ||
+        trimmed.find("addl $0,") == 0 || trimmed.find("subl $0,") == 0) {
+        return true;
+    }
+    return false;
+}
+
+bool PeepholeOptimizer::isMultiplyByPowerOfTwo(const std::string& inst, int& shiftAmount) const
+{
+    // Pattern: imulq $N, %reg where N is a power of 2
+    std::string trimmed = inst;
+    trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+
+    if (trimmed.find("imulq $") != 0 && trimmed.find("imull $") != 0) {
+        return false;
+    }
+
+    // Extract the constant
+    size_t dollarPos = trimmed.find('$');
+    size_t commaPos = trimmed.find(',');
+    if (dollarPos == std::string::npos || commaPos == std::string::npos) {
+        return false;
+    }
+
+    std::string constStr = trimmed.substr(dollarPos + 1, commaPos - dollarPos - 1);
+    try {
+        int value = std::stoi(constStr);
+
+        // Check if power of 2 (only one bit set)
+        if (value > 0 && (value & (value - 1)) == 0) {
+            // Calculate shift amount
+            shiftAmount = 0;
+            while ((1 << shiftAmount) != value) {
+                shiftAmount++;
+            }
+            return true;
+        }
+    } catch (...) {
+        return false;
+    }
+
+    return false;
+}
+
+bool PeepholeOptimizer::isPushPopPair(size_t index) const
+{
+    // Pattern: pushq %rax followed by popq %rax
+    if (index + 1 >= instructions.size()) return false;
+
+    std::string inst1 = instructions[index];
+    std::string inst2 = instructions[index + 1];
+
+    // Trim leading whitespace
+    inst1.erase(0, inst1.find_first_not_of(" \t"));
+    inst2.erase(0, inst2.find_first_not_of(" \t"));
+
+    if (inst1.find("pushq ") != 0 || inst2.find("popq ") != 0) {
+        return false;
+    }
+
+    // Extract register from both
+    std::string reg1 = inst1.substr(6);  // Skip "pushq "
+    std::string reg2 = inst2.substr(5);  // Skip "popq "
+
+    // Trim whitespace
+    reg1.erase(0, reg1.find_first_not_of(" \t"));
+    reg1.erase(reg1.find_last_not_of(" \t\n\r") + 1);
+    reg2.erase(0, reg2.find_first_not_of(" \t"));
+    reg2.erase(reg2.find_last_not_of(" \t\n\r") + 1);
+
+    return reg1 == reg2;
+}
+
+bool PeepholeOptimizer::isRedundantComparison(size_t index) const
+{
+    // Pattern: cmpq followed immediately by another cmpq (second one overwrites flags)
+    if (index + 1 >= instructions.size()) return false;
+
+    std::string inst1 = instructions[index];
+    std::string inst2 = instructions[index + 1];
+
+    // Trim leading whitespace
+    inst1.erase(0, inst1.find_first_not_of(" \t"));
+    inst2.erase(0, inst2.find_first_not_of(" \t"));
+
+    // Both must be compare instructions
+    if ((inst1.find("cmpq ") != 0 && inst1.find("cmpl ") != 0) ||
+        (inst2.find("cmpq ") != 0 && inst2.find("cmpl ") != 0)) {
+        return false;
+    }
+
+    // Check if there's no conditional jump or setcc between them
+    // If the next instruction is also a cmp, the first is redundant
+    return true;
+}
+
+std::string PeepholeOptimizer::optimizeMultiplyToShift(const std::string& inst, int shiftAmount) const
+{
+    // Convert: imulq $8, %rax -> shlq $3, %rax
+    // Preserve leading whitespace
+    size_t firstNonSpace = inst.find_first_not_of(" \t");
+    std::string leadingSpace = inst.substr(0, firstNonSpace);
+
+    std::string trimmed = inst.substr(firstNonSpace);
+    size_t commaPos = trimmed.find(',');
+    std::string destReg = trimmed.substr(commaPos);  // Includes ", %reg"
+
+    std::string prefix = (trimmed.find("imulq") == 0) ? "shlq" : "shll";
+    return leadingSpace + prefix + " $" + std::to_string(shiftAmount) + destReg;
+}
+
+void PeepholeOptimizer::removeInstruction(size_t index)
+{
+    if (index < instructions.size()) {
+        instructions.erase(instructions.begin() + index);
+    }
+}
+
+void PeepholeOptimizer::replaceInstruction(size_t index, const std::string& newInst)
+{
+    if (index < instructions.size()) {
+        instructions[index] = newInst;
+    }
+}
+
+void PeepholeOptimizer::optimize()
+{
+    if (!optimizationEnabled) return;
+
+    bool changed = true;
+    int passes = 0;
+    const int MAX_PASSES = 5;  // Prevent infinite loops
+
+    while (changed && passes < MAX_PASSES) {
+        changed = false;
+        passes++;
+
+        // Pass 1: Remove redundant moves
+        for (size_t i = 0; i < instructions.size(); ) {
+            if (isRedundantMove(instructions[i])) {
+                removeInstruction(i);
+                changed = true;
+                // Don't increment i, check the same position again
+            } else {
+                i++;
+            }
+        }
+
+        // Pass 2: Remove arithmetic with zero
+        for (size_t i = 0; i < instructions.size(); ) {
+            if (isArithmeticWithZero(instructions[i])) {
+                removeInstruction(i);
+                changed = true;
+            } else {
+                i++;
+            }
+        }
+
+        // Pass 3: Convert multiply by power of 2 to shift
+        for (size_t i = 0; i < instructions.size(); i++) {
+            int shiftAmount;
+            if (isMultiplyByPowerOfTwo(instructions[i], shiftAmount)) {
+                std::string newInst = optimizeMultiplyToShift(instructions[i], shiftAmount);
+                replaceInstruction(i, newInst);
+                changed = true;
+            }
+        }
+
+        // Pass 4: Remove push/pop pairs
+        for (size_t i = 0; i < instructions.size(); ) {
+            if (isPushPopPair(i)) {
+                removeInstruction(i);  // Remove push
+                removeInstruction(i);  // Remove pop (now at same index)
+                changed = true;
+            } else {
+                i++;
+            }
+        }
+
+        // Pass 5: Remove redundant comparisons
+        for (size_t i = 0; i + 1 < instructions.size(); ) {
+            if (isRedundantComparison(i)) {
+                removeInstruction(i);  // Keep the second comparison
+                changed = true;
+            } else {
+                i++;
+            }
+        }
+    }
+}
+
+std::string PeepholeOptimizer::getOptimizedCode() const
+{
+    std::ostringstream result;
+    for (const auto& inst : instructions) {
+        result << inst;
+        // Instructions should already have newlines
+        if (!inst.empty() && inst.back() != '\n') {
+            result << "\n";
+        }
+    }
+    return result.str();
+}
+
+// ============================================================================
 // Code Generator - Implementation
 // ============================================================================
 
 CodeGenerator::CodeGenerator()
-    : currentFunction(nullptr), stackFrameSize(0)
+    : currentFunction(nullptr), stackFrameSize(0), needsStackAlignment(false),
+      stringLiteralCounter(0), debugMode(false), currentSourceLine(0),
+      peepholeOptimizationEnabled(true)
 {
 }
 
@@ -268,8 +528,19 @@ void CodeGenerator::reset()
 {
     output.str("");
     output.clear();
+    dataSection.str("");
+    dataSection.clear();
     currentFunction = nullptr;
     stackFrameSize = 0;
+    calleeSavedUsed.clear();
+    needsStackAlignment = false;
+    externalSymbols.clear();
+    definedFunctions.clear();
+    stringLiterals.clear();
+    stringLiteralCounter = 0;
+    currentSourceLine = 0;
+    emittedFiles.clear();
+    peepholeOptimizer.reset();
 }
 
 std::string CodeGenerator::getRegisterName(X86Register reg, int size) const
@@ -337,7 +608,16 @@ std::string CodeGenerator::getOperandString(const IROperand& operand) const
 
 void CodeGenerator::emit(const std::string& instruction)
 {
-    output << "    " << instruction << "\n";
+    // When peephole optimization is enabled, collect instructions for optimization
+    // Comments, labels, and directives go directly to output
+    if (peepholeOptimizationEnabled &&
+        instruction.find('#') == std::string::npos &&  // Not a comment
+        instruction.find(':') == std::string::npos &&  // Not a label
+        instruction.find('.') != 0) {                   // Not a directive
+        peepholeOptimizer.addInstruction("    " + instruction + "\n");
+    } else {
+        output << "    " << instruction << "\n";
+    }
 }
 
 void CodeGenerator::emitComment(const std::string& comment)
@@ -350,11 +630,139 @@ void CodeGenerator::emitLabel(const std::string& label)
     output << label << ":\n";
 }
 
+// ============================================================================
+// ABI Compliance Helper Methods
+// ============================================================================
+
+bool CodeGenerator::isCalleeSaved(X86Register reg) const
+{
+    // System V AMD64 ABI callee-saved (non-volatile) registers:
+    // RBX, R12, R13, R14, R15, RBP
+    return (reg == X86Register::RBX ||
+            reg == X86Register::R12 ||
+            reg == X86Register::R13 ||
+            reg == X86Register::R14 ||
+            reg == X86Register::R15 ||
+            reg == X86Register::RBP);
+}
+
+void CodeGenerator::determineCalleeSavedRegisters()
+{
+    // Scan all allocated registers to see which callee-saved ones are used
+    calleeSavedUsed.clear();
+
+    // Check all live intervals to see what registers are allocated
+    for (const auto& interval : allocator.intervals) {
+        X86Register reg = interval.assignedReg;
+        if (reg != X86Register::NONE && isCalleeSaved(reg)) {
+            calleeSavedUsed.insert(reg);
+        }
+    }
+}
+
+void CodeGenerator::saveCalleeSavedRegisters()
+{
+    if (calleeSavedUsed.empty()) return;
+
+    emitComment("Save callee-saved registers");
+    for (X86Register reg : calleeSavedUsed) {
+        if (reg != X86Register::RBP) {  // RBP already saved in prologue
+            emit("pushq " + getRegisterName(reg, 64));
+        }
+    }
+}
+
+void CodeGenerator::restoreCalleeSavedRegisters()
+{
+    if (calleeSavedUsed.empty()) return;
+
+    emitComment("Restore callee-saved registers");
+    // Restore in reverse order
+    std::vector<X86Register> regs(calleeSavedUsed.begin(), calleeSavedUsed.end());
+    for (auto it = regs.rbegin(); it != regs.rend(); ++it) {
+        if (*it != X86Register::RBP) {  // RBP restored in epilogue
+            emit("popq " + getRegisterName(*it, 64));
+        }
+    }
+}
+
+void CodeGenerator::alignStackForCall(int numStackArgs)
+{
+    // System V AMD64 ABI requires 16-byte stack alignment before call
+    // When we enter a function, RSP is misaligned by 8 (return address)
+    // After push RBP, it's aligned to 16
+    // We need to ensure it stays aligned before call
+
+    // Calculate current stack position
+    // After prologue: RSP = RBP - stackFrameSize
+    // Each callee-saved register adds 8 bytes
+    int calleeSavedBytes = 0;
+    for (X86Register reg : calleeSavedUsed) {
+        if (reg != X86Register::RBP) {
+            calleeSavedBytes += 8;
+        }
+    }
+
+    // Stack arguments will be pushed (numStackArgs * 8 bytes)
+    int stackArgsBytes = numStackArgs * 8;
+
+    // Total offset from RBP
+    int totalOffset = stackFrameSize + calleeSavedBytes + stackArgsBytes;
+
+    // After call instruction pushes return address (8 bytes),
+    // we need (totalOffset + 8) to be aligned to 16
+    int misalignment = (totalOffset + 8) % 16;
+
+    if (misalignment != 0) {
+        // Need to adjust stack
+        int adjustment = 16 - misalignment;
+        emit("subq $" + std::to_string(adjustment) + ", %rsp");
+        needsStackAlignment = true;
+        stackFrameSize += adjustment;  // Track for cleanup
+    }
+}
+
+void CodeGenerator::cleanupStackAfterCall(int numStackArgs)
+{
+    // Remove stack arguments
+    if (numStackArgs > 0) {
+        emit("addq $" + std::to_string(numStackArgs * 8) + ", %rsp");
+    }
+
+    // Remove alignment adjustment if any
+    if (needsStackAlignment) {
+        // Alignment is already cleaned up in epilogue
+        needsStackAlignment = false;
+    }
+}
+
 void CodeGenerator::emitPrologue()
 {
-    emitComment("Function prologue");
+    emitComment("Function prologue - System V AMD64 ABI");
+
+    // Emit CFI directives for debugging
+    emitCFIDirectives();
+
     emit("pushq %rbp");
+
+    if (debugMode) {
+        // CFI: Indicate that RBP was pushed
+        output << "    .cfi_def_cfa_offset 16\n";
+        output << "    .cfi_offset %rbp, -16\n";
+    }
+
     emit("movq %rsp, %rbp");
+
+    if (debugMode) {
+        // CFI: CFA (Canonical Frame Address) is now at RBP
+        output << "    .cfi_def_cfa_register %rbp\n";
+    }
+
+    // Determine which callee-saved registers are used
+    determineCalleeSavedRegisters();
+
+    // Save callee-saved registers
+    saveCalleeSavedRegisters();
 
     // Reserve stack space for spills
     int spillSlots = allocator.getSpillSlotCount();
@@ -371,10 +779,24 @@ void CodeGenerator::emitPrologue()
 
 void CodeGenerator::emitEpilogue()
 {
-    emitComment("Function epilogue");
+    emitComment("Function epilogue - System V AMD64 ABI");
+
+    // Restore stack pointer (deallocate local variables and spills)
     emit("movq %rbp, %rsp");
+
+    // Restore callee-saved registers (in reverse order of save)
+    restoreCalleeSavedRegisters();
+
+    // Restore base pointer
     emit("popq %rbp");
+
+    // Return to caller
     emit("ret");
+
+    // End CFI directives
+    if (debugMode) {
+        output << "    .cfi_endproc\n";
+    }
 }
 
 void CodeGenerator::emitSpillLoad(const SSAValue* value, X86Register tempReg)
@@ -409,14 +831,9 @@ void CodeGenerator::emitArithmeticInst(const IRInstruction* inst)
         case IROpcode::SUB: op = "subq"; break;
         case IROpcode::MUL: op = "imulq"; break;
         case IROpcode::DIV:
-            // Division is complex, requires special handling
-            emitComment("Division operation");
-            // TODO: Implement full division with RAX/RDX setup
-            return;
         case IROpcode::MOD:
-            // Modulo requires division
-            emitComment("Modulo operation");
-            // TODO: Implement full modulo with RAX/RDX setup
+            // Division and modulo require special handling with RAX/RDX
+            emitDivisionInst(inst);
             return;
         default:
             return;
@@ -441,6 +858,67 @@ void CodeGenerator::emitArithmeticInst(const IRInstruction* inst)
 
     // Apply operation
     emit(op + " " + src2 + ", " + dest);
+}
+
+void CodeGenerator::emitDivisionInst(const IRInstruction* inst)
+{
+    const auto& operands = inst->getOperands();
+    if (operands.size() != 2) return;
+
+    SSAValue* result = inst->getResult();
+    if (!result) return;
+
+    IROpcode opcode = inst->getOpcode();
+    std::string src1 = getOperandString(operands[0]);
+    std::string src2 = getOperandString(operands[1]);
+    std::string dest = getRegisterForValue(result);
+
+    emitComment(result->getSSAName() + " = " +
+                operands[0].toString() + (opcode == IROpcode::DIV ? " / " : " % ") +
+                operands[1].toString());
+
+    // x86-64 division requires:
+    // - Dividend in RAX (and RDX for 128-bit)
+    // - Divisor in register or memory
+    // - idivq: quotient in RAX, remainder in RDX
+
+    // Save RAX and RDX if they're being used
+    emit("pushq %rax");
+    emit("pushq %rdx");
+
+    // Load dividend into RAX
+    if (src1 != "%rax") {
+        emit("movq " + src1 + ", %rax");
+    }
+
+    // Sign-extend RAX into RDX:RAX (for signed division)
+    emit("cqto");
+
+    // Perform division
+    // If divisor is immediate, need to load into register first
+    if (src2[0] == '$') {
+        emit("movq " + src2 + ", %r11");
+        emit("idivq %r11");
+    } else {
+        emit("idivq " + src2);
+    }
+
+    // Move result to destination
+    if (opcode == IROpcode::DIV) {
+        // Quotient is in RAX
+        if (dest != "%rax") {
+            emit("movq %rax, " + dest);
+        }
+    } else {
+        // Remainder is in RDX
+        if (dest != "%rdx") {
+            emit("movq %rdx, " + dest);
+        }
+    }
+
+    // Restore RAX and RDX
+    emit("popq %rdx");
+    emit("popq %rax");
 }
 
 void CodeGenerator::emitComparisonInst(const IRInstruction* inst)
@@ -563,20 +1041,194 @@ void CodeGenerator::emitLabelInst(const IRInstruction* inst)
     emitLabel(labelName);
 }
 
+// ============================================================================
+// External Symbols & Data Section Helper Methods
+// ============================================================================
+
+void CodeGenerator::markExternalSymbol(const std::string& symbol)
+{
+    // Only mark as external if it's not a function we're defining
+    if (definedFunctions.find(symbol) == definedFunctions.end()) {
+        externalSymbols.insert(symbol);
+    }
+}
+
+void CodeGenerator::markDefinedFunction(const std::string& funcName)
+{
+    definedFunctions.insert(funcName);
+    // Remove from external symbols if it was marked there
+    externalSymbols.erase(funcName);
+}
+
+std::string CodeGenerator::addStringLiteral(const std::string& str)
+{
+    // Check if this string already exists
+    auto it = stringLiterals.find(str);
+    if (it != stringLiterals.end()) {
+        return it->second;
+    }
+
+    // Create new label for this string
+    std::string label = ".STR" + std::to_string(stringLiteralCounter++);
+    stringLiterals[str] = label;
+
+    // Add to data section
+    dataSection << label << ":\n";
+    dataSection << "    .asciz \"";
+
+    // Escape special characters
+    for (char c : str) {
+        switch (c) {
+            case '\n': dataSection << "\\n"; break;
+            case '\t': dataSection << "\\t"; break;
+            case '\r': dataSection << "\\r"; break;
+            case '\\': dataSection << "\\\\"; break;
+            case '\"': dataSection << "\\\""; break;
+            default: dataSection << c; break;
+        }
+    }
+    dataSection << "\"\n";
+
+    return label;
+}
+
+void CodeGenerator::emitExternalDeclarations()
+{
+    if (externalSymbols.empty()) {
+        return;
+    }
+
+    output << "# External function declarations\n";
+    for (const auto& symbol : externalSymbols) {
+        output << ".extern " << symbol << "\n";
+    }
+    output << "\n";
+}
+
+void CodeGenerator::emitDataSection()
+{
+    std::string dataStr = dataSection.str();
+    if (dataStr.empty()) {
+        return;
+    }
+
+    output << "# Data section for string literals and global data\n";
+    output << ".data\n";
+    output << dataStr;
+    output << "\n";
+}
+
+// ============================================================================
+// Debug Information Helper Methods
+// ============================================================================
+
+void CodeGenerator::emitFileDirective(const std::string& filename)
+{
+    if (!debugMode) return;
+
+    // Only emit .file directive once per file
+    if (emittedFiles.find(filename) != emittedFiles.end()) {
+        return;
+    }
+
+    emittedFiles.insert(filename);
+    output << ".file 1 \"" << filename << "\"\n";
+}
+
+void CodeGenerator::emitLocationDirective(int line, int column)
+{
+    if (!debugMode) return;
+    if (line == currentSourceLine) return;  // Don't emit duplicate .loc for same line
+
+    currentSourceLine = line;
+
+    // .loc file_number line [column]
+    // file_number is 1 (from .file directive)
+    if (column > 0) {
+        output << "    .loc 1 " << line << " " << column << "\n";
+    } else {
+        output << "    .loc 1 " << line << "\n";
+    }
+}
+
+void CodeGenerator::emitFunctionDebugInfo(const std::string& funcName)
+{
+    if (!debugMode) return;
+
+    // Emit function type information for debugging
+    output << "    .type " << funcName << ", @function\n";
+}
+
+void CodeGenerator::emitCFIDirectives()
+{
+    if (!debugMode) return;
+
+    // CFI (Call Frame Information) directives help debuggers unwind stack
+    // These are essential for proper backtraces in gdb/lldb
+
+    // .cfi_startproc marks the beginning of a function
+    output << "    .cfi_startproc\n";
+}
+
 void CodeGenerator::emitCallInst(const IRInstruction* inst)
 {
+    // Get function name from CallInst
+    const CallInst* callInst = dynamic_cast<const CallInst*>(inst);
+    if (!callInst) return;
+
+    std::string funcName = callInst->getFunctionName();
+
+    // Mark this function as external if it's not defined in this module
+    markExternalSymbol(funcName);
+
+    emitComment("Call function: " + funcName + " (System V AMD64 ABI)");
+
+    // System V AMD64 ABI: Integer/pointer arguments in RDI, RSI, RDX, RCX, R8, R9
+    // Floating-point arguments in XMM0-XMM7 (not yet implemented)
+    std::vector<std::string> paramRegs = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+
     const auto& operands = inst->getOperands();
-    if (operands.empty()) return;
 
-    std::string funcName = operands[0].getConstant();
-    emitComment("Call function: " + funcName);
+    // Count how many arguments will go on stack
+    int stackArgs = 0;
+    if (operands.size() > 6) {  // First 6 args in registers
+        stackArgs = operands.size() - 6;
+    }
 
-    // TODO: Handle argument passing according to System V ABI
-    // Arguments in: RDI, RSI, RDX, RCX, R8, R9, then stack
+    // Ensure stack is 16-byte aligned before call
+    alignStackForCall(stackArgs);
 
+    // Pass arguments
+    // Note: Stack arguments are pushed in reverse order (right-to-left)
+    std::vector<std::string> stackArgValues;
+
+    for (size_t i = 0; i < operands.size(); i++) {
+        std::string argValue = getOperandString(operands[i]);
+
+        if (i < paramRegs.size()) {
+            // Use register for parameter
+            std::string reg = paramRegs[i];
+            if (argValue != reg) {
+                emit("movq " + argValue + ", " + reg);
+            }
+        } else {
+            // Collect stack arguments (will push in reverse)
+            stackArgValues.push_back(argValue);
+        }
+    }
+
+    // Push stack arguments in reverse order
+    for (auto it = stackArgValues.rbegin(); it != stackArgValues.rend(); ++it) {
+        emit("pushq " + *it);
+    }
+
+    // Make the call
     emit("call " + funcName);
 
-    // Result in RAX
+    // Clean up stack arguments and alignment
+    cleanupStackAfterCall(stackArgs);
+
+    // Result is in RAX (integer/pointer) or XMM0 (floating-point)
     if (inst->getResult()) {
         std::string dest = getRegisterForValue(inst->getResult());
         if (dest != "%rax") {
@@ -585,9 +1237,105 @@ void CodeGenerator::emitCallInst(const IRInstruction* inst)
     }
 }
 
+void CodeGenerator::emitLoadInst(const IRInstruction* inst)
+{
+    const auto& operands = inst->getOperands();
+    if (operands.empty()) return;
+
+    SSAValue* result = inst->getResult();
+    if (!result) return;
+
+    std::string address = getOperandString(operands[0]);
+    std::string dest = getRegisterForValue(result);
+
+    emitComment("Load from memory: " + result->getSSAName() + " = *(" + operands[0].toString() + ")");
+
+    // Load from address (assuming address is in a register or memory location)
+    if (address[0] == '%') {
+        // Address is in a register, dereference it
+        emit("movq (" + address + "), " + dest);
+    } else {
+        // Address is a memory location or constant
+        emit("movq " + address + ", %r11");
+        emit("movq (%r11), " + dest);
+    }
+}
+
+void CodeGenerator::emitStoreInst(const IRInstruction* inst)
+{
+    const auto& operands = inst->getOperands();
+    if (operands.size() < 2) return;
+
+    std::string value = getOperandString(operands[0]);
+    std::string address = getOperandString(operands[1]);
+
+    emitComment("Store to memory: *(" + operands[1].toString() + ") = " + operands[0].toString());
+
+    // Store value to address
+    if (address[0] == '%') {
+        // Address is in a register, dereference it
+        if (value[0] == '$') {
+            // Immediate value, need to use a temp register
+            emit("movq " + value + ", %r11");
+            emit("movq %r11, (" + address + ")");
+        } else {
+            emit("movq " + value + ", (" + address + ")");
+        }
+    } else {
+        // Address is a memory location
+        emit("movq " + address + ", %r11");
+        if (value[0] == '$') {
+            emit("movq " + value + ", %r10");
+            emit("movq %r10, (%r11)");
+        } else {
+            emit("movq " + value + ", (%r11)");
+        }
+    }
+}
+
+void CodeGenerator::emitParamInst(const IRInstruction* inst)
+{
+    // PARAM instructions are typically handled during function prologue
+    // They map parameters from calling convention registers to local variables
+    const auto& operands = inst->getOperands();
+    if (operands.empty()) return;
+
+    SSAValue* result = inst->getResult();
+    if (!result) return;
+
+    emitComment("Parameter: " + result->getSSAName());
+
+    // Get parameter index (from operand)
+    int paramIndex = std::stoi(operands[0].getConstant());
+
+    std::vector<std::string> paramRegs = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+    std::string dest = getRegisterForValue(result);
+
+    if (paramIndex < (int)paramRegs.size()) {
+        // Parameter is in a register
+        std::string srcReg = paramRegs[paramIndex];
+        if (dest != srcReg) {
+            emit("movq " + srcReg + ", " + dest);
+        }
+    } else {
+        // Parameter is on stack (above return address and saved RBP)
+        int stackOffset = 16 + (paramIndex - 6) * 8;  // 8 for ret addr + 8 for saved RBP
+        emit("movq " + std::to_string(stackOffset) + "(%rbp), " + dest);
+    }
+}
+
 std::string CodeGenerator::generateFunction(IRFunction* function)
 {
     currentFunction = function;
+
+    // Mark this function as defined in this module
+    markDefinedFunction(function->getName());
+
+    // Reset peephole optimizer for this function
+    if (peepholeOptimizationEnabled) {
+        peepholeOptimizer.reset();
+        peepholeOptimizer.setEnabled(true);
+    }
 
     // Step 1: Build live intervals
     allocator.buildLiveIntervals(function);
@@ -598,6 +1346,10 @@ std::string CodeGenerator::generateFunction(IRFunction* function)
     // Step 3: Generate assembly
     output << "\n";
     emitComment("Function: " + function->getName());
+
+    // Emit debug information for function
+    emitFunctionDebugInfo(function->getName());
+
     output << ".globl " << function->getName() << "\n";
     emitLabel(function->getName());
 
@@ -658,11 +1410,34 @@ std::string CodeGenerator::generateFunction(IRFunction* function)
                     emitCallInst(inst.get());
                     break;
 
+                case IROpcode::LOAD:
+                    emitLoadInst(inst.get());
+                    break;
+
+                case IROpcode::STORE:
+                    emitStoreInst(inst.get());
+                    break;
+
+                case IROpcode::PARAM:
+                    emitParamInst(inst.get());
+                    break;
+
+                case IROpcode::PHI:
+                    // PHI nodes are handled during SSA construction, not code generation
+                    emitComment("PHI node (handled in SSA construction)");
+                    break;
+
                 default:
                     emitComment("Unhandled opcode");
                     break;
             }
         }
+    }
+
+    // Step 4: Apply peephole optimizations if enabled
+    if (peepholeOptimizationEnabled) {
+        peepholeOptimizer.optimize();
+        output << peepholeOptimizer.getOptimizedCode();
     }
 
     return output.str();
@@ -672,16 +1447,66 @@ std::string CodeGenerator::generateProgram(const std::vector<std::unique_ptr<IRF
 {
     reset();
 
-    // Emit assembly header
+    // Emit assembly header with platform info
     output << "# Generated x86-64 assembly (AT&T syntax)\n";
     output << "# Target: System V AMD64 ABI\n";
+    output << "# Platform: macOS/Linux compatible\n";
+    output << "# Generated by C Compiler - Code Generation Phase\n";
+    output << "# Supports external library integration (printf, malloc, etc.)\n";
+    if (debugMode) {
+        output << "# Debug symbols enabled for gdb/lldb debugging\n";
+    }
     output << "\n";
-    output << ".text\n";
 
-    // Generate code for each function
+    // Platform-specific directives
+#ifdef __APPLE__
+    // macOS uses different section names
+    output << "# macOS Mach-O format\n";
+#else
+    // Linux ELF format
+    output << "# Linux ELF format\n";
+#endif
+    output << "\n";
+
+    // Emit file directive for debug information
+    if (debugMode && !sourceFileName.empty()) {
+        emitFileDirective(sourceFileName);
+    }
+
+    // Generate code for each function (this populates externalSymbols and dataSection)
+    std::ostringstream tempOutput;
+    tempOutput << output.str();  // Save header
+    output.str("");
+    output.clear();
+
     for (const auto& function : functions) {
         generateFunction(function.get());
     }
+
+    std::string functionsCode = output.str();
+
+    // Now build final output with proper ordering
+    output.str("");
+    output.clear();
+    output << tempOutput.str();
+
+    // Emit external declarations first
+    emitExternalDeclarations();
+
+    // Emit data section if we have any string literals or globals
+    emitDataSection();
+
+    // Text section for code
+    output << "# Text section for executable code\n";
+    output << ".text\n";
+    output << "\n";
+
+    // Emit all the function code
+    output << functionsCode;
+
+    // Add note at end
+    output << "\n";
+    output << "# End of generated assembly\n";
 
     return output.str();
 }

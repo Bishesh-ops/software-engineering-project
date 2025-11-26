@@ -38,6 +38,9 @@ TEST_CONSTANT_FOLDING_SRCS := tests/test_constant_folding.cpp
 TEST_DEAD_CODE_ELIM_SRCS := tests/test_dead_code_elimination.cpp
 TEST_CSE_SRCS := tests/test_cse.cpp
 TEST_CODEGEN_SRCS := tests/test_codegen.cpp
+TEST_EXTERNAL_SRCS := tests/test_external_calls.cpp
+TEST_PEEPHOLE_SRCS := tests/test_peephole_optimization.cpp
+TEST_OUTPUT_VALIDATION_SRCS := tests/test_output_validation.cpp
 EXAMPLE_EXPR_LOWERING_SRCS := examples/expression_lowering_example.cpp
 EXAMPLE_ASSIGN_LOWERING_SRCS := examples/assignment_lowering_example.cpp
 EXAMPLE_IF_LOWERING_SRCS := examples/if_lowering_example.cpp
@@ -51,6 +54,9 @@ EXAMPLE_CONSTANT_FOLDING_SRCS := examples/constant_folding_example.cpp
 EXAMPLE_DEAD_CODE_ELIM_SRCS := examples/dead_code_elimination_example.cpp
 EXAMPLE_CSE_SRCS := examples/cse_example.cpp
 EXAMPLE_CODEGEN_SRCS := examples/codegen_example.cpp
+EXAMPLE_EXTERNAL_PRINTF_SRCS := examples/external_printf_example.cpp
+EXAMPLE_EXTERNAL_MATH_SRCS := examples/external_math_example.cpp
+EXAMPLE_DEBUG_SYMBOLS_SRCS := examples/debug_symbols_example.cpp
 
 # --- Object Files ---
 LEXER_OBJS := $(LEXER_SRCS:src/lexer/%.cpp=$(OBJ_DIR)/%.o)
@@ -72,6 +78,9 @@ TEST_CONSTANT_FOLDING_OBJS := $(TEST_CONSTANT_FOLDING_SRCS:tests/%.cpp=$(OBJ_DIR
 TEST_DEAD_CODE_ELIM_OBJS := $(TEST_DEAD_CODE_ELIM_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_CSE_OBJS := $(TEST_CSE_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_CODEGEN_OBJS := $(TEST_CODEGEN_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
+TEST_EXTERNAL_OBJS := $(TEST_EXTERNAL_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
+TEST_PEEPHOLE_OBJS := $(TEST_PEEPHOLE_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
+TEST_OUTPUT_VALIDATION_OBJS := $(TEST_OUTPUT_VALIDATION_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 EXAMPLE_EXPR_LOWERING_OBJS := $(EXAMPLE_EXPR_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_ASSIGN_LOWERING_OBJS := $(EXAMPLE_ASSIGN_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_IF_LOWERING_OBJS := $(EXAMPLE_IF_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
@@ -85,15 +94,18 @@ EXAMPLE_CONSTANT_FOLDING_OBJS := $(EXAMPLE_CONSTANT_FOLDING_SRCS:examples/%.cpp=
 EXAMPLE_DEAD_CODE_ELIM_OBJS := $(EXAMPLE_DEAD_CODE_ELIM_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_CSE_OBJS := $(EXAMPLE_CSE_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_CODEGEN_OBJS := $(EXAMPLE_CODEGEN_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
+EXAMPLE_EXTERNAL_PRINTF_OBJS := $(EXAMPLE_EXTERNAL_PRINTF_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
+EXAMPLE_EXTERNAL_MATH_OBJS := $(EXAMPLE_EXTERNAL_MATH_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
+EXAMPLE_DEBUG_SYMBOLS_OBJS := $(EXAMPLE_DEBUG_SYMBOLS_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 
 # --- Targets ---
-.PHONY: all test test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse test_codegen example_expr_lowering example_assign_lowering example_if_lowering example_while_lowering example_for_lowering example_call_lowering example_func_lowering example_memory_lowering example_ir_printer example_constant_folding example_dead_code_elim example_cse example_codegen clean dirs
+.PHONY: all test test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse test_codegen test_external test_peephole test_output_validation example_expr_lowering example_assign_lowering example_if_lowering example_while_lowering example_for_lowering example_call_lowering example_func_lowering example_memory_lowering example_ir_printer example_constant_folding example_dead_code_elim example_cse example_codegen example_external_printf example_external_math example_debug_symbols clean dirs
 
-all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe $(BIN_DIR)/test_temp_generator.exe $(BIN_DIR)/test_constant_folding.exe $(BIN_DIR)/test_dead_code_elimination.exe $(BIN_DIR)/test_cse.exe $(BIN_DIR)/test_codegen.exe $(BIN_DIR)/expression_lowering_example.exe $(BIN_DIR)/assignment_lowering_example.exe $(BIN_DIR)/if_lowering_example.exe $(BIN_DIR)/while_lowering_example.exe $(BIN_DIR)/for_lowering_example.exe $(BIN_DIR)/call_lowering_example.exe $(BIN_DIR)/function_lowering_example.exe $(BIN_DIR)/memory_lowering_example.exe $(BIN_DIR)/ir_printer_example.exe $(BIN_DIR)/constant_folding_example.exe $(BIN_DIR)/dead_code_elimination_example.exe $(BIN_DIR)/cse_example.exe $(BIN_DIR)/codegen_example.exe
+all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe $(BIN_DIR)/test_temp_generator.exe $(BIN_DIR)/test_constant_folding.exe $(BIN_DIR)/test_dead_code_elimination.exe $(BIN_DIR)/test_cse.exe $(BIN_DIR)/test_codegen.exe $(BIN_DIR)/test_external_calls.exe $(BIN_DIR)/test_peephole_optimization.exe $(BIN_DIR)/test_output_validation.exe $(BIN_DIR)/expression_lowering_example.exe $(BIN_DIR)/assignment_lowering_example.exe $(BIN_DIR)/if_lowering_example.exe $(BIN_DIR)/while_lowering_example.exe $(BIN_DIR)/for_lowering_example.exe $(BIN_DIR)/call_lowering_example.exe $(BIN_DIR)/function_lowering_example.exe $(BIN_DIR)/memory_lowering_example.exe $(BIN_DIR)/ir_printer_example.exe $(BIN_DIR)/constant_folding_example.exe $(BIN_DIR)/dead_code_elimination_example.exe $(BIN_DIR)/cse_example.exe $(BIN_DIR)/codegen_example.exe $(BIN_DIR)/external_printf_example.exe $(BIN_DIR)/external_math_example.exe $(BIN_DIR)/debug_symbols_example.exe
 	@echo All test executables built successfully.
 
 # Run all tests
-test: test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse test_codegen
+test: test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse test_codegen test_external test_peephole test_output_validation
 
 # Run lexer tests
 test_lexer: $(BIN_DIR)/test_lexer.exe
@@ -197,6 +209,36 @@ test_codegen: $(BIN_DIR)/test_codegen.exe
 	@./$(BIN_DIR)/test_codegen.exe
 	@echo ========================================
 	@echo Code Generation Tests Complete!
+	@echo ========================================
+
+# Run External Library Integration tests
+test_external: $(BIN_DIR)/test_external_calls.exe
+	@echo ========================================
+	@echo Running External Library Integration Tests
+	@echo ========================================
+	@./$(BIN_DIR)/test_external_calls.exe
+	@echo ========================================
+	@echo External Library Tests Complete!
+	@echo ========================================
+
+# Run Peephole Optimization tests
+test_peephole: $(BIN_DIR)/test_peephole_optimization.exe
+	@echo ========================================
+	@echo Running Peephole Optimization Tests
+	@echo ========================================
+	@./$(BIN_DIR)/test_peephole_optimization.exe
+	@echo ========================================
+	@echo Peephole Optimization Tests Complete!
+	@echo ========================================
+
+# Run Output Validation tests
+test_output_validation: $(BIN_DIR)/test_output_validation.exe
+	@echo ========================================
+	@echo Running Output Validation Tests
+	@echo ========================================
+	@./$(BIN_DIR)/test_output_validation.exe
+	@echo ========================================
+	@echo Output Validation Tests Complete!
 	@echo ========================================
 
 # Run Expression Lowering Example
@@ -399,6 +441,30 @@ $(BIN_DIR)/cse_example.exe: $(IR_OBJS) $(EXAMPLE_CSE_OBJS)
 
 $(BIN_DIR)/codegen_example.exe: $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_CODEGEN_OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_CODEGEN_OBJS) -o $@
+	@echo Linked $@.
+
+$(BIN_DIR)/test_external_calls.exe: $(IR_OBJS) $(CODEGEN_OBJS) $(TEST_EXTERNAL_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(CODEGEN_OBJS) $(TEST_EXTERNAL_OBJS) -o $@
+	@echo Linked $@.
+
+$(BIN_DIR)/test_peephole_optimization.exe: $(IR_OBJS) $(CODEGEN_OBJS) $(TEST_PEEPHOLE_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(CODEGEN_OBJS) $(TEST_PEEPHOLE_OBJS) -o $@
+	@echo Linked $@.
+
+$(BIN_DIR)/test_output_validation.exe: $(LEXER_OBJS) $(PARSER_OBJS) $(SEMANTIC_OBJS) $(IR_OBJS) $(CODEGEN_OBJS) $(TEST_OUTPUT_VALIDATION_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LEXER_OBJS) $(PARSER_OBJS) $(SEMANTIC_OBJS) $(IR_OBJS) $(CODEGEN_OBJS) $(TEST_OUTPUT_VALIDATION_OBJS) -o $@
+	@echo Linked $@.
+
+$(BIN_DIR)/external_printf_example.exe: $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_EXTERNAL_PRINTF_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_EXTERNAL_PRINTF_OBJS) -o $@
+	@echo Linked $@.
+
+$(BIN_DIR)/external_math_example.exe: $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_EXTERNAL_MATH_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_EXTERNAL_MATH_OBJS) -o $@
+	@echo Linked $@.
+
+$(BIN_DIR)/debug_symbols_example.exe: $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_DEBUG_SYMBOLS_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_DEBUG_SYMBOLS_OBJS) -o $@
 	@echo Linked $@.
 
 # --- Compilation Rules ---
