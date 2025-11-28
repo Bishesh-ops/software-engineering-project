@@ -9,11 +9,11 @@ SemanticAnalyzer::SemanticAnalyzer()
 }
 
 void SemanticAnalyzer::add_error(const std::string& message, const SourceLocation& location) {
-    errors_.push_back(SemanticError(message, location));
+    error_handler_.error(message, location);
 }
 
 void SemanticAnalyzer::add_warning(const std::string& message, const SourceLocation& location) {
-    warnings_.push_back(SemanticWarning(message, location));
+    error_handler_.warning(message, location);
 }
 
 bool SemanticAnalyzer::register_symbol(const Symbol& symbol, const SourceLocation& location) {

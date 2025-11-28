@@ -4,31 +4,12 @@
 #include "ast.h"
 #include "scope_manager.h"
 #include "type.h"
+#include "error_handler.h"
 #include <algorithm>
 #include <vector>
 #include <string>
 #include <climits>
 #include <unordered_map>
-
-// Semantic error information
-struct SemanticError
-{
-    std::string message;
-    SourceLocation location;
-
-    SemanticError(const std::string &msg, const SourceLocation &loc)
-        : message(msg), location(loc) {}
-};
-
-// Semantic warning information
-struct SemanticWarning
-{
-    std::string message;
-    SourceLocation location;
-
-    SemanticWarning(const std::string &msg, const SourceLocation &loc)
-        : message(msg), location(loc) {}
-};
 
 // SemanticAnalyzer - Visitor that walks the AST and performs semantic analysis
 // Responsibilities:
@@ -40,8 +21,7 @@ class SemanticAnalyzer : public ASTVisitor
 {
 private:
     ScopeManager scope_manager_;
-    std::vector<SemanticError> errors_;
-    std::vector<SemanticWarning> warnings_;
+    ErrorHandler error_handler_; // Unified error reporting
     bool in_function_scope_; // Track if we're currently inside a function
 
     // Type tracking for expressions (maps expression pointer to its type)
@@ -98,17 +78,15 @@ public:
     // Analyze a program (list of declarations)
     void analyze_program(const std::vector<std::unique_ptr<Declaration>> &declarations);
 
-    // Get all semantic errors found
-    const std::vector<SemanticError> &get_errors() const { return errors_; }
-
-    // Get all semantic warnings found
-    const std::vector<SemanticWarning> &get_warnings() const { return warnings_; }
+    // Access to error handler
+    ErrorHandler& getErrorHandler() { return error_handler_; }
+    const ErrorHandler& getErrorHandler() const { return error_handler_; }
 
     // Check if analysis found any errors
-    bool has_errors() const { return !errors_.empty(); }
+    bool has_errors() const { return error_handler_.has_errors(); }
 
     // Check if analysis found any warnings
-    bool has_warnings() const { return !warnings_.empty(); }
+    bool has_warnings() const { return error_handler_.has_warnings(); }
 
     // Expression visitors
     void visit(BinaryExpr &node) override;

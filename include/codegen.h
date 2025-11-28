@@ -21,7 +21,15 @@ enum class X86Register
     R8, R9, R10, R11,
     R12, R13, R14, R15,
 
-    // No register assigned
+    // XMM registers (128-bit, used for float/double per System V AMD64 ABI)
+    // Floating-point args: XMM0-XMM7 (first 8 float/double params)
+    // Caller-saved: all XMM registers
+    XMM0, XMM1, XMM2, XMM3,
+    XMM4, XMM5, XMM6, XMM7,
+    XMM8, XMM9, XMM10, XMM11,
+    XMM12, XMM13, XMM14, XMM15,
+
+    // No register assigned (indicates spilled or unallocated)
     NONE
 };
 
@@ -215,6 +223,7 @@ private:
     // ========================================================================
 
     std::string getRegisterName(X86Register reg, int size = 64) const;
+    std::string get8BitRegisterName(const std::string& reg64) const;
     std::string getRegisterForValue(const SSAValue* value) const;
     std::string getOperandString(const IROperand& operand) const;
 

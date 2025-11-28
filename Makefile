@@ -19,6 +19,7 @@ OBJ_DIR := build/obj
 BIN_DIR := bin
 
 # --- Source Files ---
+ERROR_SRCS := src/error/error_handler.cpp
 LEXER_SRCS := src/lexer/lexer.cpp src/lexer/token.cpp
 PARSER_SRCS := src/parser/parser.cpp
 AST_SRCS := src/AST/ast_printer.cpp
@@ -41,6 +42,7 @@ TEST_CODEGEN_SRCS := tests/test_codegen.cpp
 TEST_EXTERNAL_SRCS := tests/test_external_calls.cpp
 TEST_PEEPHOLE_SRCS := tests/test_peephole_optimization.cpp
 TEST_OUTPUT_VALIDATION_SRCS := tests/test_output_validation.cpp
+TEST_ERROR_HANDLER_SRCS := tests/test_error_handler.cpp
 EXAMPLE_EXPR_LOWERING_SRCS := examples/expression_lowering_example.cpp
 EXAMPLE_ASSIGN_LOWERING_SRCS := examples/assignment_lowering_example.cpp
 EXAMPLE_IF_LOWERING_SRCS := examples/if_lowering_example.cpp
@@ -59,6 +61,7 @@ EXAMPLE_EXTERNAL_MATH_SRCS := examples/external_math_example.cpp
 EXAMPLE_DEBUG_SYMBOLS_SRCS := examples/debug_symbols_example.cpp
 
 # --- Object Files ---
+ERROR_OBJS := $(ERROR_SRCS:src/error/%.cpp=$(OBJ_DIR)/%.o)
 LEXER_OBJS := $(LEXER_SRCS:src/lexer/%.cpp=$(OBJ_DIR)/%.o)
 PARSER_OBJS := $(PARSER_SRCS:src/parser/%.cpp=$(OBJ_DIR)/%.o)
 AST_OBJS := $(patsubst src/%.cpp,$(OBJ_DIR)/%.o,$(AST_SRCS))
@@ -81,6 +84,7 @@ TEST_CODEGEN_OBJS := $(TEST_CODEGEN_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_EXTERNAL_OBJS := $(TEST_EXTERNAL_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_PEEPHOLE_OBJS := $(TEST_PEEPHOLE_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 TEST_OUTPUT_VALIDATION_OBJS := $(TEST_OUTPUT_VALIDATION_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
+TEST_ERROR_HANDLER_OBJS := $(TEST_ERROR_HANDLER_SRCS:tests/%.cpp=$(OBJ_DIR)/tests/%.o)
 EXAMPLE_EXPR_LOWERING_OBJS := $(EXAMPLE_EXPR_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_ASSIGN_LOWERING_OBJS := $(EXAMPLE_ASSIGN_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 EXAMPLE_IF_LOWERING_OBJS := $(EXAMPLE_IF_LOWERING_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
@@ -99,13 +103,23 @@ EXAMPLE_EXTERNAL_MATH_OBJS := $(EXAMPLE_EXTERNAL_MATH_SRCS:examples/%.cpp=$(OBJ_
 EXAMPLE_DEBUG_SYMBOLS_OBJS := $(EXAMPLE_DEBUG_SYMBOLS_SRCS:examples/%.cpp=$(OBJ_DIR)/examples/%.o)
 
 # --- Targets ---
-.PHONY: all test test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse test_codegen test_external test_peephole test_output_validation example_expr_lowering example_assign_lowering example_if_lowering example_while_lowering example_for_lowering example_call_lowering example_func_lowering example_memory_lowering example_ir_printer example_constant_folding example_dead_code_elim example_cse example_codegen example_external_printf example_external_math example_debug_symbols clean dirs
+.PHONY: all test test_error_handler test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse test_codegen test_external test_peephole test_output_validation example_expr_lowering example_assign_lowering example_if_lowering example_while_lowering example_for_lowering example_call_lowering example_func_lowering example_memory_lowering example_ir_printer example_constant_folding example_dead_code_elim example_cse example_codegen example_external_printf example_external_math example_debug_symbols clean dirs
 
-all: dirs $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe $(BIN_DIR)/test_temp_generator.exe $(BIN_DIR)/test_constant_folding.exe $(BIN_DIR)/test_dead_code_elimination.exe $(BIN_DIR)/test_cse.exe $(BIN_DIR)/test_codegen.exe $(BIN_DIR)/test_external_calls.exe $(BIN_DIR)/test_peephole_optimization.exe $(BIN_DIR)/test_output_validation.exe $(BIN_DIR)/expression_lowering_example.exe $(BIN_DIR)/assignment_lowering_example.exe $(BIN_DIR)/if_lowering_example.exe $(BIN_DIR)/while_lowering_example.exe $(BIN_DIR)/for_lowering_example.exe $(BIN_DIR)/call_lowering_example.exe $(BIN_DIR)/function_lowering_example.exe $(BIN_DIR)/memory_lowering_example.exe $(BIN_DIR)/ir_printer_example.exe $(BIN_DIR)/constant_folding_example.exe $(BIN_DIR)/dead_code_elimination_example.exe $(BIN_DIR)/cse_example.exe $(BIN_DIR)/codegen_example.exe $(BIN_DIR)/external_printf_example.exe $(BIN_DIR)/external_math_example.exe $(BIN_DIR)/debug_symbols_example.exe
+all: dirs $(BIN_DIR)/test_error_handler.exe $(BIN_DIR)/test_lexer.exe $(BIN_DIR)/test_parser.exe $(BIN_DIR)/test_semantic_main.exe $(BIN_DIR)/test_semantic_us11.exe $(BIN_DIR)/test_semantic_us12.exe $(BIN_DIR)/test_semantic_us13.exe $(BIN_DIR)/test_integration.exe $(BIN_DIR)/test_ir.exe $(BIN_DIR)/test_temp_generator.exe $(BIN_DIR)/test_constant_folding.exe $(BIN_DIR)/test_dead_code_elimination.exe $(BIN_DIR)/test_cse.exe $(BIN_DIR)/test_codegen.exe $(BIN_DIR)/test_external_calls.exe $(BIN_DIR)/test_peephole_optimization.exe $(BIN_DIR)/test_output_validation.exe $(BIN_DIR)/expression_lowering_example.exe $(BIN_DIR)/assignment_lowering_example.exe $(BIN_DIR)/if_lowering_example.exe $(BIN_DIR)/while_lowering_example.exe $(BIN_DIR)/for_lowering_example.exe $(BIN_DIR)/call_lowering_example.exe $(BIN_DIR)/function_lowering_example.exe $(BIN_DIR)/memory_lowering_example.exe $(BIN_DIR)/ir_printer_example.exe $(BIN_DIR)/constant_folding_example.exe $(BIN_DIR)/dead_code_elimination_example.exe $(BIN_DIR)/cse_example.exe $(BIN_DIR)/codegen_example.exe $(BIN_DIR)/external_printf_example.exe $(BIN_DIR)/external_math_example.exe $(BIN_DIR)/debug_symbols_example.exe
 	@echo All test executables built successfully.
 
 # Run all tests
-test: test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse test_codegen test_external test_peephole test_output_validation
+test: test_error_handler test_lexer test_parser test_semantic test_integration test_ir test_temp_gen test_constant_folding test_dead_code_elim test_cse test_codegen test_external test_peephole test_output_validation
+
+# Run error handler tests
+test_error_handler: $(BIN_DIR)/test_error_handler.exe
+	@echo ========================================
+	@echo Running Error Handler Tests
+	@echo ========================================
+	@./$(BIN_DIR)/test_error_handler.exe
+	@echo ========================================
+	@echo Error Handler Tests Complete!
+	@echo ========================================
 
 # Run lexer tests
 test_lexer: $(BIN_DIR)/test_lexer.exe
@@ -339,6 +353,10 @@ dirs:
 	@mkdir -p $(BIN_DIR)
 
 # --- Linking ---
+$(BIN_DIR)/test_error_handler.exe: $(ERROR_OBJS) $(TEST_ERROR_HANDLER_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(ERROR_OBJS) $(TEST_ERROR_HANDLER_OBJS) -o $@
+	@echo Linked $@.
+
 $(BIN_DIR)/test_lexer.exe: $(LEXER_OBJS) $(TEST_LEXER_OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LEXER_OBJS) $(TEST_LEXER_OBJS) -o $@
 	@echo Linked $@.
@@ -468,6 +486,9 @@ $(BIN_DIR)/debug_symbols_example.exe: $(IR_OBJS) $(CODEGEN_OBJS) $(EXAMPLE_DEBUG
 	@echo Linked $@.
 
 # --- Compilation Rules ---
+$(OBJ_DIR)/%.o: src/error/%.cpp | dirs
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
 $(OBJ_DIR)/%.o: src/lexer/%.cpp | dirs
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 

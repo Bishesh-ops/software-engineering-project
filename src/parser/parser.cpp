@@ -52,10 +52,7 @@ Token Parser::consume(TokenType type, const std::string &error_message)
 void Parser::reportError(const std::string &message)
 {
     SourceLocation loc = currentLocation();
-    std::cerr << loc.toString() << ": Error: " << message << std::endl;
-
-    // Collect error for reporting multiple errors
-    errors_.push_back(ParseError(message, loc));
+    error_handler_.error(message, loc);
 }
 
 SourceLocation Parser::currentLocation() const
@@ -719,7 +716,7 @@ std::vector<std::unique_ptr<Declaration>> Parser::parseProgram()
 
         // If we had an error and didn't get a declaration,
         // skip to the next potential declaration to continue parsing
-        if (!decl && hadError())
+        if (!decl && hasErrors())
         {
             synchronizeToDeclaration();
         }

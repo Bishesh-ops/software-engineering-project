@@ -77,30 +77,37 @@ CompilationResult compileToAssembly(const string& sourceCode, const string& file
     result.success = false;
 
     try {
-        // Lexing
+        // Lexing - Create lexer with source code
         Lexer lexer(sourceCode, filename);
-        vector<Token> tokens = lexer.tokenize();
 
-        // Parsing
-        Parser parser(tokens);
-        unique_ptr<Program> ast = parser.parseProgram();
-        if (parser.hasErrors()) {
+        // Parsing - Parser takes Lexer reference
+        Parser parser(lexer);
+        vector<unique_ptr<Declaration>> ast = parser.parseProgram();
+        if (parser.hadError()) {
             result.errorMessage = "Parser errors detected";
             return result;
         }
 
-        // Semantic Analysis
+        // Semantic Analysis - Analyze each declaration
         SemanticAnalyzer analyzer;
-        analyzer.analyze(*ast);
-        if (analyzer.hasErrors()) {
+        for (auto& decl : ast) {
+            decl->accept(analyzer);
+        }
+        if (analyzer.has_errors()) {
             result.errorMessage = "Semantic errors detected";
             return result;
         }
 
-        // IR Generation
+        // IR Generation - Generate IR for each function
         IRCodeGenerator irGen;
-        irGen.generate(*ast);
-        auto& functions = irGen.getFunctions();
+        vector<unique_ptr<IRFunction>> functions;
+        for (auto& decl : ast) {
+            if (decl->getNodeType() == ASTNodeType::FUNCTION_DECL) {
+                FunctionDecl* funcDecl = static_cast<FunctionDecl*>(decl.get());
+                auto irFunc = irGen.generateFunctionIR(funcDecl);
+                functions.push_back(std::move(irFunc));
+            }
+        }
 
         // IR Optimization
         IROptimizer optimizer;

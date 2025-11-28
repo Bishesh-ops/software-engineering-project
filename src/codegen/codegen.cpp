@@ -11,6 +11,7 @@
 std::string registerToString(X86Register reg)
 {
     switch (reg) {
+        // General-purpose registers
         case X86Register::RAX: return "rax";
         case X86Register::RBX: return "rbx";
         case X86Register::RCX: return "rcx";
@@ -27,6 +28,24 @@ std::string registerToString(X86Register reg)
         case X86Register::R13: return "r13";
         case X86Register::R14: return "r14";
         case X86Register::R15: return "r15";
+        // XMM registers (floating-point, System V AMD64 ABI)
+        case X86Register::XMM0:  return "xmm0";
+        case X86Register::XMM1:  return "xmm1";
+        case X86Register::XMM2:  return "xmm2";
+        case X86Register::XMM3:  return "xmm3";
+        case X86Register::XMM4:  return "xmm4";
+        case X86Register::XMM5:  return "xmm5";
+        case X86Register::XMM6:  return "xmm6";
+        case X86Register::XMM7:  return "xmm7";
+        case X86Register::XMM8:  return "xmm8";
+        case X86Register::XMM9:  return "xmm9";
+        case X86Register::XMM10: return "xmm10";
+        case X86Register::XMM11: return "xmm11";
+        case X86Register::XMM12: return "xmm12";
+        case X86Register::XMM13: return "xmm13";
+        case X86Register::XMM14: return "xmm14";
+        case X86Register::XMM15: return "xmm15";
+        // Invalid/spilled
         case X86Register::NONE: return "<none>";
         default: return "<unknown>";
     }
@@ -547,13 +566,19 @@ std::string CodeGenerator::getRegisterName(X86Register reg, int size) const
 {
     // Convert register to appropriate size variant
     // For AT&T syntax: %rax (64-bit), %eax (32-bit), %ax (16-bit), %al (8-bit)
+    // XMM registers don't have size variants - always use base name
 
     std::string base = registerToString(reg);
+
+    // XMM registers are always 128-bit, just return with % prefix
+    if (base.substr(0, 3) == "xmm") {
+        return "%" + base;
+    }
 
     if (size == 64) {
         return "%" + base;
     } else if (size == 32) {
-        // Convert r?? to e??
+        // Convert r?? to e?? for legacy registers
         if (base[0] == 'r' && base.length() > 1 && base[1] != 's' && base[1] != 'b') {
             return "%e" + base.substr(1);
         }
@@ -570,6 +595,44 @@ std::string CodeGenerator::getRegisterName(X86Register reg, int size) const
         }
         return "%" + base;
     }
+}
+
+std::string CodeGenerator::get8BitRegisterName(const std::string& reg64) const
+{
+    // Convert 64-bit register name to 8-bit variant for System V AMD64 ABI
+    // Input format: "%rax", "%rbx", etc.
+    // Output format: "%al", "%bl", etc.
+
+    if (reg64.length() < 2 || reg64[0] != '%') {
+        return reg64;  // Not a valid register name
+    }
+
+    std::string base = reg64.substr(1);  // Remove % prefix
+
+    // Standard registers: rax->al, rbx->bl, rcx->cl, rdx->dl
+    if (base == "rax") return "%al";
+    if (base == "rbx") return "%bl";
+    if (base == "rcx") return "%cl";
+    if (base == "rdx") return "%dl";
+
+    // REX prefix required registers (new in AMD64)
+    if (base == "rsi") return "%sil";
+    if (base == "rdi") return "%dil";
+    if (base == "rbp") return "%bpl";
+    if (base == "rsp") return "%spl";
+
+    // Extended registers: r8-r15 use 'b' suffix
+    if (base == "r8")  return "%r8b";
+    if (base == "r9")  return "%r9b";
+    if (base == "r10") return "%r10b";
+    if (base == "r11") return "%r11b";
+    if (base == "r12") return "%r12b";
+    if (base == "r13") return "%r13b";
+    if (base == "r14") return "%r14b";
+    if (base == "r15") return "%r15b";
+
+    // Fallback: return original
+    return reg64;
 }
 
 std::string CodeGenerator::getRegisterForValue(const SSAValue* value) const
@@ -877,48 +940,79 @@ void CodeGenerator::emitDivisionInst(const IRInstruction* inst)
                 operands[0].toString() + (opcode == IROpcode::DIV ? " / " : " % ") +
                 operands[1].toString());
 
-    // x86-64 division requires:
-    // - Dividend in RAX (and RDX for 128-bit)
-    // - Divisor in register or memory
-    // - idivq: quotient in RAX, remainder in RDX
+    // x86-64 signed division (idivq) requirements:
+    // - Dividend: 128-bit value in RDX:RAX (sign-extend RAX using cqto)
+    // - Divisor: in register or memory (not immediate)
+    // - Result: quotient in RAX, remainder in RDX
+    //
+    // Strategy: Use caller-saved R10/R11 as scratch registers to avoid
+    // disrupting register allocation. This maintains stack alignment.
 
-    // Save RAX and RDX if they're being used
-    emit("pushq %rax");
-    emit("pushq %rdx");
+    // Step 1: Save original RAX and RDX values to scratch registers if needed
+    bool destIsRax = (dest == "%rax");
+    bool destIsRdx = (dest == "%rdx");
+    bool src1IsRax = (src1 == "%rax");
+    bool src1IsRdx = (src1 == "%rdx");
 
-    // Load dividend into RAX
-    if (src1 != "%rax") {
+    // Save RAX to R10 if we need it later and it's not the destination
+    if (!destIsRax && !src1IsRax) {
+        emit("movq %rax, %r10");
+    }
+    // Save RDX to R11 if we need it later and it's not the destination
+    if (!destIsRdx && !src1IsRdx) {
+        emit("movq %rdx, %r11");
+    }
+
+    // Step 2: Load dividend into RAX
+    if (!src1IsRax) {
         emit("movq " + src1 + ", %rax");
     }
 
-    // Sign-extend RAX into RDX:RAX (for signed division)
+    // Step 3: Sign-extend RAX into RDX:RAX (for signed 64-bit division)
     emit("cqto");
 
-    // Perform division
-    // If divisor is immediate, need to load into register first
+    // Step 4: Perform division
+    // Note: idivq requires divisor in register or memory, not immediate
+    std::string divisor = src2;
     if (src2[0] == '$') {
-        emit("movq " + src2 + ", %r11");
-        emit("idivq %r11");
-    } else {
-        emit("idivq " + src2);
+        // Load immediate into a temporary register
+        // Check if we can use a register that won't be clobbered
+        if (dest != "%rcx" && src1 != "%rcx") {
+            emit("movq " + src2 + ", %rcx");
+            divisor = "%rcx";
+        } else {
+            // Use stack-relative addressing as fallback
+            emit("pushq " + src2);
+            divisor = "(%rsp)";
+        }
+    }
+    emit("idivq " + divisor);
+
+    // Clean up if we pushed the divisor
+    if (src2[0] == '$' && divisor == "(%rsp)") {
+        emit("addq $8, %rsp");
     }
 
-    // Move result to destination
+    // Step 5: Move result to destination
     if (opcode == IROpcode::DIV) {
         // Quotient is in RAX
-        if (dest != "%rax") {
+        if (!destIsRax) {
             emit("movq %rax, " + dest);
         }
     } else {
-        // Remainder is in RDX
-        if (dest != "%rdx") {
+        // Remainder (MOD) is in RDX
+        if (!destIsRdx) {
             emit("movq %rdx, " + dest);
         }
     }
 
-    // Restore RAX and RDX
-    emit("popq %rdx");
-    emit("popq %rax");
+    // Step 6: Restore RAX and RDX from scratch registers if we saved them
+    if (!destIsRax && !src1IsRax) {
+        emit("movq %r10, %rax");
+    }
+    if (!destIsRdx && !src1IsRdx) {
+        emit("movq %r11, %rdx");
+    }
 }
 
 void CodeGenerator::emitComparisonInst(const IRInstruction* inst)
@@ -950,16 +1044,16 @@ void CodeGenerator::emitComparisonInst(const IRInstruction* inst)
                 operands[0].toString() + " cmp " +
                 operands[1].toString());
 
-    // Compare instruction
+    // Compare instruction: AT&T syntax is "cmp src, dst" but semantics are dst - src
+    // So cmpq $5, %rax compares rax with 5 (rax - 5)
     emit("cmpq " + src2 + ", " + src1);
 
-    // Set result (8-bit) based on comparison
-    // Use lower 8-bit register variant
-    std::string dest8bit = dest;
-    // Convert %rax -> %al, %rbx -> %bl, etc.
-    if (dest[1] == 'r') {
-        dest8bit = "%" + dest.substr(2, dest.length() - 3) + "l";
-    }
+    // Get 8-bit register name for setcc instruction
+    // System V AMD64 ABI 8-bit register naming:
+    // RAX->AL, RBX->BL, RCX->CL, RDX->DL
+    // RSI->SIL, RDI->DIL, RBP->BPL, RSP->SPL
+    // R8->R8B, R9->R9B, R10->R10B, R11->R11B, R12->R12B, R13->R13B, R14->R14B, R15->R15B
+    std::string dest8bit = get8BitRegisterName(dest);
 
     emit(setcc + " " + dest8bit);
 
@@ -998,17 +1092,19 @@ void CodeGenerator::emitJumpInst(const IRInstruction* inst)
 
 void CodeGenerator::emitBranchInst(const IRInstruction* inst)
 {
+    // JumpIfFalseInst has 2 operands: condition and target label
+    // Jumps to target if condition is FALSE (equals zero)
     const auto& operands = inst->getOperands();
-    if (operands.size() != 3) return;
+    if (operands.size() != 2) return;
 
     std::string condition = getOperandString(operands[0]);
-    std::string trueLabel = operands[1].getConstant();
-    std::string falseLabel = operands[2].getConstant();
+    std::string falseLabel = operands[1].getConstant();
 
-    emitComment("Conditional branch");
+    emitComment("Jump if false to " + falseLabel);
+
+    // Compare condition with 0: if condition == 0, jump to falseLabel
     emit("cmpq $0, " + condition);
-    emit("jne " + trueLabel);
-    emit("jmp " + falseLabel);
+    emit("je " + falseLabel);  // Jump if equal to zero (condition is false)
 }
 
 void CodeGenerator::emitReturnInst(const IRInstruction* inst)
@@ -1183,16 +1279,32 @@ void CodeGenerator::emitCallInst(const IRInstruction* inst)
 
     emitComment("Call function: " + funcName + " (System V AMD64 ABI)");
 
-    // System V AMD64 ABI: Integer/pointer arguments in RDI, RSI, RDX, RCX, R8, R9
-    // Floating-point arguments in XMM0-XMM7 (not yet implemented)
-    std::vector<std::string> paramRegs = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+    // System V AMD64 ABI Calling Convention:
+    // - Integer/pointer arguments (first 6): RDI, RSI, RDX, RCX, R8, R9
+    // - Floating-point arguments (first 8): XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7
+    // - Additional arguments: pushed onto stack in reverse order (right-to-left)
+    // - Return value: RAX for integer/pointer, XMM0 for floating-point
+    // - Stack must be 16-byte aligned before 'call' instruction
+    //
+    // Note: Integer and floating-point registers are filled independently.
+    // Example: func(int a, double b, int c) uses RDI for a, XMM0 for b, RSI for c
+
+    std::vector<std::string> intParamRegs = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+    std::vector<std::string> floatParamRegs = {"%xmm0", "%xmm1", "%xmm2", "%xmm3",
+                                                "%xmm4", "%xmm5", "%xmm6", "%xmm7"};
 
     const auto& operands = inst->getOperands();
 
+    // For now, treat all arguments as integer/pointer type
+    // TODO: When type information is available in IR, classify arguments properly
+    int intArgIndex = 0;
+    int floatArgIndex = 0;
+    (void)floatArgIndex;  // Suppress unused warning until float args are implemented
+
     // Count how many arguments will go on stack
     int stackArgs = 0;
-    if (operands.size() > 6) {  // First 6 args in registers
-        stackArgs = operands.size() - 6;
+    if (operands.size() > 6) {  // First 6 integer args in registers
+        stackArgs = static_cast<int>(operands.size()) - 6;
     }
 
     // Ensure stack is 16-byte aligned before call
@@ -1205,19 +1317,22 @@ void CodeGenerator::emitCallInst(const IRInstruction* inst)
     for (size_t i = 0; i < operands.size(); i++) {
         std::string argValue = getOperandString(operands[i]);
 
-        if (i < paramRegs.size()) {
+        // TODO: Check operand type for float/double to use XMM registers
+        // For now, all arguments use integer registers
+        if (intArgIndex < static_cast<int>(intParamRegs.size())) {
             // Use register for parameter
-            std::string reg = paramRegs[i];
+            std::string reg = intParamRegs[intArgIndex];
             if (argValue != reg) {
                 emit("movq " + argValue + ", " + reg);
             }
+            intArgIndex++;
         } else {
             // Collect stack arguments (will push in reverse)
             stackArgValues.push_back(argValue);
         }
     }
 
-    // Push stack arguments in reverse order
+    // Push stack arguments in reverse order (right-to-left per ABI)
     for (auto it = stackArgValues.rbegin(); it != stackArgValues.rend(); ++it) {
         emit("pushq " + *it);
     }
@@ -1225,10 +1340,13 @@ void CodeGenerator::emitCallInst(const IRInstruction* inst)
     // Make the call
     emit("call " + funcName);
 
-    // Clean up stack arguments and alignment
+    // Clean up stack arguments and alignment padding
     cleanupStackAfterCall(stackArgs);
 
-    // Result is in RAX (integer/pointer) or XMM0 (floating-point)
+    // Result handling:
+    // - Integer/pointer return value is in RAX
+    // - Floating-point return value is in XMM0
+    // TODO: Check return type to use appropriate register
     if (inst->getResult()) {
         std::string dest = getRegisterForValue(inst->getResult());
         if (dest != "%rax") {

@@ -964,7 +964,7 @@ int main() {
 | **Linux (Ubuntu/Debian)** | ✅ Fully Supported | Tested on Ubuntu 20.04+ |
 | **Linux (Other)** | ⏳ Should Work | Requires GCC/Binutils |
 | **Windows (WSL)** | ⏳ Should Work | Use WSL with Ubuntu |
-| **Windows (Native)** | ❌ Not Supported | Planned for future |
+| **Windows (Native)** | 🔧 In Progress | Requires Microsoft x64 ABI |
 
 ### Platform-Specific Notes
 
@@ -972,11 +972,36 @@ int main() {
 - Uses Xcode Command Line Tools
 - Assembler: Apple `as` (compatible)
 - Linker: `ld` via `gcc` wrapper
+- ABI: System V AMD64 (same as Linux)
 
 #### Linux
 - Requires GNU Binutils
 - Assembler: GNU `as`
 - Linker: GNU `ld` or `gold`
+- ABI: System V AMD64
+
+#### Windows x86-64 (Target Platform)
+
+**Current Status**: The code generator currently uses System V AMD64 ABI (Linux/macOS convention).
+Windows native executables require the **Microsoft x64 calling convention**.
+
+**Key Differences - System V vs Windows x64:**
+
+| Feature | System V AMD64 (Current) | Windows x64 (Target) |
+|---------|--------------------------|----------------------|
+| **Integer params** | RDI, RSI, RDX, RCX, R8, R9 | RCX, RDX, R8, R9 |
+| **Float params** | XMM0-XMM7 | XMM0-XMM3 |
+| **Register params** | 6 integers + 8 floats | 4 total (any type) |
+| **Shadow space** | Not required | 32 bytes required |
+| **Stack alignment** | 16-byte | 16-byte |
+| **Callee-saved** | RBX, R12-R15, RBP | RBX, RBP, RDI, RSI, R12-R15 |
+| **Return value** | RAX (int), XMM0 (float) | RAX (int), XMM0 (float) |
+
+**To enable Windows support**, modify `src/codegen/codegen.cpp`:
+1. Change parameter registers to: `{"%rcx", "%rdx", "%r8", "%r9"}`
+2. Add 32-byte shadow space allocation before calls
+3. Update callee-saved register list
+4. Use Windows-compatible assembler directives
 
 ---
 
