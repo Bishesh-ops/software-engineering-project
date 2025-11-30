@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <memory>
+#include <unordered_map>
 
 // ============================================================================
 // Source Location - Represents a position in source code
@@ -130,15 +131,27 @@ public:
 
     // Enable/disable color output
     void set_colors_enabled(bool enabled) { colors_enabled_ = enabled; }
-    
+
     // Check if colors are enabled
     bool are_colors_enabled() const { return colors_enabled_; }
-    
+
     // Set maximum errors before stopping (0 = unlimited)
     void set_max_errors(int max) { max_errors_ = max; }
-    
+
     // Get maximum errors setting
     int get_max_errors() const { return max_errors_; }
+
+    // Enable/disable source code context display
+    void set_show_source_context(bool enabled) { show_source_context_ = enabled; }
+
+    // Check if source context is enabled
+    bool is_source_context_enabled() const { return show_source_context_; }
+
+    // Register source code for a file (for context display)
+    void register_source(const std::string& filename, const std::string& source_code);
+
+    // Get registered source files (for sharing between error handlers)
+    const std::unordered_map<std::string, std::string>& get_source_files() const { return source_files_; }
 
     // ========================================================================
     // Utility Methods
@@ -166,6 +179,8 @@ private:
     int note_count_;                       // Total notes
     bool colors_enabled_;                  // Color output enabled
     int max_errors_;                       // Maximum errors (0 = unlimited)
+    bool show_source_context_;             // Show source code context
+    std::unordered_map<std::string, std::string> source_files_;  // filename -> source code
 
     // ========================================================================
     // Internal Helper Methods
@@ -173,12 +188,18 @@ private:
 
     // Emit a diagnostic message to stderr
     void emit_diagnostic(const Diagnostic& diag);
-    
+
     // Get ANSI color code for diagnostic level
     std::string get_color_code(DiagnosticLevel level) const;
-    
+
     // Get diagnostic level name (ERROR, WARNING, NOTE)
     std::string get_level_name(DiagnosticLevel level) const;
+
+    // Extract a specific line from source code
+    std::string get_source_line(const std::string& filename, int line_number) const;
+
+    // Display source code context with caret pointing to error location
+    void show_source_context(const SourceLocation& location) const;
     
     // ANSI color codes
     static const std::string COLOR_RESET;

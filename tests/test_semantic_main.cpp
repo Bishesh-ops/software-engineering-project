@@ -1002,7 +1002,7 @@ void test_redeclaration_global() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("Redeclaration") != string::npos && err.message.find("'x'") != string::npos) {
             pass("Redeclaration error detected for global variable 'x'");
         } else {
@@ -1039,7 +1039,7 @@ void test_redeclaration_parameters() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("Redeclaration") != string::npos && err.message.find("'x'") != string::npos) {
             pass("Redeclaration error detected for parameter 'x'");
         } else {
@@ -1675,7 +1675,7 @@ void test_binary_invalid_modulo_float() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("Type error") != string::npos &&
             err.message.find("%") != string::npos &&
             err.location.line == 5 && err.location.column == 10) {
@@ -1730,7 +1730,7 @@ void test_binary_invalid_pointer_multiply() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("Type error") != string::npos &&
             err.message.find("*") != string::npos &&
             err.location.line == 10 && err.location.column == 5) {
@@ -1785,7 +1785,7 @@ void test_binary_invalid_incompatible_pointers() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("Type error") != string::npos &&
             err.location.line == 15 && err.location.column == 12) {
             pass("Error detected: incompatible pointer comparison at line 15, column 12");
@@ -1945,7 +1945,7 @@ void test_assignment_warning_float_to_int() {
     analyzer.analyze_program(program);
 
     if (!analyzer.has_errors() && analyzer.has_warnings()) {
-        const auto& warn = analyzer.getErrorHandler().get_warnings()[0];
+        auto warnings = analyzer.getErrorHandler().get_warnings(); const auto& warn = warnings[0];
         if (warn.message.find("precision") != string::npos &&
             warn.location.line == 5 && warn.location.column == 8) {
             pass("Warning issued for float to int conversion at line 5, column 8");
@@ -1997,7 +1997,7 @@ void test_assignment_error_incompatible_types() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("Cannot assign") != string::npos &&
             err.location.line == 10 && err.location.column == 5) {
             pass("Error detected: int = string at line 10, column 5");
@@ -2048,7 +2048,7 @@ void test_assignment_error_not_lvalue_literal() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("lvalue") != string::npos &&
             err.location.line == 15 && err.location.column == 10) {
             pass("Error detected: literal not lvalue at line 15, column 10");
@@ -2106,7 +2106,7 @@ void test_assignment_error_not_lvalue_expression() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() >= 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("lvalue") != string::npos &&
             err.location.line == 20 && err.location.column == 12) {
             pass("Error detected: expression not lvalue at line 20, column 12");
@@ -2170,7 +2170,7 @@ void test_vardecl_warning_float_to_int() {
     analyzer.analyze_program(program);
 
     if (!analyzer.has_errors() && analyzer.has_warnings()) {
-        const auto& warn = analyzer.getErrorHandler().get_warnings()[0];
+        auto warnings = analyzer.getErrorHandler().get_warnings(); const auto& warn = warnings[0];
         if (warn.message.find("precision") != string::npos) {
             pass("Warning issued for float to int initialization");
         } else {
@@ -2202,7 +2202,7 @@ void test_vardecl_error_incompatible_types() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("Cannot initialize") != string::npos) {
             pass("Error detected: int x = string");
         } else {
@@ -2399,7 +2399,7 @@ void test_function_call_error_too_few_args() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("Too few") != string::npos &&
             err.message.find("expected 2") != string::npos &&
             err.message.find("got 1") != string::npos &&
@@ -2456,7 +2456,7 @@ void test_function_call_error_too_many_args() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("Too many") != string::npos &&
             err.message.find("expected 2") != string::npos &&
             err.message.find("got 3") != string::npos &&
@@ -2512,7 +2512,7 @@ void test_function_call_error_type_mismatch() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
-        const auto& err = analyzer.getErrorHandler().get_errors()[0];
+        auto errors = analyzer.getErrorHandler().get_errors(); const auto& err = errors[0];
         if (err.message.find("Type mismatch") != string::npos &&
             err.message.find("argument 2") != string::npos &&
             err.message.find("expected 'int'") != string::npos &&
@@ -2566,7 +2566,7 @@ void test_function_call_warning_lossy_conversion() {
     analyzer.analyze_program(program);
 
     if (!analyzer.has_errors() && analyzer.has_warnings()) {
-        const auto& warn = analyzer.getErrorHandler().get_warnings()[0];
+        auto warnings = analyzer.getErrorHandler().get_warnings(); const auto& warn = warnings[0];
         if (warn.message.find("precision") != string::npos &&
             warn.message.find("argument 1") != string::npos &&
             warn.location.line == 20 && warn.location.column == 5) {

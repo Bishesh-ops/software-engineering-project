@@ -14,6 +14,8 @@ Lexer::Lexer(const std::string &source, const std::string &initial_filename)
       error_handler_()
 {
     error_handler_.set_max_errors(MAX_ERRORS);
+    // Register source code for error context display
+    error_handler_.register_source(initial_filename, source_);
 }
 
 // --- Core Lexing Primitives ---

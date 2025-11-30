@@ -19,7 +19,8 @@ ErrorHandler::ErrorHandler(bool enable_colors)
       warning_count_(0),
       note_count_(0),
       colors_enabled_(enable_colors),
-      max_errors_(0)  // 0 = unlimited
+      max_errors_(0),  // 0 = unlimited
+      show_source_context_(true)  // Enable by default
 {
 }
 
@@ -142,6 +143,9 @@ void ErrorHandler::emit_diagnostic(const Diagnostic& diag) {
 
     // Print message
     os << diag.message << "\n";
+
+    // Show source code context if available
+    show_source_context(diag.location);
 }
 
 std::string ErrorHandler::get_color_code(DiagnosticLevel level) const {
@@ -171,6 +175,77 @@ std::string ErrorHandler::get_level_name(DiagnosticLevel level) const {
             return "note";
         default:
             return "unknown";
+    }
+}
+
+// ============================================================================
+// Source Code Context Support
+// ============================================================================
+
+void ErrorHandler::register_source(const std::string& filename, const std::string& source_code) {
+    source_files_[filename] = source_code;
+}
+
+std::string ErrorHandler::get_source_line(const std::string& filename, int line_number) const {
+    // Check if we have source code for this file
+    auto it = source_files_.find(filename);
+    if (it == source_files_.end()) {
+        return "";  // Source not available
+    }
+
+    const std::string& source = it->second;
+
+    // Split source into lines and extract the requested line
+    int current_line = 1;
+    std::string::size_type start = 0;
+
+    while (start < source.length()) {
+        // Find end of current line
+        std::string::size_type end = source.find('\n', start);
+        if (end == std::string::npos) {
+            end = source.length();
+        }
+
+        // Check if this is the line we want
+        if (current_line == line_number) {
+            return source.substr(start, end - start);
+        }
+
+        // Move to next line
+        current_line++;
+        start = end + 1;
+    }
+
+    return "";  // Line number out of range
+}
+
+void ErrorHandler::show_source_context(const SourceLocation& location) const {
+    if (!show_source_context_ || !location.isValid()) {
+        return;
+    }
+
+    std::ostream& os = std::cerr;
+
+    // Get the source line
+    std::string line = get_source_line(location.filename, location.line);
+    if (line.empty()) {
+        return;  // No source available
+    }
+
+    // Display the source line with proper indentation
+    os << "    " << line << "\n";
+
+    // Display caret pointing to the error column
+    // Column is 1-based, so we need column-1 spaces plus 4 for indentation
+    if (location.column > 0) {
+        std::string caret_line(4 + location.column - 1, ' ');
+        caret_line += '^';
+
+        if (colors_enabled_) {
+            os << COLOR_RED << caret_line << COLOR_RESET << "\n";
+        } else {
+            os << caret_line << "\n";
+        }
     }
 }
 

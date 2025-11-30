@@ -4,6 +4,11 @@
 
 Parser::Parser(Lexer &lexer) : lexer_(lexer), current_token_(lexer_.getNextToken())
 {
+    // Copy source code registration from Lexer's ErrorHandler for context display
+    const auto& lexer_sources = lexer_.getErrorHandler().get_source_files();
+    for (const auto& pair : lexer_sources) {
+        error_handler_.register_source(pair.first, pair.second);
+    }
 }
 
 // ============================================================================
