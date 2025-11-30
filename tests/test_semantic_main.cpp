@@ -858,7 +858,7 @@ void test_global_variables() {
         pass("Global variables registered without errors");
     } else {
         fail("Global variables registered without errors");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -898,7 +898,7 @@ void test_function_registration() {
         pass("Function registered without errors");
     } else {
         fail("Function registered without errors");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -933,7 +933,7 @@ void test_parameters_registration() {
         pass("Three parameters registered without errors");
     } else {
         fail("Three parameters registered without errors");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -979,7 +979,7 @@ void test_local_variables_in_blocks() {
         pass("Nested blocks create separate scopes (no errors)");
     } else {
         fail("Nested blocks create separate scopes (no errors)");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1001,8 +1001,8 @@ void test_redeclaration_global() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("Redeclaration") != string::npos && err.message.find("'x'") != string::npos) {
             pass("Redeclaration error detected for global variable 'x'");
         } else {
@@ -1011,7 +1011,7 @@ void test_redeclaration_global() {
         }
     } else {
         fail("Exactly one redeclaration error reported");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -1038,8 +1038,8 @@ void test_redeclaration_parameters() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("Redeclaration") != string::npos && err.message.find("'x'") != string::npos) {
             pass("Redeclaration error detected for parameter 'x'");
         } else {
@@ -1048,7 +1048,7 @@ void test_redeclaration_parameters() {
         }
     } else {
         fail("Exactly one redeclaration error for parameter");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -1083,7 +1083,7 @@ void test_redeclaration_local() {
         pass("Parameter can shadow global variable (no error)");
     } else {
         fail("Parameter shadowing should be legal");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1131,7 +1131,7 @@ void test_variable_shadowing() {
         pass("Different functions can have parameters with same names");
     } else {
         fail("Different functions with same param names should be legal");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1208,7 +1208,7 @@ void test_complex_program() {
         pass("Complex program with multiple functions and nested scopes analyzed successfully");
     } else {
         fail("Complex program should have no errors");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1269,7 +1269,7 @@ void test_for_loop_scope() {
         pass("For loop creates separate scope");
     } else {
         fail("For loop should create separate scope");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1384,7 +1384,7 @@ void test_binary_arithmetic_valid() {
         pass("Valid arithmetic operations accepted");
     } else {
         fail("Valid arithmetic operations should be accepted");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1445,7 +1445,7 @@ void test_binary_arithmetic_pointer() {
         pass("Valid pointer arithmetic accepted");
     } else {
         fail("Pointer arithmetic should be accepted");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1554,7 +1554,7 @@ void test_binary_comparison_valid() {
         pass("Valid comparison operations accepted");
     } else {
         fail("Comparison operations should be accepted");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1629,7 +1629,7 @@ void test_binary_logical_valid() {
         pass("Valid logical operations accepted");
     } else {
         fail("Logical operations should be accepted");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1674,8 +1674,8 @@ void test_binary_invalid_modulo_float() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("Type error") != string::npos &&
             err.message.find("%") != string::npos &&
             err.location.line == 5 && err.location.column == 10) {
@@ -1686,7 +1686,7 @@ void test_binary_invalid_modulo_float() {
         }
     } else {
         fail("Should report exactly one error for float % float");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -1729,8 +1729,8 @@ void test_binary_invalid_pointer_multiply() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("Type error") != string::npos &&
             err.message.find("*") != string::npos &&
             err.location.line == 10 && err.location.column == 5) {
@@ -1741,7 +1741,7 @@ void test_binary_invalid_pointer_multiply() {
         }
     } else {
         fail("Should report exactly one error for pointer * pointer");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -1784,8 +1784,8 @@ void test_binary_invalid_incompatible_pointers() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("Type error") != string::npos &&
             err.location.line == 15 && err.location.column == 12) {
             pass("Error detected: incompatible pointer comparison at line 15, column 12");
@@ -1795,7 +1795,7 @@ void test_binary_invalid_incompatible_pointers() {
         }
     } else {
         fail("Should report exactly one error for incompatible pointer comparison");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -1856,7 +1856,7 @@ void test_assignment_valid_same_type() {
         pass("Valid same-type assignments accepted");
     } else {
         fail("Same-type assignments should be accepted");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1902,7 +1902,7 @@ void test_assignment_valid_implicit_int_to_float() {
         pass("Implicit int to float conversion accepted");
     } else {
         fail("int to float conversion should be accepted");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -1945,7 +1945,7 @@ void test_assignment_warning_float_to_int() {
     analyzer.analyze_program(program);
 
     if (!analyzer.has_errors() && analyzer.has_warnings()) {
-        const auto& warn = analyzer.get_warnings()[0];
+        const auto& warn = analyzer.getErrorHandler().get_warnings()[0];
         if (warn.message.find("precision") != string::npos &&
             warn.location.line == 5 && warn.location.column == 8) {
             pass("Warning issued for float to int conversion at line 5, column 8");
@@ -1955,8 +1955,8 @@ void test_assignment_warning_float_to_int() {
         }
     } else {
         fail("Should warn for float to int conversion (no error)");
-        cout << "    Errors: " << analyzer.get_errors().size()
-             << ", Warnings: " << analyzer.get_warnings().size() << endl;
+        cout << "    Errors: " << analyzer.getErrorHandler().get_errors().size()
+             << ", Warnings: " << analyzer.getErrorHandler().get_warnings().size() << endl;
     }
 }
 
@@ -1996,8 +1996,8 @@ void test_assignment_error_incompatible_types() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("Cannot assign") != string::npos &&
             err.location.line == 10 && err.location.column == 5) {
             pass("Error detected: int = string at line 10, column 5");
@@ -2007,7 +2007,7 @@ void test_assignment_error_incompatible_types() {
         }
     } else {
         fail("Should report exactly one error for int = string");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -2047,8 +2047,8 @@ void test_assignment_error_not_lvalue_literal() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("lvalue") != string::npos &&
             err.location.line == 15 && err.location.column == 10) {
             pass("Error detected: literal not lvalue at line 15, column 10");
@@ -2058,7 +2058,7 @@ void test_assignment_error_not_lvalue_literal() {
         }
     } else {
         fail("Should report exactly one error for literal assignment");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -2105,8 +2105,8 @@ void test_assignment_error_not_lvalue_expression() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() >= 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() >= 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("lvalue") != string::npos &&
             err.location.line == 20 && err.location.column == 12) {
             pass("Error detected: expression not lvalue at line 20, column 12");
@@ -2116,7 +2116,7 @@ void test_assignment_error_not_lvalue_expression() {
         }
     } else {
         fail("Should report error for expression assignment");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -2146,7 +2146,7 @@ void test_vardecl_valid_initialization() {
         pass("Valid variable initializations accepted");
     } else {
         fail("Valid initializations should be accepted");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -2170,7 +2170,7 @@ void test_vardecl_warning_float_to_int() {
     analyzer.analyze_program(program);
 
     if (!analyzer.has_errors() && analyzer.has_warnings()) {
-        const auto& warn = analyzer.get_warnings()[0];
+        const auto& warn = analyzer.getErrorHandler().get_warnings()[0];
         if (warn.message.find("precision") != string::npos) {
             pass("Warning issued for float to int initialization");
         } else {
@@ -2179,8 +2179,8 @@ void test_vardecl_warning_float_to_int() {
         }
     } else {
         fail("Should warn for float to int initialization (no error)");
-        cout << "    Errors: " << analyzer.get_errors().size()
-             << ", Warnings: " << analyzer.get_warnings().size() << endl;
+        cout << "    Errors: " << analyzer.getErrorHandler().get_errors().size()
+             << ", Warnings: " << analyzer.getErrorHandler().get_warnings().size() << endl;
     }
 }
 
@@ -2201,8 +2201,8 @@ void test_vardecl_error_incompatible_types() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("Cannot initialize") != string::npos) {
             pass("Error detected: int x = string");
         } else {
@@ -2211,7 +2211,7 @@ void test_vardecl_error_incompatible_types() {
         }
     } else {
         fail("Should report exactly one error for incompatible initialization");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -2258,7 +2258,7 @@ void test_function_call_valid_no_args() {
         pass("Valid function call with no arguments");
     } else {
         fail("Function call should be valid");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -2307,7 +2307,7 @@ void test_function_call_valid_matching_types() {
         pass("Valid function call with matching types");
     } else {
         fail("Function call should be valid");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -2354,7 +2354,7 @@ void test_function_call_valid_implicit_conversion() {
         pass("Implicit int to float conversion in function call");
     } else {
         fail("int to float conversion should be accepted");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -2398,8 +2398,8 @@ void test_function_call_error_too_few_args() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("Too few") != string::npos &&
             err.message.find("expected 2") != string::npos &&
             err.message.find("got 1") != string::npos &&
@@ -2411,7 +2411,7 @@ void test_function_call_error_too_few_args() {
         }
     } else {
         fail("Should report exactly one error for too few arguments");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -2455,8 +2455,8 @@ void test_function_call_error_too_many_args() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("Too many") != string::npos &&
             err.message.find("expected 2") != string::npos &&
             err.message.find("got 3") != string::npos &&
@@ -2468,7 +2468,7 @@ void test_function_call_error_too_many_args() {
         }
     } else {
         fail("Should report exactly one error for too many arguments");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -2511,8 +2511,8 @@ void test_function_call_error_type_mismatch() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 1) {
-        const auto& err = analyzer.get_errors()[0];
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 1) {
+        const auto& err = analyzer.getErrorHandler().get_errors()[0];
         if (err.message.find("Type mismatch") != string::npos &&
             err.message.find("argument 2") != string::npos &&
             err.message.find("expected 'int'") != string::npos &&
@@ -2524,7 +2524,7 @@ void test_function_call_error_type_mismatch() {
         }
     } else {
         fail("Should report exactly one error for type mismatch");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -2566,7 +2566,7 @@ void test_function_call_warning_lossy_conversion() {
     analyzer.analyze_program(program);
 
     if (!analyzer.has_errors() && analyzer.has_warnings()) {
-        const auto& warn = analyzer.get_warnings()[0];
+        const auto& warn = analyzer.getErrorHandler().get_warnings()[0];
         if (warn.message.find("precision") != string::npos &&
             warn.message.find("argument 1") != string::npos &&
             warn.location.line == 20 && warn.location.column == 5) {
@@ -2577,8 +2577,8 @@ void test_function_call_warning_lossy_conversion() {
         }
     } else {
         fail("Should warn for lossy conversion (no error)");
-        cout << "    Errors: " << analyzer.get_errors().size()
-             << ", Warnings: " << analyzer.get_warnings().size() << endl;
+        cout << "    Errors: " << analyzer.getErrorHandler().get_errors().size()
+             << ", Warnings: " << analyzer.getErrorHandler().get_warnings().size() << endl;
     }
 }
 
@@ -2623,12 +2623,12 @@ void test_function_call_error_multiple_type_mismatches() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() == 2) {
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() == 2) {
         // Should have 2 errors: one for arg 1, one for arg 3
         bool has_arg1_error = false;
         bool has_arg3_error = false;
 
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             if (err.message.find("argument 1") != string::npos) has_arg1_error = true;
             if (err.message.find("argument 3") != string::npos) has_arg3_error = true;
         }
@@ -2637,14 +2637,14 @@ void test_function_call_error_multiple_type_mismatches() {
             pass("Errors detected for arguments 1 and 3");
         } else {
             fail("Should report errors for both arguments 1 and 3");
-            for (const auto& err : analyzer.get_errors()) {
+            for (const auto& err : analyzer.getErrorHandler().get_errors()) {
                 cout << "    Error: " << err.message << endl;
             }
         }
     } else {
         fail("Should report exactly 2 errors for wrong argument types");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
-        for (const auto& err : analyzer.get_errors()) {
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -2691,7 +2691,7 @@ void test_undeclared_identifier_valid_reference() {
         pass("Valid reference to declared variable");
     } else {
         fail("Should accept declared variable");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -2728,7 +2728,7 @@ void test_undeclared_identifier_error_simple() {
 
     if (analyzer.has_errors()) {
         bool found_undeclared = false;
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             if (err.message.find("Undeclared identifier 'x'") != string::npos &&
                 err.location.line == 5 && err.location.column == 5) {
                 found_undeclared = true;
@@ -2740,7 +2740,7 @@ void test_undeclared_identifier_error_simple() {
             pass("Error detected: undeclared identifier 'x' at line 5, column 5");
         } else {
             fail("Should report undeclared identifier error");
-            for (const auto& err : analyzer.get_errors()) {
+            for (const auto& err : analyzer.getErrorHandler().get_errors()) {
                 cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
             }
         }
@@ -2784,7 +2784,7 @@ void test_undeclared_identifier_suggestion_single_char() {
 
     if (analyzer.has_errors()) {
         bool found_suggestion = false;
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             if (err.message.find("Undeclared identifier 'cont'") != string::npos &&
                 err.message.find("did you mean 'count'?") != string::npos &&
                 err.location.line == 10 && err.location.column == 7) {
@@ -2797,7 +2797,7 @@ void test_undeclared_identifier_suggestion_single_char() {
             pass("Suggestion provided: did you mean 'count'? at line 10, column 7");
         } else {
             fail("Should suggest 'count'");
-            for (const auto& err : analyzer.get_errors()) {
+            for (const auto& err : analyzer.getErrorHandler().get_errors()) {
                 cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
             }
         }
@@ -2841,7 +2841,7 @@ void test_undeclared_identifier_suggestion_transposition() {
 
     if (analyzer.has_errors()) {
         bool found_suggestion = false;
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             if (err.message.find("Undeclared identifier 'vlaue'") != string::npos &&
                 err.message.find("did you mean 'value'?") != string::npos &&
                 err.location.line == 15 && err.location.column == 3) {
@@ -2854,7 +2854,7 @@ void test_undeclared_identifier_suggestion_transposition() {
             pass("Suggestion provided: did you mean 'value'? at line 15, column 3");
         } else {
             fail("Should suggest 'value'");
-            for (const auto& err : analyzer.get_errors()) {
+            for (const auto& err : analyzer.getErrorHandler().get_errors()) {
                 cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
             }
         }
@@ -2898,7 +2898,7 @@ void test_undeclared_identifier_no_suggestion() {
 
     if (analyzer.has_errors()) {
         bool found_error_without_suggestion = false;
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             if (err.message.find("Undeclared identifier 'xyz'") != string::npos &&
                 err.message.find("did you mean") == string::npos &&
                 err.location.line == 20 && err.location.column == 2) {
@@ -2911,7 +2911,7 @@ void test_undeclared_identifier_no_suggestion() {
             pass("No suggestion for distant typo at line 20, column 2");
         } else {
             fail("Should report error without suggestion");
-            for (const auto& err : analyzer.get_errors()) {
+            for (const auto& err : analyzer.getErrorHandler().get_errors()) {
                 cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
             }
         }
@@ -2954,9 +2954,9 @@ void test_undeclared_identifier_multiple_errors() {
     SemanticAnalyzer analyzer;
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && analyzer.get_errors().size() >= 3) {
+    if (analyzer.has_errors() && analyzer.getErrorHandler().get_errors().size() >= 3) {
         bool has_x = false, has_y = false, has_z = false;
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             if (err.message.find("Undeclared identifier 'x'") != string::npos) has_x = true;
             if (err.message.find("Undeclared identifier 'y'") != string::npos) has_y = true;
             if (err.message.find("Undeclared identifier 'z'") != string::npos) has_z = true;
@@ -2966,13 +2966,13 @@ void test_undeclared_identifier_multiple_errors() {
             pass("All three undeclared identifiers detected");
         } else {
             fail("Should detect all three undeclared identifiers");
-            for (const auto& err : analyzer.get_errors()) {
+            for (const auto& err : analyzer.getErrorHandler().get_errors()) {
                 cout << "    Error: " << err.message << endl;
             }
         }
     } else {
         fail("Should report errors for all undeclared identifiers");
-        cout << "    Found " << analyzer.get_errors().size() << " errors" << endl;
+        cout << "    Found " << analyzer.getErrorHandler().get_errors().size() << " errors" << endl;
     }
 }
 
@@ -3009,7 +3009,7 @@ void test_return_valid_int_function() {
         pass("Valid int return from int function");
     } else {
         fail("int function returning int should be valid");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -3041,7 +3041,7 @@ void test_return_valid_void_function() {
         pass("Valid void return from void function");
     } else {
         fail("void function with return; should be valid");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -3076,7 +3076,7 @@ void test_return_valid_implicit_conversion() {
         pass("Implicit int to float conversion in return");
     } else {
         fail("int to float conversion should be valid");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -3109,7 +3109,7 @@ void test_return_error_type_mismatch() {
 
     if (analyzer.has_errors()) {
         bool found_mismatch = false;
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             if (err.message.find("Return type mismatch") != string::npos &&
                 err.message.find("expected 'int'") != string::npos &&
                 err.location.line == 5 && err.location.column == 5) {
@@ -3122,7 +3122,7 @@ void test_return_error_type_mismatch() {
             pass("Error detected: return type mismatch at line 5, column 5");
         } else {
             fail("Should report return type mismatch");
-            for (const auto& err : analyzer.get_errors()) {
+            for (const auto& err : analyzer.getErrorHandler().get_errors()) {
                 cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
             }
         }
@@ -3158,7 +3158,7 @@ void test_return_error_void_with_value() {
 
     if (analyzer.has_errors()) {
         bool found_error = false;
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             if (err.message.find("Void function") != string::npos &&
                 err.message.find("should not return a value") != string::npos &&
                 err.location.line == 10 && err.location.column == 5) {
@@ -3171,7 +3171,7 @@ void test_return_error_void_with_value() {
             pass("Error detected: void function returns value at line 10, column 5");
         } else {
             fail("Should report error for void function returning value");
-            for (const auto& err : analyzer.get_errors()) {
+            for (const auto& err : analyzer.getErrorHandler().get_errors()) {
                 cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
             }
         }
@@ -3204,7 +3204,7 @@ void test_return_error_nonvoid_without_value() {
 
     if (analyzer.has_errors()) {
         bool found_error = false;
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             if (err.message.find("Non-void function") != string::npos &&
                 err.message.find("must return a value") != string::npos &&
                 err.location.line == 15 && err.location.column == 5) {
@@ -3217,7 +3217,7 @@ void test_return_error_nonvoid_without_value() {
             pass("Error detected: non-void function without return value at line 15, column 5");
         } else {
             fail("Should report error for non-void function without return value");
-            for (const auto& err : analyzer.get_errors()) {
+            for (const auto& err : analyzer.getErrorHandler().get_errors()) {
                 cout << "    Got: " << err.message << " at " << err.location.toString() << endl;
             }
         }
@@ -3254,7 +3254,7 @@ void test_return_warning_missing_return() {
 
     if (!analyzer.has_errors() && analyzer.has_warnings()) {
         bool found_warning = false;
-        for (const auto& warn : analyzer.get_warnings()) {
+        for (const auto& warn : analyzer.getErrorHandler().get_warnings()) {
             if (warn.message.find("does not return a value") != string::npos) {
                 found_warning = true;
                 break;
@@ -3265,14 +3265,14 @@ void test_return_warning_missing_return() {
             pass("Warning issued: function lacks return statement");
         } else {
             fail("Should warn about missing return");
-            for (const auto& warn : analyzer.get_warnings()) {
+            for (const auto& warn : analyzer.getErrorHandler().get_warnings()) {
                 cout << "    Got: " << warn.message << endl;
             }
         }
     } else {
         fail("Should warn for missing return (no error)");
-        cout << "    Errors: " << analyzer.get_errors().size()
-             << ", Warnings: " << analyzer.get_warnings().size() << endl;
+        cout << "    Errors: " << analyzer.getErrorHandler().get_errors().size()
+             << ", Warnings: " << analyzer.getErrorHandler().get_warnings().size() << endl;
     }
 }
 
@@ -3303,7 +3303,7 @@ void test_return_warning_lossy_conversion() {
 
     if (!analyzer.has_errors() && analyzer.has_warnings()) {
         bool found_warning = false;
-        for (const auto& warn : analyzer.get_warnings()) {
+        for (const auto& warn : analyzer.getErrorHandler().get_warnings()) {
             if (warn.message.find("precision") != string::npos &&
                 warn.location.line == 25 && warn.location.column == 5) {
                 found_warning = true;
@@ -3315,14 +3315,14 @@ void test_return_warning_lossy_conversion() {
             pass("Warning issued: lossy conversion at line 25, column 5");
         } else {
             fail("Should warn about lossy conversion");
-            for (const auto& warn : analyzer.get_warnings()) {
+            for (const auto& warn : analyzer.getErrorHandler().get_warnings()) {
                 cout << "    Got: " << warn.message << " at " << warn.location.toString() << endl;
             }
         }
     } else {
         fail("Should warn for lossy conversion (no error)");
-        cout << "    Errors: " << analyzer.get_errors().size()
-             << ", Warnings: " << analyzer.get_warnings().size() << endl;
+        cout << "    Errors: " << analyzer.getErrorHandler().get_errors().size()
+             << ", Warnings: " << analyzer.getErrorHandler().get_warnings().size() << endl;
     }
 }
 
@@ -3360,7 +3360,7 @@ void test_lvalue_valid_variables() {
         pass("Valid variable lvalues accepted");
     } else {
         fail("Should not have errors/warnings for valid lvalues");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -3397,7 +3397,7 @@ void test_lvalue_valid_array_access() {
         pass("Valid array access lvalue accepted");
     } else {
         fail("Should not have errors for array access lvalue");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -3433,7 +3433,7 @@ void test_lvalue_valid_dereference() {
         pass("Valid dereferenced pointer lvalue accepted");
     } else {
         fail("Should not have errors for dereferenced pointer lvalue");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -3470,7 +3470,7 @@ void test_lvalue_valid_address_of_variable() {
         pass("Valid address-of on variable accepted");
     } else {
         fail("Should not have errors for address-of on variable");
-        for (const auto& err : analyzer.get_errors()) {
+        for (const auto& err : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << err.message << endl;
         }
     }
@@ -3499,7 +3499,7 @@ void test_lvalue_error_assign_to_literal() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors()) {
-        const auto& errors = analyzer.get_errors();
+        const auto& errors = analyzer.getErrorHandler().get_errors();
         if (errors.size() == 1 &&
             errors[0].message.find("lvalue") != string::npos &&
             errors[0].location.line == 20 && errors[0].location.column == 5) {
@@ -3544,7 +3544,7 @@ void test_lvalue_error_assign_to_expression() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors()) {
-        const auto& errors = analyzer.get_errors();
+        const auto& errors = analyzer.getErrorHandler().get_errors();
         if (errors.size() == 1 &&
             errors[0].message.find("lvalue") != string::npos &&
             errors[0].location.line == 25 && errors[0].location.column == 10) {
@@ -3587,7 +3587,7 @@ void test_lvalue_error_address_of_literal() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors()) {
-        const auto& errors = analyzer.get_errors();
+        const auto& errors = analyzer.getErrorHandler().get_errors();
         if (errors.size() == 1 &&
             errors[0].message.find("rvalue") != string::npos &&
             errors[0].location.line == 30 && errors[0].location.column == 12) {
@@ -3636,7 +3636,7 @@ void test_lvalue_error_address_of_call() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors()) {
-        const auto& errors = analyzer.get_errors();
+        const auto& errors = analyzer.getErrorHandler().get_errors();
         bool found = false;
         for (const auto& err : errors) {
             if (err.message.find("rvalue") != string::npos &&
@@ -3686,7 +3686,7 @@ void test_lvalue_error_increment_rvalue() {
     analyzer.analyze_program(program);
 
     if (analyzer.has_errors()) {
-        const auto& errors = analyzer.get_errors();
+        const auto& errors = analyzer.getErrorHandler().get_errors();
         if (errors.size() == 1 &&
             errors[0].message.find("lvalue") != string::npos &&
             errors[0].location.line == 40 && errors[0].location.column == 2) {

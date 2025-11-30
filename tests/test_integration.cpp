@@ -50,8 +50,8 @@ TestResult runFullPipeline(const std::string& sourceCode, const std::string& fil
         ast = parser.parseProgram();
 
         // Check for parser errors
-        if (parser.hadError()) {
-            for (const auto& error : parser.getErrors()) {
+        if (parser.hasErrors()) {
+            for (const auto& error : parser.getErrorHandler().get_errors()) {
                 result.errors.push_back("Parser error: " + error.message);
             }
             return result;
@@ -74,7 +74,7 @@ TestResult runFullPipeline(const std::string& sourceCode, const std::string& fil
 
         // Check for semantic errors
         if (analyzer.has_errors()) {
-            for (const auto& error : analyzer.get_errors()) {
+            for (const auto& error : analyzer.getErrorHandler().get_errors()) {
                 result.errors.push_back("Semantic error: " + error.message);
             }
             return result;

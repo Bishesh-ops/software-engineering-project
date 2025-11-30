@@ -16,8 +16,10 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#ifndef _WIN32
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 #include <array>
 #include <memory>
 #include <string>
@@ -83,7 +85,7 @@ CompilationResult compileToAssembly(const string& sourceCode, const string& file
         // Parsing - Parser takes Lexer reference
         Parser parser(lexer);
         vector<unique_ptr<Declaration>> ast = parser.parseProgram();
-        if (parser.hadError()) {
+        if (parser.hasErrors()) {
             result.errorMessage = "Parser errors detected";
             return result;
         }
@@ -216,7 +218,9 @@ bool compileAndExecute(const string& source, int& exitCode, string& output) {
     // Execute and capture output
     output = execCommand(exeFile + " 2>&1");
     exitCode = system(exeFile.c_str());
+#ifndef _WIN32
     exitCode = WEXITSTATUS(exitCode);
+#endif
 
     // Cleanup
     remove(asmFile.c_str());

@@ -2034,18 +2034,24 @@ void test_error_recovery()
 
     // Test 1: Missing semicolon - should report error with line/column
     {
-        Lexer lex1("test.c", "int x = 5");
+        Lexer lex1("int x = 5", "test.c");
         Parser parser1(lex1);
 
-        parser1.clearErrors(); // Start fresh
+        parser1.getErrorHandler().clear(); // Start fresh
         auto decl1 = parser1.parseDeclaration(); // Missing semicolon
 
-        if (parser1.hadError() && parser1.getErrors().size() >= 1)
+        if (parser1.hasErrors())
         {
-            const auto &err = parser1.getErrors()[0];
-            if (err.message.find("';'") != std::string::npos &&
-                err.location.line >= 1 && err.location.column >= 0)
-                pass("Reports error with line/column for missing semicolon");
+            auto errors = parser1.getErrorHandler().get_errors();
+            if (errors.size() >= 1)
+            {
+                const auto &err = errors[0];
+                if (err.message.find("';'") != std::string::npos &&
+                    err.location.line >= 1 && err.location.column >= 0)
+                    pass("Reports error with line/column for missing semicolon");
+                else
+                    fail("Reports error with line/column for missing semicolon");
+            }
             else
                 fail("Reports error with line/column for missing semicolon");
         }
@@ -2055,15 +2061,15 @@ void test_error_recovery()
 
     // Test 2: Multiple errors - should collect all errors
     {
-        Lexer lex2("test.c", "int x\nint y\nint z;");
+        Lexer lex2("int x\nint y\nint z;", "test.c");
         Parser parser2(lex2);
 
-        parser2.clearErrors();
+        parser2.getErrorHandler().clear();
         auto d1 = parser2.parseDeclaration();
         auto d2 = parser2.parseDeclaration();
         auto d3 = parser2.parseDeclaration();
 
-        if (parser2.getErrors().size() >= 2)
+        if (parser2.getErrorHandler().get_errors().size() >= 2)
             pass("Collects multiple errors (at least 2)");
         else
             fail("Collects multiple errors");
@@ -2071,10 +2077,10 @@ void test_error_recovery()
 
     // Test 3: Error recovery - continues parsing after error
     {
-        Lexer lex3("test.c", "int x; int y = 20;");
+        Lexer lex3("int x; int y = 20;", "test.c");
         Parser parser3(lex3);
 
-        parser3.clearErrors();
+        parser3.getErrorHandler().clear();
         auto decl1 = parser3.parseDeclaration();  // Should succeed
         auto decl2 = parser3.parseDeclaration(); // Should succeed
 
@@ -2086,19 +2092,25 @@ void test_error_recovery()
 
     // Test 4: Error messages are descriptive
     {
-        Lexer lex4("test.c", "int x =");
+        Lexer lex4("int x =", "test.c");
         Parser parser4(lex4);
 
-        parser4.clearErrors();
+        parser4.getErrorHandler().clear();
         auto decl = parser4.parseDeclaration();
 
-        if (parser4.hadError() && !parser4.getErrors().empty())
+        if (parser4.hasErrors())
         {
-            const auto& err = parser4.getErrors()[0];
-            if (!err.message.empty() && err.message.length() > 5)
-                pass("Error messages are descriptive");
+            auto errors = parser4.getErrorHandler().get_errors();
+            if (!errors.empty())
+            {
+                const auto& err = errors[0];
+                if (!err.message.empty() && err.message.length() > 5)
+                    pass("Error messages are descriptive");
+                else
+                    fail("Error messages are descriptive");
+            }
             else
-                fail("Error messages are descriptive");
+                pass("Error messages are descriptive (or no error detected)");
         }
         else
             pass("Error messages are descriptive (or no error detected)");
@@ -2106,10 +2118,10 @@ void test_error_recovery()
 
     // Test 5: Skips to next statement boundary
     {
-        Lexer lex5("test.c", "int x @ # $; int y = 5;");
+        Lexer lex5("int x @ # $; int y = 5;", "test.c");
         Parser parser5(lex5);
 
-        parser5.clearErrors();
+        parser5.getErrorHandler().clear();
         auto d1 = parser5.parseDeclaration(); // Bad tokens after x
         auto d2 = parser5.parseDeclaration(); // Should recover and parse y
 
@@ -2121,17 +2133,23 @@ void test_error_recovery()
 
     // Test 6: Error location includes filename
     {
-        Lexer lex6("myfile.c", "int x");
+        Lexer lex6("int x", "myfile.c");
         Parser parser6(lex6);
 
-        parser6.clearErrors();
+        parser6.getErrorHandler().clear();
         auto decl = parser6.parseDeclaration();
 
-        if (parser6.hadError() && !parser6.getErrors().empty())
+        if (parser6.hasErrors())
         {
-            const auto& err = parser6.getErrors()[0];
-            if (err.location.filename == "myfile.c")
-                pass("Error location includes filename");
+            auto errors = parser6.getErrorHandler().get_errors();
+            if (!errors.empty())
+            {
+                const auto& err = errors[0];
+                if (err.location.filename == "myfile.c")
+                    pass("Error location includes filename");
+                else
+                    fail("Error location includes filename");
+            }
             else
                 fail("Error location includes filename");
         }
@@ -2141,15 +2159,15 @@ void test_error_recovery()
 
     // Test 7: Clear errors works
     {
-        Lexer lex7("test.c", "int x");
+        Lexer lex7("int x", "test.c");
         Parser parser7(lex7);
 
-        parser7.clearErrors();
+        parser7.getErrorHandler().clear();
         auto decl = parser7.parseDeclaration();
 
-        bool hadErrorBefore = parser7.hadError();
-        parser7.clearErrors();
-        bool hadErrorAfter = parser7.hadError();
+        bool hadErrorBefore = parser7.hasErrors();
+        parser7.getErrorHandler().clear();
+        bool hadErrorAfter = parser7.hasErrors();
 
         if (hadErrorBefore && !hadErrorAfter)
             pass("Clear errors works");
@@ -2159,17 +2177,17 @@ void test_error_recovery()
 
     // Test 8: Reports line and column numbers
     {
-        Lexer lex8("test.c", "int x = 5;\nfloat y =");
+        Lexer lex8("int x = 5;\nfloat y =", "test.c");
         Parser parser8(lex8);
 
-        parser8.clearErrors();
+        parser8.getErrorHandler().clear();
         auto d1 = parser8.parseDeclaration();
         auto d2 = parser8.parseDeclaration();
 
-        if (parser8.hadError())
+        if (parser8.hasErrors())
         {
             bool foundError = false;
-            for (const auto& err : parser8.getErrors())
+            for (const auto& err : parser8.getErrorHandler().get_errors())
             {
                 if (err.location.line > 0 && err.location.column > 0)
                 {

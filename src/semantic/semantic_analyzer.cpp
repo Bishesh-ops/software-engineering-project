@@ -30,8 +30,7 @@ bool SemanticAnalyzer::register_symbol(const Symbol& symbol, const SourceLocatio
 
 void SemanticAnalyzer::analyze_program(const std::vector<std::unique_ptr<Declaration>>& declarations) {
     // Clear any previous errors, warnings, and expression types
-    errors_.clear();
-    warnings_.clear();
+    error_handler_.clear();
     expression_types_.clear();
 
     // Process all top-level declarations

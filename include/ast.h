@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include "error_handler.h"
 
 // Forward Declarations
 class ASTVisitor;
@@ -69,22 +70,10 @@ enum class ASTNodeType
 
 };
 
-// Source location info for error reporting
-struct SourceLocation
-{
-    std::string filename;
-    int line;
-    int column;
-    SourceLocation(const std::string &fname = "", int ln = 0, int col = 0) : filename(fname), line(ln), column(col) {}
-    std::string toString() const
-    {
-        return filename + ":" + std::to_string(line) + ":" + std::to_string(column);
-    }
-};
-
 // ============================================================================
 // Base ASTNode Class
 // ============================================================================
+// Note: SourceLocation is defined in error_handler.h
 class ASTNode
 {
 protected:

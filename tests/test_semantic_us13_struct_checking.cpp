@@ -23,7 +23,7 @@ using namespace std;
 void pass(const string& msg) { cout << "  [PASS] " << msg << endl; }
 void fail(const string& msg) { cout << "  [FAIL] " << msg << endl; }
 
-bool contains_error(const vector<SemanticError>& errors, const string& substring) {
+bool contains_error(const vector<Diagnostic>& errors, const string& substring) {
     for (const auto& error : errors) {
         if (error.message.find(substring) != string::npos) {
             return true;
@@ -168,7 +168,7 @@ void test_valid_dot_operator() {
         pass("obj.member is valid");
     } else {
         fail("obj.member should be valid");
-        for (const auto& error : analyzer.get_errors()) {
+        for (const auto& error : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << error.message << endl;
         }
     }
@@ -200,7 +200,7 @@ void test_error_dot_on_pointer() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "did you mean '->'")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "did you mean '->'")) {
         pass("Dot on pointer correctly rejected with helpful suggestion");
     } else {
         fail("Dot on pointer should suggest using ->");
@@ -233,7 +233,7 @@ void test_error_arrow_on_non_pointer() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "requires pointer")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "requires pointer")) {
         pass("Arrow on non-pointer correctly rejected");
     } else {
         fail("Arrow on non-pointer should be rejected");
@@ -266,7 +266,7 @@ void test_error_nonexistent_member() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "no member named")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "no member named")) {
         pass("Non-existent member correctly rejected");
     } else {
         fail("Non-existent member should be rejected");
@@ -294,7 +294,7 @@ void test_error_member_access_on_non_struct() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "non-struct")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "non-struct")) {
         pass("Member access on non-struct correctly rejected");
     } else {
         fail("Member access on non-struct should be rejected");

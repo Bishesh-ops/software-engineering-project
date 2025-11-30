@@ -220,7 +220,7 @@ void test_conversion_node_insertion() {
         pass("Mixed-type expression (char + float) analyzed without errors");
     } else {
         fail("Mixed-type expression should not produce errors");
-        for (const auto& error : analyzer.get_errors()) {
+        for (const auto& error : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << error.message << endl;
         }
     }
@@ -260,7 +260,7 @@ void test_integer_promotion_bitwise() {
         pass("Bitwise operation on chars analyzed without errors");
     } else {
         fail("Bitwise operation should work with integer promotion");
-        for (const auto& error : analyzer.get_errors()) {
+        for (const auto& error : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << error.message << endl;
         }
     }
@@ -290,7 +290,7 @@ void test_array_decay_in_expressions() {
         pass("Array declaration analyzed without errors");
     } else {
         fail("Array declaration should not produce errors");
-        for (const auto& error : analyzer.get_errors()) {
+        for (const auto& error : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << error.message << endl;
         }
     }

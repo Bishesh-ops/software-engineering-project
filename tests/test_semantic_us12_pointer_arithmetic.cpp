@@ -27,7 +27,7 @@ using namespace std;
 void pass(const string& msg) { cout << "  [PASS] " << msg << endl; }
 void fail(const string& msg) { cout << "  [FAIL] " << msg << endl; }
 
-bool contains_error(const vector<SemanticError>& errors, const string& substring) {
+bool contains_error(const vector<Diagnostic>& errors, const string& substring) {
     for (const auto& error : errors) {
         if (error.message.find(substring) != string::npos) {
             return true;
@@ -65,7 +65,7 @@ void test_pointer_plus_int() {
         pass("ptr + int is valid");
     } else {
         fail("ptr + int should be valid");
-        for (const auto& error : analyzer.get_errors()) {
+        for (const auto& error : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << error.message << endl;
         }
     }
@@ -100,7 +100,7 @@ void test_int_plus_pointer() {
         pass("int + ptr is valid");
     } else {
         fail("int + ptr should be valid");
-        for (const auto& error : analyzer.get_errors()) {
+        for (const auto& error : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << error.message << endl;
         }
     }
@@ -135,7 +135,7 @@ void test_pointer_minus_int() {
         pass("ptr - int is valid");
     } else {
         fail("ptr - int should be valid");
-        for (const auto& error : analyzer.get_errors()) {
+        for (const auto& error : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << error.message << endl;
         }
     }
@@ -169,7 +169,7 @@ void test_pointer_minus_pointer_same_type() {
         pass("ptr - ptr (same type) is valid");
     } else {
         fail("ptr - ptr (same type) should be valid");
-        for (const auto& error : analyzer.get_errors()) {
+        for (const auto& error : analyzer.getErrorHandler().get_errors()) {
             cout << "    Error: " << error.message << endl;
         }
     }
@@ -200,7 +200,7 @@ void test_pointer_multiply_int_error() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "multiply")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "multiply")) {
         pass("ptr * int correctly rejected");
     } else {
         fail("ptr * int should be an error");
@@ -232,7 +232,7 @@ void test_pointer_divide_int_error() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "divide")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "divide")) {
         pass("ptr / int correctly rejected");
     } else {
         fail("ptr / int should be an error");
@@ -263,7 +263,7 @@ void test_pointer_multiply_pointer_error() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "multiply")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "multiply")) {
         pass("ptr * ptr correctly rejected");
     } else {
         fail("ptr * ptr should be an error");
@@ -294,7 +294,7 @@ void test_pointer_plus_pointer_error() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "add two pointers")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "add two pointers")) {
         pass("ptr + ptr correctly rejected");
     } else {
         fail("ptr + ptr should be an error");
@@ -325,7 +325,7 @@ void test_pointer_minus_pointer_different_types_error() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "different types")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "different types")) {
         pass("ptr - ptr (different types) correctly rejected");
     } else {
         fail("ptr - ptr (different types) should be an error");
@@ -357,7 +357,7 @@ void test_void_pointer_arithmetic_error() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "void pointer")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "void pointer")) {
         pass("void* + int correctly rejected");
     } else {
         fail("void* + int should be an error (not standard C)");
@@ -389,7 +389,7 @@ void test_pointer_modulo_error() {
 
     analyzer.analyze_program(program);
 
-    if (analyzer.has_errors() && contains_error(analyzer.get_errors(), "modulo")) {
+    if (analyzer.has_errors() && contains_error(analyzer.getErrorHandler().get_errors(), "modulo")) {
         pass("ptr % int correctly rejected");
     } else {
         fail("ptr % int should be an error");
