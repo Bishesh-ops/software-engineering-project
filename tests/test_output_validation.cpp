@@ -470,11 +470,19 @@ int main() {
     test_AssemblyHasProperStructure();
     test_AssemblyOptimizationsApplied();
 
+#ifndef _WIN32
+    // Binary execution tests require Unix toolchain (as, ld, gcc)
+    // Skip on Windows/MinGW/MSYS
     cout << "\n--- Binary Execution Tests ---\n";
     test_SimpleReturnValue();
     test_ArithmeticReturnValue();
     test_FunctionCallReturnValue();
     test_ControlFlowReturnValue();
+#else
+    cout << "\n--- Binary Execution Tests ---\n";
+    cout << "[SKIP] Binary execution tests disabled on Windows\n";
+    cout << "       (requires Unix toolchain: as, ld, gcc)\n";
+#endif
 
     cout << "\n--- Error Handling Tests ---\n";
     test_SyntaxErrorDetection();
@@ -484,12 +492,19 @@ int main() {
     cout << "\n--- External Function Tests ---\n";
     test_ExternalFunctionDeclaration();
 
+#ifndef _WIN32
     cout << "\n--- Optimization Verification Tests ---\n";
     test_ConstantFoldingInOutput();
     test_DeadCodeNotInOutput();
 
     cout << "\n--- Complex Program Tests ---\n";
     test_ComplexProgram();
+#else
+    cout << "\n--- Optimization Verification Tests ---\n";
+    cout << "[SKIP] Optimization verification tests disabled on Windows\n";
+    cout << "\n--- Complex Program Tests ---\n";
+    cout << "[SKIP] Complex program tests disabled on Windows\n";
+#endif
 
     cout << "\n========================================\n";
     cout << "Test Summary\n";
