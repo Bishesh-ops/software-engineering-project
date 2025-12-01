@@ -61,6 +61,12 @@ public:
 
     // Get all symbol names from all scopes (for suggestions)
     std::vector<std::string> get_all_symbol_names() const;
+
+    // Mark a symbol as used (searches all scopes from innermost to outermost)
+    void mark_symbol_as_used(const std::string& name);
+
+    // Get all unused variables from the current scope
+    std::vector<Symbol> get_unused_variables_in_current_scope() const;
 };
 
 #endif // SCOPE_MANAGER_H

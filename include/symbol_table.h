@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include "type.h"
+#include "error_handler.h"  // For SourceLocation
 
 // Symbol represents an entry in the symbol table
 // Stores information about identifiers (variables, functions, etc.)
@@ -14,6 +15,8 @@ struct Symbol {
     std::shared_ptr<Type> symbol_type;   // Type information (new Type class)
     int scope_level;                     // Scope depth (0 = global, 1+ = nested scopes)
     bool is_function;                    // true if this is a function, false for variable
+    bool used;                           // Track if variable has been used (for unused warnings)
+    SourceLocation declaration_location; // Where this symbol was declared (for warnings)
 
     // Function-specific fields
     std::vector<std::shared_ptr<Type>> parameter_types;  // Parameter types for functions
@@ -30,6 +33,8 @@ struct Symbol {
           symbol_type(nullptr),
           scope_level(0),
           is_function(false),
+          used(false),
+          declaration_location(),
           type(""),
           is_array(false),
           array_size(0),
@@ -185,6 +190,15 @@ public:
 
     // Get all symbol names in this table
     std::vector<std::string> get_all_names() const;
+
+    // Mark a symbol as used
+    void mark_as_used(const std::string& name);
+
+    // Get all unused variable symbols in this table
+    std::vector<Symbol> get_unused_variables() const;
+
+    // Get all symbols in this table
+    const std::unordered_map<std::string, Symbol>& get_all_symbols() const { return symbols_; }
 };
 
 #endif // SYMBOL_TABLE_H

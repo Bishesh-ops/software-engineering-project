@@ -48,3 +48,24 @@ std::vector<std::string> SymbolTable::get_all_names() const {
     }
     return names;
 }
+
+// Mark a symbol as used
+void SymbolTable::mark_as_used(const std::string& name) {
+    auto it = symbols_.find(name);
+    if (it != symbols_.end()) {
+        it->second.used = true;
+    }
+}
+
+// Get all unused variable symbols in this table
+std::vector<Symbol> SymbolTable::get_unused_variables() const {
+    std::vector<Symbol> unused;
+    for (const auto& pair : symbols_) {
+        const Symbol& sym = pair.second;
+        // Only report unused variables (not functions)
+        if (!sym.is_function && !sym.used) {
+            unused.push_back(sym);
+        }
+    }
+    return unused;
+}

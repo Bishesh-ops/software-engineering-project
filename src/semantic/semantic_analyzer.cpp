@@ -26,8 +26,12 @@ bool SemanticAnalyzer::register_symbol(const Symbol& symbol, const SourceLocatio
         return false;
     }
 
+    // Store declaration location in the symbol
+    Symbol sym_with_location = symbol;
+    sym_with_location.declaration_location = location;
+
     // Insert into current scope
-    scope_manager_.insert(symbol);
+    scope_manager_.insert(sym_with_location);
     return true;
 }
 
@@ -334,6 +338,12 @@ void SemanticAnalyzer::visit(FunctionDecl &node) {
                     node.getLocation());
     }
 
+    // Check for unused variables (parameters and locals) before exiting function scope
+    auto unused_vars = scope_manager_.get_unused_variables_in_current_scope();
+    for (const auto& var : unused_vars) {
+        add_warning("Unused variable '" + var.name + "'", var.declaration_location);
+    }
+
     // Exit function scope and clear function context
     in_function_scope_ = false;
     current_function_name_ = "";
@@ -367,6 +377,12 @@ void SemanticAnalyzer::visit(CompoundStmt &node) {
         if (stmt) {
             stmt->accept(*this);
         }
+    }
+
+    // Check for unused variables before exiting scope
+    auto unused_vars = scope_manager_.get_unused_variables_in_current_scope();
+    for (const auto& var : unused_vars) {
+        add_warning("Unused variable '" + var.name + "'", var.declaration_location);
     }
 
     // Exit block scope
@@ -856,6 +872,9 @@ void SemanticAnalyzer::visit(IdentifierExpr &node) {
     auto symbol_opt = scope_manager_.lookup(node.getName());
 
     if (symbol_opt.has_value()) {
+        // Mark the symbol as used (for unused variable warnings)
+        scope_manager_.mark_symbol_as_used(node.getName());
+
         // Set the expression type from the symbol's type
         if (symbol_opt->symbol_type) {
             set_expression_type(&node, symbol_opt->symbol_type);

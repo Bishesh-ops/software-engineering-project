@@ -109,6 +109,40 @@ int main() {
         }
     }
 
+    cout << "\n";
+
+    // Test 4: Unused variable warnings
+    cout << "Test 4: Unused Variable Warnings\n";
+    cout << "-----------------------------------\n";
+    {
+        string code = R"(
+            int test() {
+                int x = 5;      // Unused variable
+                int y = 10;
+                return y;       // y is used
+            }
+        )";
+
+        Lexer lexer(code, "test.c");
+        Parser parser(lexer);
+        auto program = parser.parseProgram();
+
+        if (!parser.hasErrors()) {
+            SemanticAnalyzer analyzer;
+            analyzer.set_warnings_enabled(true);  // Warnings enabled
+            analyzer.analyze_program(program);
+
+            cout << "Errors: " << analyzer.getErrorHandler().get_error_count() << "\n";
+            cout << "Warnings: " << analyzer.getErrorHandler().get_warning_count() << "\n";
+
+            if (analyzer.getErrorHandler().get_warning_count() > 0) {
+                cout << "[PASS] Unused variable warning was emitted\n";
+            } else {
+                cout << "[FAIL] Unused variable warning was NOT emitted\n";
+            }
+        }
+    }
+
     cout << "\n========================================\n";
     cout << "Temporary Test Complete!\n";
     cout << "========================================\n";
