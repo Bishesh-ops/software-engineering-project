@@ -5,15 +5,18 @@
 // ============================================================================
 
 SemanticAnalyzer::SemanticAnalyzer()
-    : in_function_scope_(false) {
+    : in_function_scope_(false), warnings_enabled_(true) {
 }
 
 void SemanticAnalyzer::add_error(const std::string& message, const SourceLocation& location) {
-    errors_.push_back(SemanticError(message, location));
+    error_handler_.error(message, location);
 }
 
 void SemanticAnalyzer::add_warning(const std::string& message, const SourceLocation& location) {
-    warnings_.push_back(SemanticWarning(message, location));
+    // Only emit warning if warnings are enabled
+    if (warnings_enabled_) {
+        error_handler_.warning(message, location);
+    }
 }
 
 bool SemanticAnalyzer::register_symbol(const Symbol& symbol, const SourceLocation& location) {
@@ -23,19 +26,27 @@ bool SemanticAnalyzer::register_symbol(const Symbol& symbol, const SourceLocatio
         return false;
     }
 
+    // Store declaration location in the symbol
+    Symbol sym_with_location = symbol;
+    sym_with_location.declaration_location = location;
+
     // Insert into current scope
-    scope_manager_.insert(symbol);
+    scope_manager_.insert(sym_with_location);
     return true;
 }
 
 void SemanticAnalyzer::analyze_program(const std::vector<std::unique_ptr<Declaration>>& declarations) {
     // Clear any previous errors, warnings, and expression types
-    errors_.clear();
-    warnings_.clear();
+    error_handler_.clear();
     expression_types_.clear();
 
     // Process all top-level declarations
     for (const auto& decl : declarations) {
+        // Stop if we've reached the maximum error limit (error recovery)
+        if (error_handler_.has_reached_max_errors()) {
+            break;
+        }
+
         if (decl) {
             decl->accept(*this);
         }
@@ -332,6 +343,12 @@ void SemanticAnalyzer::visit(FunctionDecl &node) {
                     node.getLocation());
     }
 
+    // Check for unused variables (parameters and locals) before exiting function scope
+    auto unused_vars = scope_manager_.get_unused_variables_in_current_scope();
+    for (const auto& var : unused_vars) {
+        add_warning("Unused variable '" + var.name + "'", var.declaration_location);
+    }
+
     // Exit function scope and clear function context
     in_function_scope_ = false;
     current_function_name_ = "";
@@ -365,6 +382,12 @@ void SemanticAnalyzer::visit(CompoundStmt &node) {
         if (stmt) {
             stmt->accept(*this);
         }
+    }
+
+    // Check for unused variables before exiting scope
+    auto unused_vars = scope_manager_.get_unused_variables_in_current_scope();
+    for (const auto& var : unused_vars) {
+        add_warning("Unused variable '" + var.name + "'", var.declaration_location);
     }
 
     // Exit block scope
@@ -854,6 +877,9 @@ void SemanticAnalyzer::visit(IdentifierExpr &node) {
     auto symbol_opt = scope_manager_.lookup(node.getName());
 
     if (symbol_opt.has_value()) {
+        // Mark the symbol as used (for unused variable warnings)
+        scope_manager_.mark_symbol_as_used(node.getName());
+
         // Set the expression type from the symbol's type
         if (symbol_opt->symbol_type) {
             set_expression_type(&node, symbol_opt->symbol_type);

@@ -4,6 +4,11 @@
 
 Parser::Parser(Lexer &lexer) : lexer_(lexer), current_token_(lexer_.getNextToken())
 {
+    // Copy source code registration from Lexer's ErrorHandler for context display
+    const auto& lexer_sources = lexer_.getErrorHandler().get_source_files();
+    for (const auto& pair : lexer_sources) {
+        error_handler_.register_source(pair.first, pair.second);
+    }
 }
 
 // ============================================================================
@@ -52,10 +57,7 @@ Token Parser::consume(TokenType type, const std::string &error_message)
 void Parser::reportError(const std::string &message)
 {
     SourceLocation loc = currentLocation();
-    std::cerr << loc.toString() << ": Error: " << message << std::endl;
-
-    // Collect error for reporting multiple errors
-    errors_.push_back(ParseError(message, loc));
+    error_handler_.error(message, loc);
 }
 
 SourceLocation Parser::currentLocation() const
@@ -711,6 +713,12 @@ std::vector<std::unique_ptr<Declaration>> Parser::parseProgram()
     // Parse all top-level declarations until we reach EOF
     while (!check(TokenType::EOF_TOKEN))
     {
+        // Stop if we've reached the maximum error limit (error recovery)
+        if (error_handler_.has_reached_max_errors())
+        {
+            break;
+        }
+
         auto decl = parseDeclaration();
         if (decl)
         {
@@ -719,7 +727,7 @@ std::vector<std::unique_ptr<Declaration>> Parser::parseProgram()
 
         // If we had an error and didn't get a declaration,
         // skip to the next potential declaration to continue parsing
-        if (!decl && hadError())
+        if (!decl && hasErrors())
         {
             synchronizeToDeclaration();
         }
@@ -743,149 +751,7 @@ std::unique_ptr<Declaration> Parser::parseDeclaration()
     // USER STORY #19: Check for struct definition vs struct variable declaration
     if (check(TokenType::KW_STRUCT))
     {
-        // Need to look ahead to distinguish:
-        // struct Point { ... };  -> struct definition
-        // struct Point p;        -> variable declaration
-
-        // Save tokens as we advance
-        Token structToken = current_token_;
-        advance(); // consume 'struct'
-
-        if (check(TokenType::IDENTIFIER))
-        {
-            Token nameToken = current_token_;
-            advance(); // consume struct name
-
-            // Check what follows the struct name
-            if (check(TokenType::LBRACE))
-            {
-                // It's a struct definition: struct Name { ... }
-                // We've already consumed 'struct' and the name, but parseStructDefinition expects them
-                // So we need to "put them back" - reconstruct by calling parseStructDefinition
-                // after manually backing up
-
-                // Back up: set current_token_ to the saved structToken and re-advance through lexer
-                // This is a limitation - we can't truly rewind. Instead, we'll modify parseStructDefinition
-                // to accept that struct keyword may already be consumed.
-
-                // For now, let's just call parseStructDefinition and let it re-consume
-                // Actually, the simplest fix is to make parseStructDefinition work when called
-                // after we've peeked ahead.  We'll pass the name directly.
-
-                // Simpler approach: just check the third token without consuming
-                // Unfortunately the lexer doesn't support this.
-
-                // Alternative: Create the struct definition here directly
-                consume(TokenType::LBRACE, "Expected '{' after struct name");
-
-                // Parse member fields
-                std::vector<std::unique_ptr<VarDecl>> fields;
-
-                while (!check(TokenType::RBRACE) && current_token_.type != TokenType::EOF_TOKEN)
-                {
-                    if (!isTypeKeyword(current_token_.type) && current_token_.type != TokenType::KW_STRUCT)
-                    {
-                        reportError("Expected type keyword for struct field");
-                        while (current_token_.type != TokenType::SEMICOLON &&
-                               current_token_.type != TokenType::RBRACE &&
-                               current_token_.type != TokenType::EOF_TOKEN)
-                        {
-                            advance();
-                        }
-                        if (current_token_.type == TokenType::SEMICOLON)
-                            advance();
-                        continue;
-                    }
-
-                    Token field_start = current_token_;
-                    std::string fieldType = parseType();
-
-                    int pointerLevel = 0;
-                    while (check(TokenType::OP_STAR))
-                    {
-                        advance();
-                        pointerLevel++;
-                    }
-
-                    Token field_name_token = consume(TokenType::IDENTIFIER, "Expected field name");
-                    std::string fieldName(field_name_token.value);
-
-                    bool isArray = false;
-                    std::unique_ptr<Expression> arraySize = nullptr;
-
-                    if (check(TokenType::LBRACKET))
-                    {
-                        advance();
-                        isArray = true;
-
-                        if (!check(TokenType::RBRACKET))
-                        {
-                            arraySize = parseExpression();
-                        }
-
-                        consume(TokenType::RBRACKET, "Expected ']' after array size");
-                    }
-
-                    consume(TokenType::SEMICOLON, "Expected ';' after struct field");
-
-                    SourceLocation fieldLoc(field_start.filename, field_start.line, field_start.column);
-                    fields.push_back(std::make_unique<VarDecl>(
-                        fieldName, fieldType, nullptr, fieldLoc, isArray, std::move(arraySize), pointerLevel
-                    ));
-                }
-
-                consume(TokenType::RBRACE, "Expected '}' after struct fields");
-                consume(TokenType::SEMICOLON, "Expected ';' after struct definition");
-
-                SourceLocation loc(structToken.filename, structToken.line, structToken.column);
-                return std::make_unique<StructDecl>(std::string(nameToken.value), std::move(fields), loc);
-            }
-            else
-            {
-                // It's a variable declaration with struct type: struct Point p;
-                // We've already consumed 'struct' and 'Point', now we need the variable name
-                // The 'type' is "struct Point", and 'nameToken' is actually the struct type name
-                // The NEXT token (current_token_) should be the variable name
-
-                // Build the type string
-                std::string type = std::string(structToken.value) + " " + std::string(nameToken.value);
-                Token var_name_token = consume(TokenType::IDENTIFIER, "Expected identifier in declaration");
-                std::string var_name(var_name_token.value);
-
-                // Handle array declaration
-                bool isArray = false;
-                std::unique_ptr<Expression> arraySize = nullptr;
-
-                if (check(TokenType::LBRACKET))
-                {
-                    advance();
-                    isArray = true;
-                    if (!check(TokenType::RBRACKET))
-                    {
-                        arraySize = parseExpression();
-                    }
-                    consume(TokenType::RBRACKET, "Expected ']'");
-                }
-
-                // Handle initialization
-                std::unique_ptr<Expression> initializer = nullptr;
-                if (match(TokenType::OP_ASSIGN))
-                {
-                    initializer = parseExpression();
-                }
-
-                consume(TokenType::SEMICOLON, "Expected ';' after declaration");
-
-                SourceLocation loc(structToken.filename, structToken.line, structToken.column);
-                return std::make_unique<VarDecl>(var_name, type, std::move(initializer), loc, isArray, std::move(arraySize), 0);
-            }
-        }
-        else
-        {
-            reportError("Expected struct name after 'struct' keyword");
-            synchronizeToDeclaration();
-            return nullptr;
-        }
+        return parseStructDeclarationOrDefinition();
     }
 
     // Parse type and name first, then determine if function or variable
@@ -911,94 +777,259 @@ std::unique_ptr<Declaration> Parser::parseDeclaration()
     Token name_token = consume(TokenType::IDENTIFIER, "Expected identifier in declaration");
     std::string name(name_token.value);
 
-    // Check what follows the identifier
+    // Delegate to appropriate helper based on what follows the identifier
     if (check(TokenType::LPAREN))
     {
-        // It's a function declaration: type name(...)
-        // Parse parameter list
-        consume(TokenType::LPAREN, "Expected '(' after function name");
-        std::vector<std::unique_ptr<ParameterDecl>> parameters = parseParameterList();
-        consume(TokenType::RPAREN, "Expected ')' after parameter list");
-
-        // Check if this is a forward declaration (ends with ';') or a definition (has body)
-        std::unique_ptr<CompoundStmt> body = nullptr;
-
-        if (check(TokenType::LBRACE))
-        {
-            // Function definition with body
-            body = std::unique_ptr<CompoundStmt>(
-                dynamic_cast<CompoundStmt*>(parseCompoundStatement().release())
-            );
-        }
-        else if (match(TokenType::SEMICOLON))
-        {
-            // Forward declaration - body remains nullptr
-        }
-        else
-        {
-            // USER STORY #21: Error recovery
-            reportError("Expected ';' or '{' after function declaration");
-            synchronize();
-            // Continue with null body (treated as forward declaration)
-        }
-
-        SourceLocation loc(start_token.filename, start_token.line, start_token.column);
-        return std::make_unique<FunctionDecl>(name, type, std::move(parameters), std::move(body), loc);
+        // Function declaration: type name(...)
+        return parseFunctionDeclarationImpl(start_token, type, name, pointerLevel);
     }
     else if (check(TokenType::LBRACKET))
     {
-        // USER STORY #16: Array declaration: type name[size];
-        consume(TokenType::LBRACKET, "Expected '['");
-
-        // Parse array size expression
-        std::unique_ptr<Expression> arraySize = parseExpression();
-
-        consume(TokenType::RBRACKET, "Expected ']' after array size");
-
-        // Arrays can optionally have initializers (future enhancement)
-        std::unique_ptr<Expression> initializer = nullptr;
-        if (match(TokenType::OP_ASSIGN))
-        {
-            // For now, we'll parse the initializer as an expression
-            // A full implementation would handle { elem1, elem2, ... }
-            initializer = parseExpression();
-        }
-
-        if (!check(TokenType::SEMICOLON))
-        {
-            // USER STORY #21: Semicolon is missing, report error and synchronize
-            reportError("Expected ';'");
-            synchronizeToDeclaration();
-            return nullptr;
-        }
-        advance(); // Consume semicolon
-
-        SourceLocation loc(start_token.filename, start_token.line, start_token.column);
-        return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, true, std::move(arraySize), pointerLevel);
+        // Array declaration: type name[size]
+        return parseArrayDeclaration(start_token, type, name, pointerLevel);
     }
     else
     {
-        // It's a regular variable declaration: type name [= value];
-        // or pointer declaration: type *name [= value];
-        std::unique_ptr<Expression> initializer = nullptr;
+        // Regular variable declaration: type name [= value]
+        return parseVariableDeclarationImpl(start_token, type, name, pointerLevel);
+    }
+}
 
+// ============================================================================
+// Declaration Parsing Helper Methods (Refactored)
+// ============================================================================
+
+// Helper: Parse struct field list { type name; type name; ... }
+std::vector<std::unique_ptr<VarDecl>> Parser::parseStructFieldList()
+{
+    std::vector<std::unique_ptr<VarDecl>> fields;
+
+    while (!check(TokenType::RBRACE) && current_token_.type != TokenType::EOF_TOKEN)
+    {
+        // Validate field starts with a type keyword
+        if (!isTypeKeyword(current_token_.type) && current_token_.type != TokenType::KW_STRUCT)
+        {
+            reportError("Expected type keyword for struct field");
+            // Skip to next semicolon or closing brace
+            while (current_token_.type != TokenType::SEMICOLON &&
+                   current_token_.type != TokenType::RBRACE &&
+                   current_token_.type != TokenType::EOF_TOKEN)
+            {
+                advance();
+            }
+            if (current_token_.type == TokenType::SEMICOLON)
+                advance();
+            continue;
+        }
+
+        Token field_start = current_token_;
+        std::string fieldType = parseType();
+
+        // Handle pointer fields (* symbols)
+        int pointerLevel = 0;
+        while (check(TokenType::OP_STAR))
+        {
+            advance();
+            pointerLevel++;
+        }
+
+        Token field_name_token = consume(TokenType::IDENTIFIER, "Expected field name");
+        std::string fieldName(field_name_token.value);
+
+        // Handle array fields [size]
+        bool isArray = false;
+        std::unique_ptr<Expression> arraySize = nullptr;
+
+        if (check(TokenType::LBRACKET))
+        {
+            advance(); // consume '['
+            isArray = true;
+
+            if (!check(TokenType::RBRACKET))
+            {
+                arraySize = parseExpression();
+            }
+
+            consume(TokenType::RBRACKET, "Expected ']' after array size");
+        }
+
+        consume(TokenType::SEMICOLON, "Expected ';' after struct field");
+
+        SourceLocation fieldLoc(field_start.filename, field_start.line, field_start.column);
+        fields.push_back(std::make_unique<VarDecl>(
+            fieldName, fieldType, nullptr, fieldLoc, isArray, std::move(arraySize), pointerLevel
+        ));
+    }
+
+    return fields;
+}
+
+// Helper: Parse struct declaration or definition
+// Handles: struct Point { ... };  OR  struct Point p;
+std::unique_ptr<Declaration> Parser::parseStructDeclarationOrDefinition()
+{
+    Token structToken = current_token_;
+    advance(); // consume 'struct'
+
+    if (!check(TokenType::IDENTIFIER))
+    {
+        reportError("Expected struct name after 'struct' keyword");
+        synchronizeToDeclaration();
+        return nullptr;
+    }
+
+    Token nameToken = current_token_;
+    advance(); // consume struct name
+
+    // Distinguish between definition and declaration
+    if (check(TokenType::LBRACE))
+    {
+        // It's a struct definition: struct Name { ... };
+        consume(TokenType::LBRACE, "Expected '{' after struct name");
+
+        // Parse member fields
+        std::vector<std::unique_ptr<VarDecl>> fields = parseStructFieldList();
+
+        consume(TokenType::RBRACE, "Expected '}' after struct fields");
+        consume(TokenType::SEMICOLON, "Expected ';' after struct definition");
+
+        SourceLocation loc(structToken.filename, structToken.line, structToken.column);
+        return std::make_unique<StructDecl>(std::string(nameToken.value), std::move(fields), loc);
+    }
+    else
+    {
+        // It's a variable declaration with struct type: struct Point p;
+        std::string type = std::string(structToken.value) + " " + std::string(nameToken.value);
+        Token var_name_token = consume(TokenType::IDENTIFIER, "Expected identifier in declaration");
+        std::string var_name(var_name_token.value);
+
+        // Handle array declaration
+        bool isArray = false;
+        std::unique_ptr<Expression> arraySize = nullptr;
+
+        if (check(TokenType::LBRACKET))
+        {
+            advance();
+            isArray = true;
+            if (!check(TokenType::RBRACKET))
+            {
+                arraySize = parseExpression();
+            }
+            consume(TokenType::RBRACKET, "Expected ']'");
+        }
+
+        // Handle initialization
+        std::unique_ptr<Expression> initializer = nullptr;
         if (match(TokenType::OP_ASSIGN))
         {
             initializer = parseExpression();
         }
 
-        if (!check(TokenType::SEMICOLON))
-        {
-            // USER STORY #21: Semicolon is missing, report error and synchronize
-            reportError("Expected ';'");
-            synchronizeToDeclaration();
-            return nullptr;
-        }
-        advance(); // Consume semicolon
+        consume(TokenType::SEMICOLON, "Expected ';' after declaration");
 
-        SourceLocation loc(start_token.filename, start_token.line, start_token.column);
-        return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, false, nullptr, pointerLevel);
+        SourceLocation loc(structToken.filename, structToken.line, structToken.column);
+        return std::make_unique<VarDecl>(var_name, type, std::move(initializer), loc, isArray, std::move(arraySize), 0);
     }
+}
+
+// Helper: Parse function declaration/definition
+// Handles: int foo(int x) { ... }  OR  int foo(int x);
+std::unique_ptr<Declaration> Parser::parseFunctionDeclarationImpl(
+    const Token& start_token,
+    const std::string& type,
+    const std::string& name,
+    int /* pointerLevel */)
+{
+    // Parse parameter list
+    consume(TokenType::LPAREN, "Expected '(' after function name");
+    std::vector<std::unique_ptr<ParameterDecl>> parameters = parseParameterList();
+    consume(TokenType::RPAREN, "Expected ')' after parameter list");
+
+    // Check if this is a forward declaration (;) or a definition ({...})
+    std::unique_ptr<CompoundStmt> body = nullptr;
+
+    if (check(TokenType::LBRACE))
+    {
+        // Function definition with body
+        body = std::unique_ptr<CompoundStmt>(
+            dynamic_cast<CompoundStmt*>(parseCompoundStatement().release())
+        );
+    }
+    else if (match(TokenType::SEMICOLON))
+    {
+        // Forward declaration - body remains nullptr
+    }
+    else
+    {
+        reportError("Expected ';' or '{' after function declaration");
+        synchronize();
+        // Continue with null body (treated as forward declaration)
+    }
+
+    SourceLocation loc(start_token.filename, start_token.line, start_token.column);
+    return std::make_unique<FunctionDecl>(name, type, std::move(parameters), std::move(body), loc);
+}
+
+// Helper: Parse array declaration
+// Handles: int arr[10];  OR  int arr[10] = ...;
+std::unique_ptr<Declaration> Parser::parseArrayDeclaration(
+    const Token& start_token,
+    const std::string& type,
+    const std::string& name,
+    int pointerLevel)
+{
+    consume(TokenType::LBRACKET, "Expected '['");
+
+    // Parse array size expression
+    std::unique_ptr<Expression> arraySize = parseExpression();
+
+    consume(TokenType::RBRACKET, "Expected ']' after array size");
+
+    // Arrays can optionally have initializers
+    std::unique_ptr<Expression> initializer = nullptr;
+    if (match(TokenType::OP_ASSIGN))
+    {
+        initializer = parseExpression();
+    }
+
+    if (!check(TokenType::SEMICOLON))
+    {
+        reportError("Expected ';'");
+        synchronizeToDeclaration();
+        return nullptr;
+    }
+    advance(); // Consume semicolon
+
+    SourceLocation loc(start_token.filename, start_token.line, start_token.column);
+    return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, true, std::move(arraySize), pointerLevel);
+}
+
+// Helper: Parse regular variable declaration
+// Handles: int x;  OR  int x = 5;  OR  int *p = &x;
+std::unique_ptr<Declaration> Parser::parseVariableDeclarationImpl(
+    const Token& start_token,
+    const std::string& type,
+    const std::string& name,
+    int pointerLevel)
+{
+    // Handle initialization
+    std::unique_ptr<Expression> initializer = nullptr;
+
+    if (match(TokenType::OP_ASSIGN))
+    {
+        initializer = parseExpression();
+    }
+
+    if (!check(TokenType::SEMICOLON))
+    {
+        reportError("Expected ';'");
+        synchronizeToDeclaration();
+        return nullptr;
+    }
+    advance(); // Consume semicolon
+
+    SourceLocation loc(start_token.filename, start_token.line, start_token.column);
+    return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, false, nullptr, pointerLevel);
 }
 
 // USER STORY #19: Parse Struct Definitions

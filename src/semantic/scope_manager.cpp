@@ -104,3 +104,22 @@ std::vector<std::string> ScopeManager::get_all_symbol_names() const {
 
     return all_names;
 }
+
+// Mark a symbol as used (searches all scopes from innermost to outermost)
+void ScopeManager::mark_symbol_as_used(const std::string& name) {
+    // Search from innermost (top of stack) to outermost (bottom of stack)
+    for (auto it = scope_stack_.rbegin(); it != scope_stack_.rend(); ++it) {
+        if (it->exists(name)) {
+            it->mark_as_used(name);
+            return;  // Found and marked, done
+        }
+    }
+}
+
+// Get all unused variables from the current scope
+std::vector<Symbol> ScopeManager::get_unused_variables_in_current_scope() const {
+    if (scope_stack_.empty()) {
+        return std::vector<Symbol>();
+    }
+    return scope_stack_.back().get_unused_variables();
+}

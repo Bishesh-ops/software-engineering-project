@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include "error_handler.h"
 
 using namespace std; // Avoid in headers if possible
 
@@ -145,6 +146,11 @@ public:
     Token getNextToken();
     std::vector<Token> lexAll();
 
+    // Access to error handler
+    ErrorHandler& getErrorHandler() { return error_handler_; }
+    const ErrorHandler& getErrorHandler() const { return error_handler_; }
+    bool hasErrors() const { return error_handler_.has_errors(); }
+
 private:
     // --- Lexer State ---
     const std::string source_; // Store the source string (not a view)
@@ -153,7 +159,7 @@ private:
     int current_line_;
     int current_column_;
     std::string current_filename_; // Track current filename
-    int error_count_;
+    ErrorHandler error_handler_; // Unified error reporting
     static const int MAX_ERRORS = 100; // Increased for better error recovery
 
     // --- Core Lexing Primitives (Optimized) ---

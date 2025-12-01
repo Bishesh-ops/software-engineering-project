@@ -11,8 +11,11 @@ Lexer::Lexer(const std::string &source, const std::string &initial_filename)
       current_line_(1),
       current_column_(1),
       current_filename_(initial_filename),
-      error_count_(0)
+      error_handler_()
 {
+    error_handler_.set_max_errors(MAX_ERRORS);
+    // Register source code for error context display
+    error_handler_.register_source(initial_filename, source_);
 }
 
 // --- Core Lexing Primitives ---
@@ -136,7 +139,8 @@ bool Lexer::handleLineDirective()
     // Expect line number
     if (!is_digit(peek()))
     {
-        error_count_++;
+        error_handler_.error("Malformed #line directive: expected line number",
+                            SourceLocation(current_filename_, current_line_, current_column_));
         skipRestOfLine();
         return true; // Malformed
     }
@@ -144,7 +148,8 @@ bool Lexer::handleLineDirective()
     std::string line_num_str(line_num_token.value); // Convert view to string for stoi
     if (line_num_token.type != TokenType::INT_LITERAL)
     {
-        error_count_++;
+        error_handler_.error("Malformed #line directive: invalid line number",
+                            SourceLocation(current_filename_, current_line_, current_column_));
         skipRestOfLine();
         return true; // Malformed
     }
@@ -168,12 +173,14 @@ bool Lexer::handleLineDirective()
             }
             else
             {
-                error_count_++;
+                error_handler_.error("Malformed #line directive: empty filename",
+                                    SourceLocation(current_filename_, current_line_, current_column_));
             } // Malformed ""
         }
         else
         {
-            error_count_++;
+            error_handler_.error("Malformed #line directive: expected filename string",
+                                SourceLocation(current_filename_, current_line_, current_column_));
         } // Malformed, expected string
     }
 
@@ -188,7 +195,8 @@ bool Lexer::handleLineDirective()
     }
     catch (const std::exception &e)
     {
-        error_count_++;
+        error_handler_.error("Malformed #line directive: " + string(e.what()),
+                            SourceLocation(current_filename_, current_line_, current_column_));
     }
 
     skipRestOfLine();
@@ -306,10 +314,14 @@ Token Lexer::getNextToken()
         result_token = Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
     }
 
-    // --- Increment error count if token is UNKNOWN ---
+    // --- Report error if token is UNKNOWN ---
     if (result_token.type == TokenType::UNKNOWN)
     {
-        error_count_++;
+        string error_msg = "Unknown or invalid token: '";
+        error_msg += string(result_token.value);
+        error_msg += "'";
+        error_handler_.error(error_msg,
+                            SourceLocation(result_token.filename, result_token.line, result_token.column));
     }
 
     return result_token;
@@ -512,12 +524,14 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
     if (peek() == '\'')
     {
         advance();
-        error_count_++; // Empty char literal is an error
+        error_handler_.error("Empty character literal",
+                            SourceLocation(start_filename, start_line, start_column));
         return Token(TokenType::UNKNOWN, source_view_.substr(start_pos, current_pos_ - start_pos), start_filename, start_line, start_column);
     }
     if (peek() == '\n' || peek() == '\0')
     {
-        error_count_++; // Unterminated char literal
+        error_handler_.error("Unterminated character literal",
+                            SourceLocation(start_filename, start_line, start_column));
         return Token(TokenType::UNKNOWN, source_view_.substr(start_pos, current_pos_ - start_pos), start_filename, start_line, start_column);
     }
 
@@ -527,7 +541,8 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
         advance(); // Consume backslash
         if (peek() == '\0')
         {
-            error_count_++; // Unterminated escape
+            error_handler_.error("Unterminated escape sequence in character literal",
+                                SourceLocation(start_filename, start_line, start_column));
             string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
             return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
@@ -553,7 +568,8 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
             actual_char = '\0';
             break;
         default: // Invalid escape
-            error_count_++; // Invalid escape sequence
+            error_handler_.error("Invalid escape sequence '\\" + string(1, escape_char) + "' in character literal",
+                                SourceLocation(start_filename, start_line, start_column));
             string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
             return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
@@ -567,7 +583,8 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
 
     if (peek() != '\'')
     { // Error: multi-char or unterminated
-        error_count_++; // Multi-char or unterminated literal
+        error_handler_.error("Multi-character or unterminated character literal",
+                            SourceLocation(start_filename, start_line, start_column));
         while (peek() != '\'' && peek() != '\n' && peek() != '\0')
         {
             advance();
@@ -598,7 +615,8 @@ Token Lexer::scanStringLiteral(int start_line, int start_column)
     {
         if (peek() == '\n' || peek() == '\0')
         { // Unterminated string
-            error_count_++; // Unterminated string literal
+            error_handler_.error("Unterminated string literal",
+                                SourceLocation(start_filename, start_line, start_column));
             string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
             return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
@@ -607,7 +625,8 @@ Token Lexer::scanStringLiteral(int start_line, int start_column)
             advance(); // Consume '\'
             if (peek() == '\0')
             { // Unterminated escape
-                error_count_++; // Unterminated escape in string
+                error_handler_.error("Unterminated escape sequence in string literal",
+                                    SourceLocation(start_filename, start_line, start_column));
                 string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
                 return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
             }
