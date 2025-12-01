@@ -246,6 +246,7 @@ bool CompilerDriver::compile(const std::string& sourceCode, const std::string& s
     reportInfo("Stage 3: Semantic Analysis");
 
     SemanticAnalyzer semanticAnalyzer;
+    semanticAnalyzer.set_warnings_enabled(options.warningsEnabled);
     semanticAnalyzer.analyze(*ast);
 
     if (semanticAnalyzer.hasErrors()) {

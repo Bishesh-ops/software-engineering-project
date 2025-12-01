@@ -23,6 +23,7 @@ private:
     ScopeManager scope_manager_;
     ErrorHandler error_handler_; // Unified error reporting
     bool in_function_scope_; // Track if we're currently inside a function
+    bool warnings_enabled_; // Control whether warnings are emitted
 
     // Type tracking for expressions (maps expression pointer to its type)
     std::unordered_map<const Expression *, std::shared_ptr<Type>> expression_types_;
@@ -87,6 +88,10 @@ public:
 
     // Check if analysis found any warnings
     bool has_warnings() const { return error_handler_.has_warnings(); }
+
+    // Enable/disable warnings
+    void set_warnings_enabled(bool enabled) { warnings_enabled_ = enabled; }
+    bool are_warnings_enabled() const { return warnings_enabled_; }
 
     // Expression visitors
     void visit(BinaryExpr &node) override;

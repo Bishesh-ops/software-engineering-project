@@ -28,6 +28,7 @@ public:
         bool verbose = false;           // Print detailed compilation steps
         bool keepIntermediateFiles = false;  // Keep .s and .o files
         bool optimize = true;           // Run optimization passes
+        bool warningsEnabled = true;    // Enable/disable warning messages
         std::string outputFile = "a.out";    // Output executable name
         bool emitAssembly = false;      // Stop after assembly generation
         bool emitObject = false;        // Stop after assembling

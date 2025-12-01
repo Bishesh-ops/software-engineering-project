@@ -5,7 +5,7 @@
 // ============================================================================
 
 SemanticAnalyzer::SemanticAnalyzer()
-    : in_function_scope_(false) {
+    : in_function_scope_(false), warnings_enabled_(true) {
 }
 
 void SemanticAnalyzer::add_error(const std::string& message, const SourceLocation& location) {
@@ -13,7 +13,10 @@ void SemanticAnalyzer::add_error(const std::string& message, const SourceLocatio
 }
 
 void SemanticAnalyzer::add_warning(const std::string& message, const SourceLocation& location) {
-    error_handler_.warning(message, location);
+    // Only emit warning if warnings are enabled
+    if (warnings_enabled_) {
+        error_handler_.warning(message, location);
+    }
 }
 
 bool SemanticAnalyzer::register_symbol(const Symbol& symbol, const SourceLocation& location) {
