@@ -118,8 +118,8 @@ int main() {
         string code = R"(
             int test() {
                 int x = 5;      // Unused variable
-                int y = 10;
-                return y;       // y is used
+                int y = 10;     // y is used in return
+                return y;
             }
         )";
 
@@ -135,10 +135,83 @@ int main() {
             cout << "Errors: " << analyzer.getErrorHandler().get_error_count() << "\n";
             cout << "Warnings: " << analyzer.getErrorHandler().get_warning_count() << "\n";
 
-            if (analyzer.getErrorHandler().get_warning_count() > 0) {
+            // Should have 1 warning for unused 'x'
+            if (analyzer.getErrorHandler().get_warning_count() == 1) {
                 cout << "[PASS] Unused variable warning was emitted\n";
+            } else if (analyzer.getErrorHandler().get_warning_count() > 1) {
+                cout << "[PARTIAL] More warnings than expected (" << analyzer.getErrorHandler().get_warning_count() << ")\n";
             } else {
                 cout << "[FAIL] Unused variable warning was NOT emitted\n";
+            }
+        }
+    }
+
+    cout << "\n";
+
+    // Test 5: Error Recovery - Multiple errors reported
+    cout << "Test 5: Error Recovery\n";
+    cout << "-----------------------\n";
+    {
+        string code = R"(
+            int main() {
+                int x = y;     // Error: undeclared 'y'
+                int z = w;     // Error: undeclared 'w'
+                return x + z;
+            }
+        )";
+
+        Lexer lexer(code, "test.c");
+        Parser parser(lexer);
+        auto program = parser.parseProgram();
+
+        if (!parser.hasErrors()) {
+            SemanticAnalyzer analyzer;
+            analyzer.set_warnings_enabled(true);
+            analyzer.analyze_program(program);
+
+            cout << "Errors: " << analyzer.getErrorHandler().get_error_count() << "\n";
+
+            if (analyzer.getErrorHandler().get_error_count() >= 2) {
+                cout << "[PASS] Multiple errors reported (error recovery working)\n";
+            } else {
+                cout << "[FAIL] Not all errors were reported\n";
+            }
+        }
+    }
+
+    cout << "\n";
+
+    // Test 6: Error Summary
+    cout << "Test 6: Error Summary\n";
+    cout << "---------------------\n";
+    {
+        string code = R"(
+            int test() {
+                int x = 5;     // Unused variable
+                int y = z;     // Undeclared 'z'
+                return y;
+            }
+        )";
+
+        Lexer lexer(code, "test.c");
+        Parser parser(lexer);
+        auto program = parser.parseProgram();
+
+        if (!parser.hasErrors()) {
+            SemanticAnalyzer analyzer;
+            analyzer.set_warnings_enabled(true);
+            analyzer.analyze_program(program);
+
+            cout << "Errors: " << analyzer.getErrorHandler().get_error_count() << "\n";
+            cout << "Warnings: " << analyzer.getErrorHandler().get_warning_count() << "\n";
+
+            // Print summary
+            analyzer.getErrorHandler().print_summary(cout);
+
+            if (analyzer.getErrorHandler().get_error_count() > 0) {
+                cout << "[PASS] Error summary displayed\n";
+            } else {
+                cout << "[FAIL] No errors to summarize\n";
             }
         }
     }

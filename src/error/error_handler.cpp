@@ -19,7 +19,7 @@ ErrorHandler::ErrorHandler(bool enable_colors)
       warning_count_(0),
       note_count_(0),
       colors_enabled_(enable_colors),
-      max_errors_(0),  // 0 = unlimited
+      max_errors_(10),  // Stop after 10 errors (user story requirement)
       show_source_context_(true)  // Enable by default
 {
 }
@@ -29,10 +29,30 @@ ErrorHandler::ErrorHandler(bool enable_colors)
 // ============================================================================
 
 void ErrorHandler::error(const std::string& message, const SourceLocation& location) {
+    // Check if we've reached the max error limit
+    if (max_errors_ > 0 && error_count_ >= max_errors_) {
+        // Already at limit, don't add more errors
+        return;
+    }
+
     Diagnostic diag(DiagnosticLevel::ERROR, message, location);
     diagnostics_.push_back(diag);
     error_count_++;
     emit_diagnostic(diag);
+
+    // If we just reached the limit, emit a note
+    if (max_errors_ > 0 && error_count_ == max_errors_) {
+        std::cerr << "\n";
+        if (colors_enabled_) {
+            std::cerr << COLOR_BOLD;
+        }
+        std::cerr << "Maximum error limit reached (" << max_errors_ << " errors). ";
+        std::cerr << "Stopping compilation.";
+        if (colors_enabled_) {
+            std::cerr << COLOR_RESET;
+        }
+        std::cerr << "\n";
+    }
 }
 
 void ErrorHandler::warning(const std::string& message, const SourceLocation& location) {
@@ -90,33 +110,45 @@ void ErrorHandler::print_summary(std::ostream& os) const {
     }
 
     os << "\n";
-    os << "========================================\n";
-    os << "Compilation Summary\n";
-    os << "========================================\n";
 
+    // Format: "Compilation failed: X errors, Y warnings" or "Compilation succeeded: Y warnings"
     if (error_count_ > 0) {
         if (colors_enabled_) {
-            os << COLOR_RED;
+            os << COLOR_RED << COLOR_BOLD;
+        }
+        os << "Compilation failed: ";
+        if (colors_enabled_) {
+            os << COLOR_RESET << COLOR_RED;
         }
         os << error_count_ << " error" << (error_count_ != 1 ? "s" : "");
+
+        if (warning_count_ > 0) {
+            os << ", ";
+            if (colors_enabled_) {
+                os << COLOR_RESET << COLOR_YELLOW;
+            }
+            os << warning_count_ << " warning" << (warning_count_ != 1 ? "s" : "");
+        }
+
         if (colors_enabled_) {
             os << COLOR_RESET;
         }
-        os << " generated\n";
-    }
-
-    if (warning_count_ > 0) {
+        os << "\n";
+    } else if (warning_count_ > 0) {
+        // Success but with warnings
         if (colors_enabled_) {
-            os << COLOR_YELLOW;
+            os << COLOR_YELLOW << COLOR_BOLD;
+        }
+        os << "Compilation succeeded: ";
+        if (colors_enabled_) {
+            os << COLOR_RESET << COLOR_YELLOW;
         }
         os << warning_count_ << " warning" << (warning_count_ != 1 ? "s" : "");
         if (colors_enabled_) {
             os << COLOR_RESET;
         }
-        os << " generated\n";
+        os << "\n";
     }
-
-    os << "========================================\n";
 }
 
 // ============================================================================

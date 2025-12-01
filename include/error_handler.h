@@ -112,6 +112,11 @@ public:
     // Get total note count
     int get_note_count() const { return note_count_; }
 
+    // Check if max error limit has been reached (for error recovery)
+    bool has_reached_max_errors() const {
+        return max_errors_ > 0 && error_count_ >= max_errors_;
+    }
+
     // ========================================================================
     // Diagnostic Collection
     // ========================================================================

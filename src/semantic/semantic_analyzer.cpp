@@ -42,6 +42,11 @@ void SemanticAnalyzer::analyze_program(const std::vector<std::unique_ptr<Declara
 
     // Process all top-level declarations
     for (const auto& decl : declarations) {
+        // Stop if we've reached the maximum error limit (error recovery)
+        if (error_handler_.has_reached_max_errors()) {
+            break;
+        }
+
         if (decl) {
             decl->accept(*this);
         }

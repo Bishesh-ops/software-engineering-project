@@ -713,6 +713,12 @@ std::vector<std::unique_ptr<Declaration>> Parser::parseProgram()
     // Parse all top-level declarations until we reach EOF
     while (!check(TokenType::EOF_TOKEN))
     {
+        // Stop if we've reached the maximum error limit (error recovery)
+        if (error_handler_.has_reached_max_errors())
+        {
+            break;
+        }
+
         auto decl = parseDeclaration();
         if (decl)
         {
