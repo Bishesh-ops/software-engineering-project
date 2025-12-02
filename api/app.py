@@ -19,7 +19,19 @@ from config import Config
 from utils.compiler import CompilerInvoker
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for React frontend
+
+# Configure CORS for React development server
+# Development: Allow localhost:3000 (React dev server)
+# Production: Should be restricted to specific domain
+cors_config = {
+    "origins": Config.CORS_ORIGINS,
+    "methods": ["GET", "POST", "OPTIONS"],
+    "allow_headers": ["Content-Type"],
+    "supports_credentials": False,
+    "max_age": 3600  # Cache preflight requests for 1 hour
+}
+
+CORS(app, resources={r"/*": cors_config})
 
 # Initialize compiler invoker
 compiler = CompilerInvoker(Config.COMPILER_PATH)
@@ -63,6 +75,8 @@ def compile_code():
     {
         "success": false,
         "error": "Syntax error at line 5...",
+        "tokens": {...},        # Partial results if available
+        "ast": {...},           # Partial results if available
         "logs": {
             "stdout": "...",
             "stderr": "..."
@@ -70,10 +84,16 @@ def compile_code():
     }
     """
     try:
-        # Parse request
-        data = request.get_json()
+        # Parse request - Handle invalid JSON
+        data = request.get_json(force=False, silent=False)
 
-        if not data or 'source' not in data:
+        if data is None:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid JSON in request body'
+            }), 400
+
+        if 'source' not in data:
             return jsonify({
                 'success': False,
                 'error': 'Missing "source" field in request body'
@@ -81,11 +101,38 @@ def compile_code():
 
         source_code = data['source']
 
+        # Validate source code is not empty
+        if not source_code or not source_code.strip():
+            return jsonify({
+                'success': False,
+                'error': 'Source code cannot be empty'
+            }), 400
+
+        # Validate source code size
+        if len(source_code) > Config.MAX_SOURCE_SIZE:
+            return jsonify({
+                'success': False,
+                'error': f'Source code too large: {len(source_code)} bytes (max: {Config.MAX_SOURCE_SIZE} bytes)'
+            }), 400
+
         # Invoke compiler with default filename
         result = compiler.compile(source_code, filename='input.c')
 
+        # Check for timeout specifically
+        if result.get('return_code') == -1 and 'timeout' in str(result.get('errors', [])).lower():
+            # Compilation timeout - return 408
+            return jsonify({
+                'success': False,
+                'error': result.get('errors', ['Compilation timeout'])[0],
+                'logs': {
+                    'stdout': result.get('stdout', ''),
+                    'stderr': result.get('stderr', '')
+                }
+            }), 408
+
         # Transform result to match API contract
         if result['success']:
+            # Successful compilation
             response = {
                 'success': True,
                 'tokens': result.get('tokens'),
@@ -99,11 +146,15 @@ def compile_code():
             }
             return jsonify(response), 200
         else:
-            # Compilation failed - return error response
+            # Compilation failed - return partial results with error
             error_msg = result.get('errors', ['Unknown compilation error'])[0] if result.get('errors') else 'Compilation failed'
+
             response = {
                 'success': False,
                 'error': error_msg,
+                'tokens': result.get('tokens'),      # Partial result: may have tokens even if failed
+                'ast': result.get('ast'),            # Partial result: may have AST even if codegen failed
+                'assembly': result.get('assembly'),  # Partial result: may have assembly even if linking failed
                 'logs': {
                     'stdout': result.get('stdout', ''),
                     'stderr': result.get('stderr', '')
@@ -111,7 +162,26 @@ def compile_code():
             }
             return jsonify(response), 400
 
+    except ValueError as e:
+        # Invalid JSON format
+        return jsonify({
+            'success': False,
+            'error': f'Invalid JSON in request body: {str(e)}'
+        }), 400
+
+    except FileNotFoundError as e:
+        # Compiler binary not found
+        return jsonify({
+            'success': False,
+            'error': f'Compiler binary not found: {str(e)}'
+        }), 500
+
     except Exception as e:
+        # Internal server error - log and return 500
+        import traceback
+        print(f"Internal server error: {str(e)}")
+        print(traceback.format_exc())
+
         return jsonify({
             'success': False,
             'error': f'Internal server error: {str(e)}'

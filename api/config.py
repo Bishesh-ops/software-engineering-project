@@ -17,14 +17,28 @@ class Config:
 
     # Compiler settings
     import platform
+    import os as _os_check
+
+    # Try to find the compiler binary (with or without .exe)
     COMPILER_EXE = "mycc.exe" if platform.system() == "Windows" else "mycc"
-    COMPILER_PATH = str(PROJECT_ROOT / "bin" / COMPILER_EXE)
+    COMPILER_PATH_WITH_EXE = str(PROJECT_ROOT / "bin" / "mycc.exe")
+    COMPILER_PATH_NO_EXE = str(PROJECT_ROOT / "bin" / "mycc")
+
+    # Use the one that exists (handles Git Bash on Windows)
+    if _os_check.path.exists(COMPILER_PATH_WITH_EXE):
+        COMPILER_PATH = COMPILER_PATH_WITH_EXE
+    elif _os_check.path.exists(COMPILER_PATH_NO_EXE):
+        COMPILER_PATH = COMPILER_PATH_NO_EXE
+    else:
+        # Default to platform-specific name
+        COMPILER_PATH = str(PROJECT_ROOT / "bin" / COMPILER_EXE)
 
     # Temporary file settings
     TEMP_DIR = str(PROJECT_ROOT / "tmp")
 
     # Compilation settings
     COMPILE_TIMEOUT = 30  # seconds
+    MAX_SOURCE_SIZE = 100 * 1024  # 100KB max source code size
 
     # Flask server settings
     HOST = "0.0.0.0"  # Listen on all interfaces
@@ -32,9 +46,13 @@ class Config:
     DEBUG = True  # Enable debug mode for development
 
     # CORS settings
-    CORS_ORIGINS = "*"  # Allow all origins in development
-    # For production, set to specific frontend URL:
-    # CORS_ORIGINS = "http://localhost:3000"
+    # Development: Allow React dev server
+    # Production: Should use environment variable or specific domain
+    import os as _os
+    CORS_ORIGINS = _os.getenv('CORS_ORIGINS', 'http://localhost:3000')
+    # To allow multiple origins in development:
+    # CORS_ORIGINS = ['http://localhost:3000', 'http://localhost:5173']
+    # To allow all origins (not recommended): CORS_ORIGINS = "*"
 
     # Logging
     LOG_LEVEL = "INFO"
@@ -62,6 +80,9 @@ class Config:
         if cls.COMPILE_TIMEOUT <= 0:
             raise ValueError("COMPILE_TIMEOUT must be positive")
 
+        if cls.MAX_SOURCE_SIZE <= 0:
+            raise ValueError("MAX_SOURCE_SIZE must be positive")
+
         if not (1024 <= cls.PORT <= 65535):
             raise ValueError("PORT must be between 1024 and 65535")
 
@@ -79,6 +100,7 @@ class Config:
             "compiler_exists": os.path.exists(cls.COMPILER_PATH),
             "temp_dir": cls.TEMP_DIR,
             "compile_timeout": cls.COMPILE_TIMEOUT,
+            "max_source_size": cls.MAX_SOURCE_SIZE,
             "server": {
                 "host": cls.HOST,
                 "port": cls.PORT,

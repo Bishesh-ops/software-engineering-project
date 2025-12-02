@@ -337,31 +337,46 @@ bool CompilerDriver::compile(const std::string& sourceCode, const std::string& s
     // We need to add a method to generate IR for entire program
     reportInfo("Stage 4: IR Generation (SSA Form) - SKIPPED (Not yet integrated)");
 
-    // Placeholder assembly (ARM64 for Apple Silicon, x86-64 for Intel/Linux)
-#ifdef __aarch64__
-    // ARM64 assembly for Apple Silicon Macs
-    std::string assembly =
-        ".section __TEXT,__text,regular,pure_instructions\n"
-        ".globl _main\n"
-        ".p2align 2\n"
-        "_main:\n"
-        "    sub sp, sp, #16\n"
-        "    stp x29, x30, [sp]\n"
-        "    mov w0, #0\n"
-        "    ldp x29, x30, [sp]\n"
-        "    add sp, sp, #16\n"
-        "    ret\n";
+    // Placeholder assembly (platform-specific)
+    std::string assembly;
+
+#ifdef __APPLE__
+    #ifdef __aarch64__
+        // ARM64 assembly for Apple Silicon Macs
+        assembly =
+            ".section __TEXT,__text,regular,pure_instructions\n"
+            ".globl _main\n"
+            ".p2align 2\n"
+            "_main:\n"
+            "    sub sp, sp, #16\n"
+            "    stp x29, x30, [sp]\n"
+            "    mov w0, #0\n"
+            "    ldp x29, x30, [sp]\n"
+            "    add sp, sp, #16\n"
+            "    ret\n";
+    #else
+        // x86-64 assembly for Intel Macs
+        assembly =
+            ".section __TEXT,__text,regular,pure_instructions\n"
+            ".globl _main\n"
+            "_main:\n"
+            "    pushq   %rbp\n"
+            "    movq    %rsp, %rbp\n"
+            "    xorl    %eax, %eax\n"
+            "    popq    %rbp\n"
+            "    retq\n";
+    #endif
 #else
-    // x86-64 assembly for Intel Macs and Linux
-    std::string assembly =
-        ".section __TEXT,__text,regular,pure_instructions\n"
-        ".globl _main\n"
-        "_main:\n"
+    // Linux/Windows x86-64 assembly (ELF/PE format)
+    assembly =
+        ".text\n"
+        ".globl main\n"
+        "main:\n"
         "    pushq   %rbp\n"
         "    movq    %rsp, %rbp\n"
         "    xorl    %eax, %eax\n"
         "    popq    %rbp\n"
-        "    retq\n";
+        "    ret\n";
 #endif
 
     // Dump assembly to file if requested (for visualization/debugging)
