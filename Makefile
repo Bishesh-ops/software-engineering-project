@@ -23,7 +23,10 @@ OBJS = $(BUILD_DIR)/error_handler.o \
        $(BUILD_DIR)/ir_codegen.o \
        $(BUILD_DIR)/ir_optimizer.o \
        $(BUILD_DIR)/codegen.o \
-       $(BUILD_DIR)/compiler_driver.o
+       $(BUILD_DIR)/compiler_driver.o \
+       $(BUILD_DIR)/token_serializer.o \
+       $(BUILD_DIR)/ast_serializer.o \
+       $(BUILD_DIR)/hex_dump.o
 
 .PHONY: all clean dirs
 
@@ -96,6 +99,16 @@ $(BUILD_DIR)/compiler_driver.o: $(SRC_DIR)/compiler/compiler_driver.cpp | dirs
 
 # Main entry point (to be created in src/main.cpp)
 $(BUILD_DIR)/main.o: $(SRC_DIR)/main.cpp | dirs
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Serializers
+$(BUILD_DIR)/token_serializer.o: $(SRC_DIR)/serializers/token_serializer.cpp | dirs
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/ast_serializer.o: $(SRC_DIR)/serializers/ast_serializer.cpp | dirs
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/hex_dump.o: $(SRC_DIR)/serializers/hex_dump.cpp | dirs
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Clean

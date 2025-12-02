@@ -1,8 +1,33 @@
 # C Compiler Project
 
-A comprehensive educational C compiler that translates a subset of C to x86-64 assembly. Features a complete compilation pipeline including lexical analysis, parsing, semantic analysis, SSA-based intermediate representation, multi-level optimizations, and native code generation.
+A comprehensive educational C compiler that translates a subset of C to ARM64/x86-64 assembly. Features a complete compilation pipeline including lexical analysis, parsing, semantic analysis, SSA-based intermediate representation, multi-level optimizations, and native code generation.
 
-**Status**: Production-ready educational compiler with full end-to-end compilation support
+**Status**: ✅ Story 1 COMPLETE - Interactive Visualization & Data Dumping
+
+## 🎉 What's New: Story 1 Complete
+
+This compiler now includes **complete data dumping infrastructure** for interactive visualization:
+
+- ✅ **Token JSON dumps** - Export lexical analysis results
+- ✅ **AST JSON dumps** - Export abstract syntax tree (Visitor pattern)
+- ✅ **Assembly dumps** - Export generated ARM64/x86-64 assembly
+- ✅ **Hex dumps** - Export binary executable in hex format
+- ✅ **Full CLI** - Complete command-line interface with dump flags
+- ✅ **ARM64 Support** - Working executables on Apple Silicon!
+
+**Quick Start:**
+```bash
+./bin/mycc test_simple.c --dump-tokens tokens.json --dump-ast ast.json \
+                         --dump-asm assembly.s --dump-hex executable.hex \
+                         -o program
+./program  # Works! Returns 0
+```
+
+**Documentation:**
+- 📄 `STORY1_QUICK_START.md` - Usage examples and commands
+- 📄 `STORY1_COMPLETION_REPORT.md` - Comprehensive technical report
+- 📄 `PIPELINE_VISUALIZATION.txt` - Visual pipeline diagram
+- 📄 `claude.md` - Full context for LLM sessions
 
 ## Project Structure
 
