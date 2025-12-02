@@ -40,6 +40,9 @@ void SemanticAnalyzer::analyze_program(const std::vector<std::unique_ptr<Declara
     error_handler_.clear();
     expression_types_.clear();
 
+    // Register built-in C standard library functions
+    register_builtin_functions();
+
     // Process all top-level declarations
     for (const auto& decl : declarations) {
         // Stop if we've reached the maximum error limit (error recovery)
@@ -51,6 +54,88 @@ void SemanticAnalyzer::analyze_program(const std::vector<std::unique_ptr<Declara
             decl->accept(*this);
         }
     }
+}
+
+void SemanticAnalyzer::register_builtin_functions() {
+    // Register common C standard library functions as built-ins
+    // These are available when #include <stdio.h> etc. are used
+
+    // stdio.h functions
+    register_builtin_function("printf", "int", {"char*"}, true);   // variadic
+    register_builtin_function("scanf", "int", {"char*"}, true);    // variadic
+    register_builtin_function("puts", "int", {"char*"}, false);
+    register_builtin_function("putchar", "int", {"int"}, false);
+    register_builtin_function("getchar", "int", {}, false);
+    register_builtin_function("sprintf", "int", {"char*", "char*"}, true);
+    register_builtin_function("snprintf", "int", {"char*", "int", "char*"}, true);
+    register_builtin_function("fprintf", "int", {"void*", "char*"}, true);
+    register_builtin_function("fscanf", "int", {"void*", "char*"}, true);
+    register_builtin_function("fopen", "void*", {"char*", "char*"}, false);
+    register_builtin_function("fclose", "int", {"void*"}, false);
+    register_builtin_function("fread", "int", {"void*", "int", "int", "void*"}, false);
+    register_builtin_function("fwrite", "int", {"void*", "int", "int", "void*"}, false);
+    register_builtin_function("fgets", "char*", {"char*", "int", "void*"}, false);
+    register_builtin_function("fputs", "int", {"char*", "void*"}, false);
+
+    // stdlib.h functions
+    register_builtin_function("malloc", "void*", {"int"}, false);
+    register_builtin_function("calloc", "void*", {"int", "int"}, false);
+    register_builtin_function("realloc", "void*", {"void*", "int"}, false);
+    register_builtin_function("free", "void", {"void*"}, false);
+    register_builtin_function("exit", "void", {"int"}, false);
+    register_builtin_function("abort", "void", {}, false);
+    register_builtin_function("atoi", "int", {"char*"}, false);
+    register_builtin_function("atof", "double", {"char*"}, false);
+    register_builtin_function("rand", "int", {}, false);
+    register_builtin_function("srand", "void", {"int"}, false);
+    register_builtin_function("abs", "int", {"int"}, false);
+
+    // string.h functions
+    register_builtin_function("strlen", "int", {"char*"}, false);
+    register_builtin_function("strcpy", "char*", {"char*", "char*"}, false);
+    register_builtin_function("strncpy", "char*", {"char*", "char*", "int"}, false);
+    register_builtin_function("strcat", "char*", {"char*", "char*"}, false);
+    register_builtin_function("strcmp", "int", {"char*", "char*"}, false);
+    register_builtin_function("strncmp", "int", {"char*", "char*", "int"}, false);
+    register_builtin_function("strchr", "char*", {"char*", "int"}, false);
+    register_builtin_function("strstr", "char*", {"char*", "char*"}, false);
+    register_builtin_function("memcpy", "void*", {"void*", "void*", "int"}, false);
+    register_builtin_function("memset", "void*", {"void*", "int", "int"}, false);
+    register_builtin_function("memmove", "void*", {"void*", "void*", "int"}, false);
+
+    // math.h functions
+    register_builtin_function("sqrt", "double", {"double"}, false);
+    register_builtin_function("pow", "double", {"double", "double"}, false);
+    register_builtin_function("sin", "double", {"double"}, false);
+    register_builtin_function("cos", "double", {"double"}, false);
+    register_builtin_function("tan", "double", {"double"}, false);
+    register_builtin_function("log", "double", {"double"}, false);
+    register_builtin_function("exp", "double", {"double"}, false);
+    register_builtin_function("floor", "double", {"double"}, false);
+    register_builtin_function("ceil", "double", {"double"}, false);
+    register_builtin_function("fabs", "double", {"double"}, false);
+}
+
+void SemanticAnalyzer::register_builtin_function(const std::string& name,
+                                                  const std::string& return_type,
+                                                  const std::vector<std::string>& param_types,
+                                                  bool is_variadic) {
+    std::vector<std::shared_ptr<Type>> typed_params;
+    for (const auto& pt : param_types) {
+        typed_params.push_back(Type::fromString(pt));
+    }
+
+    Symbol func_symbol(
+        Symbol::AsFunction,
+        name,
+        Type::fromString(return_type),
+        typed_params,
+        0  // Global scope
+    );
+    func_symbol.is_variadic = is_variadic;
+    func_symbol.is_builtin = true;
+
+    scope_manager_.insert(func_symbol);
 }
 
 std::shared_ptr<Type> SemanticAnalyzer::get_expression_type(const Expression* expr) const {

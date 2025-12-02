@@ -73,6 +73,13 @@ private:
     std::shared_ptr<Type> needs_conversion(std::shared_ptr<Type> from,
                                            std::shared_ptr<Type> to) const;
 
+    // Register built-in C standard library functions
+    void register_builtin_functions();
+    void register_builtin_function(const std::string& name,
+                                   const std::string& return_type,
+                                   const std::vector<std::string>& param_types,
+                                   bool is_variadic);
+
 public:
     SemanticAnalyzer();
 
