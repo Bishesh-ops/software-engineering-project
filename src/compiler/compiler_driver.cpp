@@ -10,9 +10,16 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#else
+#include <direct.h>
+#include <process.h>
+#include <io.h>
+#endif
 
 // ============================================================================
 // Compiler Driver Implementation
@@ -22,32 +29,60 @@ CompilerDriver::CompilerDriver()
     : errorCount(0)
 {
     // Use system temp directory
+#ifdef _WIN32
+    const char* tmpDir = getenv("TEMP");
+    if (!tmpDir) tmpDir = getenv("TMP");
+    if (tmpDir) {
+        tempDir = tmpDir;
+    } else {
+        tempDir = "C:\\Temp";
+    }
+#else
     const char* tmpDir = getenv("TMPDIR");
     if (tmpDir) {
         tempDir = tmpDir;
     } else {
         tempDir = "/tmp";
     }
+#endif
 }
 
 CompilerDriver::CompilerDriver(const Options& opts)
     : options(opts), errorCount(0)
 {
+#ifdef _WIN32
+    const char* tmpDir = getenv("TEMP");
+    if (!tmpDir) tmpDir = getenv("TMP");
+    if (tmpDir) {
+        tempDir = tmpDir;
+    } else {
+        tempDir = "C:\\Temp";
+    }
+#else
     const char* tmpDir = getenv("TMPDIR");
     if (tmpDir) {
         tempDir = tmpDir;
     } else {
         tempDir = "/tmp";
     }
+#endif
 }
 
 std::string CompilerDriver::getTempFileName(const std::string& baseName, const std::string& extension)
 {
     // If baseName is already an absolute path, don't prepend tempDir
+#ifdef _WIN32
+    if (!baseName.empty() && (baseName[0] == '/' || baseName[0] == '\\' ||
+        (baseName.length() >= 2 && baseName[1] == ':'))) {
+        return baseName + extension;
+    }
+    return tempDir + "\\" + baseName + extension;
+#else
     if (!baseName.empty() && baseName[0] == '/') {
         return baseName + extension;
     }
     return tempDir + "/" + baseName + extension;
+#endif
 }
 
 void CompilerDriver::reportError(const std::string& message)

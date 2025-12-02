@@ -27,23 +27,23 @@ def main():
     print("\n[1/3] Testing configuration...")
     try:
         Config.validate()
-        print("✓ Configuration valid")
+        print("[OK] Configuration valid")
 
         config_info = Config.info()
         print(f"  - Compiler path: {config_info['compiler_path']}")
         print(f"  - Compiler exists: {config_info['compiler_exists']}")
         print(f"  - Server: {config_info['server']['host']}:{config_info['server']['port']}")
     except Exception as e:
-        print(f"✗ Configuration error: {e}")
+        print(f"[ERROR] Configuration error: {e}")
         return 1
 
     # Test 2: Compiler Invoker
     print("\n[2/3] Testing compiler invoker...")
     try:
         compiler = CompilerInvoker(Config.COMPILER_PATH)
-        print("✓ CompilerInvoker initialized")
+        print("[OK] CompilerInvoker initialized")
     except Exception as e:
-        print(f"✗ CompilerInvoker error: {e}")
+        print(f"[ERROR] CompilerInvoker error: {e}")
         return 1
 
     # Test 3: Compile simple program
@@ -58,7 +58,7 @@ int main() {
     try:
         result = compiler.compile(test_code, "test.c")
 
-        print(f"✓ Compilation {'succeeded' if result['success'] else 'failed'}")
+        print(f"[OK] Compilation {'succeeded' if result['success'] else 'failed'}")
         print(f"  - Return code: {result['return_code']}")
         print(f"  - Tokens: {'present' if result['tokens'] else 'missing'}")
         print(f"  - AST: {'present' if result['ast'] else 'missing'}")
@@ -72,10 +72,10 @@ int main() {
         if result['errors']:
             print(f"  - Errors: {len(result['errors'])}")
             for error in result['errors'][:3]:
-                print(f"    • {error}")
+                print(f"    - {error}")
 
     except Exception as e:
-        print(f"✗ Compilation error: {e}")
+        print(f"[ERROR] Compilation error: {e}")
         return 1
 
     print("\n" + "=" * 60)

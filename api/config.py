@@ -16,7 +16,9 @@ class Config:
     PROJECT_ROOT = Path(__file__).parent.parent.absolute()
 
     # Compiler settings
-    COMPILER_PATH = str(PROJECT_ROOT / "bin" / "mycc")
+    import platform
+    COMPILER_EXE = "mycc.exe" if platform.system() == "Windows" else "mycc"
+    COMPILER_PATH = str(PROJECT_ROOT / "bin" / COMPILER_EXE)
 
     # Temporary file settings
     TEMP_DIR = str(PROJECT_ROOT / "tmp")

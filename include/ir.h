@@ -167,6 +167,8 @@ public:
         operands.push_back(right);
     }
 
+    ~ArithmeticInst() override;
+
     const IROperand& getLeft() const { return operands[0]; }
     const IROperand& getRight() const { return operands[1]; }
 
@@ -184,6 +186,8 @@ public:
         operands.push_back(left);
         operands.push_back(right);
     }
+
+    ~ComparisonInst() override;
 
     const IROperand& getLeft() const { return operands[0]; }
     const IROperand& getRight() const { return operands[1]; }
@@ -203,6 +207,8 @@ public:
     LabelInst(const std::string& name)
         : IRInstruction(IROpcode::LABEL), labelName(name) {}
 
+    ~LabelInst() override;
+
     const std::string& getLabelName() const { return labelName; }
 
     std::string toString() const override;
@@ -218,6 +224,8 @@ public:
         : IRInstruction(IROpcode::JUMP), targetLabel(target) {
         operands.push_back(IROperand(target, IROperand::OperandType::LABEL));
     }
+
+    ~JumpInst() override;
 
     const std::string& getTargetLabel() const { return targetLabel; }
 
@@ -236,6 +244,8 @@ public:
         operands.push_back(IROperand(target, IROperand::OperandType::LABEL));
     }
 
+    ~JumpIfFalseInst() override;
+
     const IROperand& getCondition() const { return operands[0]; }
     const std::string& getTargetLabel() const { return targetLabel; }
 
@@ -253,6 +263,8 @@ public:
         operands.push_back(address);
     }
 
+    ~LoadInst() override;
+
     const IROperand& getAddress() const { return operands[0]; }
 
     std::string toString() const override;
@@ -266,6 +278,8 @@ public:
         operands.push_back(value);
         operands.push_back(address);
     }
+
+    ~StoreInst() override;
 
     const IROperand& getValue() const { return operands[0]; }
     const IROperand& getAddress() const { return operands[1]; }
@@ -284,6 +298,8 @@ private:
 public:
     CallInst(const std::string& funcName, SSAValue* result = nullptr)
         : IRInstruction(IROpcode::CALL, result), functionName(funcName) {}
+
+    ~CallInst() override;
 
     const std::string& getFunctionName() const { return functionName; }
 
@@ -307,6 +323,8 @@ public:
     ReturnInst()
         : IRInstruction(IROpcode::RETURN) {}
 
+    ~ReturnInst() override;
+
     bool hasReturnValue() const { return !operands.empty(); }
     const IROperand& getReturnValue() const { return operands[0]; }
 
@@ -322,6 +340,8 @@ private:
 public:
     ParamInst(SSAValue* result, const std::string& name, int index)
         : IRInstruction(IROpcode::PARAM, result), paramName(name), paramIndex(index) {}
+
+    ~ParamInst() override;
 
     const std::string& getParamName() const { return paramName; }
     int getParamIndex() const { return paramIndex; }
@@ -339,6 +359,8 @@ public:
         : IRInstruction(IROpcode::MOVE, result) {
         operands.push_back(source);
     }
+
+    ~MoveInst() override;
 
     const IROperand& getSource() const { return operands[0]; }
 
@@ -358,6 +380,8 @@ private:
 public:
     PhiInst(SSAValue* result)
         : IRInstruction(IROpcode::PHI, result) {}
+
+    ~PhiInst() override;
 
     void addIncoming(const IROperand& value, const std::string& blockLabel) {
         incomingValues.push_back({value, blockLabel});
