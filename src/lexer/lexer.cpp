@@ -275,9 +275,10 @@ Token Lexer::getNextToken()
         }
         else
         {
-            // Single hash (e.g., #define)
-            string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
-            return Token(TokenType::HASH, val, start_filename, start_line, start_column);
+            // Skip other preprocessor directives (#include, #define, #ifdef, etc.)
+            // Since we don't have a full preprocessor, just skip to end of line
+            skipRestOfLine();
+            return getNextToken(); // Get the next real token
         }
     }
 
