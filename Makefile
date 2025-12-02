@@ -28,12 +28,35 @@ OBJS = $(BUILD_DIR)/error_handler.o \
        $(BUILD_DIR)/ast_serializer.o \
        $(BUILD_DIR)/hex_dump.o
 
-.PHONY: all clean dirs
+.PHONY: all clean dirs dev-frontend dev-api dev build-frontend install-frontend install-api
 
 all: dirs $(COMPILER_EXE)
 	@echo "========================================"
 	@echo "Build complete: $(COMPILER_EXE)"
 	@echo "========================================"
+
+# Development commands
+dev: dev-api dev-frontend
+
+dev-frontend:
+	@echo "Starting React frontend development server..."
+	@cd frontend && npm run dev
+
+dev-api:
+	@echo "Starting Flask API server..."
+	@cd api && python3 app.py
+
+build-frontend:
+	@echo "Building React frontend for production..."
+	@cd frontend && npm run build
+
+install-frontend:
+	@echo "Installing frontend dependencies..."
+	@cd frontend && npm install
+
+install-api:
+	@echo "Installing API dependencies..."
+	@cd api && python3 -m pip install -r requirements.txt
 
 dirs:
 	@mkdir -p $(BUILD_DIR)

@@ -285,6 +285,9 @@ bool CompilerDriver::compile(const std::string& sourceCode, const std::string& s
     // ========================================================================
     reportInfo("Stage 2: Parsing (AST Construction)");
 
+    // Reset lexer position after lexAll() consumed all tokens
+    lexer.reset();
+
     Parser parser(lexer);
     auto ast = parser.parseProgram();
 
@@ -332,52 +335,51 @@ bool CompilerDriver::compile(const std::string& sourceCode, const std::string& s
     // ========================================================================
     // Stage 4: IR Generation
     // ========================================================================
-    // TODO: IR generation needs to be properly integrated
-    // The current IRCodeGenerator API is designed for individual declarations
-    // We need to add a method to generate IR for entire program
-    reportInfo("Stage 4: IR Generation (SSA Form) - SKIPPED (Not yet integrated)");
+    reportInfo("Stage 4: IR Generation (SSA Form)");
 
-    // Placeholder assembly (platform-specific)
-    std::string assembly;
+    IRCodeGenerator irCodeGen;
+    std::vector<std::unique_ptr<IRFunction>> irFunctions;
 
-#ifdef __APPLE__
-    #ifdef __aarch64__
-        // ARM64 assembly for Apple Silicon Macs
-        assembly =
-            ".section __TEXT,__text,regular,pure_instructions\n"
-            ".globl _main\n"
-            ".p2align 2\n"
-            "_main:\n"
-            "    sub sp, sp, #16\n"
-            "    stp x29, x30, [sp]\n"
-            "    mov w0, #0\n"
-            "    ldp x29, x30, [sp]\n"
-            "    add sp, sp, #16\n"
-            "    ret\n";
-    #else
-        // x86-64 assembly for Intel Macs
-        assembly =
-            ".section __TEXT,__text,regular,pure_instructions\n"
-            ".globl _main\n"
-            "_main:\n"
-            "    pushq   %rbp\n"
-            "    movq    %rsp, %rbp\n"
-            "    xorl    %eax, %eax\n"
-            "    popq    %rbp\n"
-            "    retq\n";
-    #endif
-#else
-    // Linux/Windows x86-64 assembly (ELF/PE format)
-    assembly =
-        ".text\n"
-        ".globl main\n"
-        "main:\n"
-        "    pushq   %rbp\n"
-        "    movq    %rsp, %rbp\n"
-        "    xorl    %eax, %eax\n"
-        "    popq    %rbp\n"
-        "    ret\n";
-#endif
+    for (const auto& decl : ast) {
+        if (auto* funcDecl = dynamic_cast<FunctionDecl*>(decl.get())) {
+            try {
+                auto irFunc = irCodeGen.generateFunctionIR(funcDecl);
+                if (irFunc) {
+                    irFunctions.push_back(std::move(irFunc));
+                }
+            } catch (const std::exception& e) {
+                reportError("IR generation failed for function '" + funcDecl->getName() + "': " + e.what());
+                return false;
+            }
+        }
+    }
+
+    reportInfo("  -> Generated IR for " + std::to_string(irFunctions.size()) + " function(s)");
+
+    // ========================================================================
+    // Stage 5: IR Optimization (Optional)
+    // ========================================================================
+    if (options.optimize) {
+        reportInfo("Stage 5: IR Optimization");
+        IROptimizer optimizer;
+        for (auto& irFunc : irFunctions) {
+            optimizer.optimize(irFunc.get());
+        }
+        reportInfo("  -> Optimization complete");
+    } else {
+        reportInfo("Stage 5: IR Optimization - SKIPPED (optimization disabled)");
+    }
+
+    // ========================================================================
+    // Stage 6: Code Generation (x86-64)
+    // ========================================================================
+    reportInfo("Stage 6: Code Generation (x86-64)");
+
+    CodeGenerator codeGen;
+    codeGen.setSourceFile(sourceName);
+    std::string assembly = codeGen.generateProgram(irFunctions);
+
+    reportInfo("  -> Generated " + std::to_string(assembly.size()) + " bytes of assembly");
 
     // Dump assembly to file if requested (for visualization/debugging)
     if (!options.dumpAsmPath.empty()) {

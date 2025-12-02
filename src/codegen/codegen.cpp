@@ -228,8 +228,10 @@ void LinearScanAllocator::allocate()
 
 X86Register LinearScanAllocator::getRegister(const SSAValue* value) const
 {
+    // Compare by SSA name since operands contain copies, not original pointers
+    std::string targetName = value->getSSAName();
     for (const auto& interval : intervals) {
-        if (interval.value == value) {
+        if (interval.value->getSSAName() == targetName) {
             return interval.assignedReg;
         }
     }
@@ -238,8 +240,10 @@ X86Register LinearScanAllocator::getRegister(const SSAValue* value) const
 
 bool LinearScanAllocator::isSpilled(const SSAValue* value) const
 {
+    // Compare by SSA name since operands contain copies, not original pointers
+    std::string targetName = value->getSSAName();
     for (const auto& interval : intervals) {
-        if (interval.value == value) {
+        if (interval.value->getSSAName() == targetName) {
             return interval.spillSlot != -1;
         }
     }
@@ -248,8 +252,10 @@ bool LinearScanAllocator::isSpilled(const SSAValue* value) const
 
 int LinearScanAllocator::getSpillSlot(const SSAValue* value) const
 {
+    // Compare by SSA name since operands contain copies, not original pointers
+    std::string targetName = value->getSSAName();
     for (const auto& interval : intervals) {
-        if (interval.value == value) {
+        if (interval.value->getSSAName() == targetName) {
             return interval.spillSlot;
         }
     }

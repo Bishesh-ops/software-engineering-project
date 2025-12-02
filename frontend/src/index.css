@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@import "./styles/global.css";
+
+@theme {
+  /* Custom cyberpunk colors */
+  --color-cyber-dark: #0a0e27;
+  --color-cyber-blue: #00d9ff;
+  --color-cyber-purple: #b026ff;
+  --color-cyber-pink: #ff006e;
+  --color-cyber-green: #00ff9f;
+  --color-cyber-gray: #1a1f3c;
+
+  /* Neon shadows */
+  --shadow-neon-blue: 0 0 10px #00d9ff, 0 0 20px #00d9ff;
+  --shadow-neon-purple: 0 0 10px #b026ff, 0 0 20px #b026ff;
+  --shadow-neon-pink: 0 0 10px #ff006e, 0 0 20px #ff006e;
+  --shadow-neon-green: 0 0 10px #00ff9f, 0 0 20px #00ff9f;
+
+  --font-family-mono: 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-cyber-dark);
+  color: white;
+  font-family: var(--font-family-mono);
+  margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+.neon-border-blue {
+  border: 1px solid var(--color-cyber-blue);
+  box-shadow: 0 0 10px var(--color-cyber-blue);
+}
+
+.neon-border-purple {
+  border: 1px solid var(--color-cyber-purple);
+  box-shadow: 0 0 10px var(--color-cyber-purple);
+}
+
+.neon-border-pink {
+  border: 1px solid var(--color-cyber-pink);
+  box-shadow: 0 0 10px var(--color-cyber-pink);
+}
+
+.neon-border-green {
+  border: 1px solid var(--color-cyber-green);
+  box-shadow: 0 0 10px var(--color-cyber-green);
+}
+
+.neon-text-blue {
+  color: var(--color-cyber-blue);
+  text-shadow: 0 0 10px var(--color-cyber-blue);
+}
+
+.neon-text-purple {
+  color: var(--color-cyber-purple);
+  text-shadow: 0 0 10px var(--color-cyber-purple);
+}
+
+.neon-text-pink {
+  color: var(--color-cyber-pink);
+  text-shadow: 0 0 10px var(--color-cyber-pink);
+}
+
+.neon-text-green {
+  color: var(--color-cyber-green);
+  text-shadow: 0 0 10px var(--color-cyber-green);
+}

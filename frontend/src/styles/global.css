@@ -1,0 +1,369 @@
+/**
+ * Global Styles and Animations for Cyberpunk Theme
+ * Includes scan lines, text effects, and responsive utilities
+ */
+
+/* ========== CYBERPUNK ANIMATIONS ========== */
+
+/* Subtle text flicker effect */
+@keyframes textFlicker {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.8);
+  }
+  50% {
+    opacity: 0.95;
+    text-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+  }
+}
+
+/* Neon glow pulse */
+@keyframes neonPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+}
+
+/* Scan line animation */
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+/* Glitch effect */
+@keyframes glitch {
+  0%, 100% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+  }
+  40% {
+    transform: translate(-2px, -2px);
+  }
+  60% {
+    transform: translate(2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -2px);
+  }
+}
+
+/* Fade in from bottom */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade in general */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Terminal cursor blink */
+@keyframes cursorBlink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+/* ========== UTILITY CLASSES ========== */
+
+/* Text flicker effect */
+.text-flicker {
+  animation: textFlicker 3s infinite;
+}
+
+/* Neon glow pulse */
+.neon-pulse {
+  animation: neonPulse 2s infinite;
+}
+
+/* Glitch effect */
+.glitch {
+  animation: glitch 0.3s infinite;
+}
+
+/* Fade in animations */
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+/* Spinning loader */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Terminal cursor */
+.cursor-blink {
+  animation: cursorBlink 1s step-end infinite;
+}
+
+/* ========== SCAN LINE OVERLAY ========== */
+
+/* CRT scanline effect overlay */
+.scanline-overlay {
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  opacity: 0.08;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+}
+
+/* Moving scan line */
+.scanline-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 217, 255, 0.3),
+    transparent
+  );
+  animation: scanline 8s linear infinite;
+}
+
+/* Optional: Disable scanlines on mobile for performance */
+@media (max-width: 768px) {
+  .scanline-overlay::after {
+    display: none;
+  }
+}
+
+/* ========== SCROLLBAR STYLING ========== */
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(10, 14, 39, 0.5);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 217, 255, 0.3);
+  border-radius: 5px;
+  transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 217, 255, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 217, 255, 0.3) rgba(10, 14, 39, 0.5);
+}
+
+/* ========== SELECTION STYLING ========== */
+
+::selection {
+  background: rgba(0, 217, 255, 0.3);
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background: rgba(0, 217, 255, 0.3);
+  color: #ffffff;
+}
+
+/* ========== FOCUS STYLES ========== */
+
+/* Custom focus ring for accessibility */
+*:focus-visible {
+  outline: 2px solid #00d9ff;
+  outline-offset: 2px;
+}
+
+/* ========== RESPONSIVE UTILITIES ========== */
+
+/* Hide on mobile */
+@media (max-width: 640px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Hide on tablet */
+@media (max-width: 1024px) {
+  .hide-tablet {
+    display: none !important;
+  }
+}
+
+/* Hide on desktop */
+@media (min-width: 1025px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+/* ========== GRID UTILITIES FOR HEX DISPLAY ========== */
+
+/* 16-column grid for hex dump display */
+.grid-cols-16 {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+}
+
+/* ========== TEXT EFFECTS ========== */
+
+/* Neon text glow - Cyan */
+.text-glow-cyan {
+  color: #00d9ff;
+  text-shadow: 0 0 10px rgba(0, 217, 255, 0.8),
+               0 0 20px rgba(0, 217, 255, 0.5),
+               0 0 30px rgba(0, 217, 255, 0.3);
+}
+
+/* Neon text glow - Green */
+.text-glow-green {
+  color: #00ff9f;
+  text-shadow: 0 0 10px rgba(0, 255, 159, 0.8),
+               0 0 20px rgba(0, 255, 159, 0.5),
+               0 0 30px rgba(0, 255, 159, 0.3);
+}
+
+/* Neon text glow - Pink */
+.text-glow-pink {
+  color: #ff006e;
+  text-shadow: 0 0 10px rgba(255, 0, 110, 0.8),
+               0 0 20px rgba(255, 0, 110, 0.5),
+               0 0 30px rgba(255, 0, 110, 0.3);
+}
+
+/* Neon text glow - Purple */
+.text-glow-purple {
+  color: #b026ff;
+  text-shadow: 0 0 10px rgba(176, 38, 255, 0.8),
+               0 0 20px rgba(176, 38, 255, 0.5),
+               0 0 30px rgba(176, 38, 255, 0.3);
+}
+
+/* ========== HOVER EFFECTS ========== */
+
+/* Brightness hover effect */
+.hover-brightness {
+  transition: filter 0.3s;
+}
+
+.hover-brightness:hover {
+  filter: brightness(1.2);
+}
+
+/* Scale hover effect */
+.hover-scale {
+  transition: transform 0.3s;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* ========== PERFORMANCE OPTIMIZATIONS ========== */
+
+/* Use GPU acceleration for animations */
+.gpu-accelerated {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Disable animations on low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .scanline-overlay,
+  .scanline-overlay::after {
+    display: none !important;
+  }
+}
+
+/* ========== PRINT STYLES ========== */
+
+@media print {
+  .scanline-overlay {
+    display: none !important;
+  }
+
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

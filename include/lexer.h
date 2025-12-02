@@ -146,6 +146,9 @@ public:
     Token getNextToken();
     std::vector<Token> lexAll();
 
+    // Reset lexer position to beginning (for re-use after lexAll())
+    void reset();
+
     // Access to error handler
     ErrorHandler& getErrorHandler() { return error_handler_; }
     const ErrorHandler& getErrorHandler() const { return error_handler_; }

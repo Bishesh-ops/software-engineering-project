@@ -662,11 +662,33 @@ void IRCodeGenerator::visit(ExpressionStmt& node) {
 }
 
 void IRCodeGenerator::visit(DeclStmt& node) {
-    // For now, declaration statements don't generate IR
-    // Variable declarations are handled by the semantic analyzer for scoping
-    // and the actual initialization expressions are handled separately
-    // In a more complete implementation, we might generate alloca instructions here
-    (void)node;  // Suppress unused parameter warning
+    // Handle variable declaration with optional initialization
+    Declaration* decl = node.getDeclaration();
+    if (!decl) return;
+
+    // Check if it's a VarDecl with an initializer
+    if (decl->getNodeType() == ASTNodeType::VAR_DECL) {
+        VarDecl* varDecl = static_cast<VarDecl*>(decl);
+
+        if (varDecl->getInitializer() != nullptr) {
+            // Evaluate the initializer
+            varDecl->getInitializer()->accept(*this);
+            IROperand initOperand = exprStack.top();
+            exprStack.pop();
+            if (!resultStack.empty()) resultStack.pop();
+
+            // Create an SSA value for this variable
+            SSAValue* varValue = new SSAValue(varDecl->getName(), varDecl->getType(), 0);
+
+            // Generate MOVE instruction: var = initializer value
+            auto moveInst = std::make_unique<MoveInst>(varValue, initOperand);
+            addInstruction(std::move(moveInst));
+
+            // Don't push to expr stack since this is a statement
+        }
+        // If no initializer, the variable exists but has no value yet
+        // (would need alloca for proper handling)
+    }
 }
 
 // ============================================================================

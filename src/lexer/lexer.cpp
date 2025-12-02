@@ -18,6 +18,14 @@ Lexer::Lexer(const std::string &source, const std::string &initial_filename)
     error_handler_.register_source(initial_filename, source_);
 }
 
+// Reset lexer position to the beginning (for re-use after lexAll())
+void Lexer::reset()
+{
+    current_pos_ = 0;
+    current_line_ = 1;
+    current_column_ = 1;
+}
+
 // --- Core Lexing Primitives ---
 
 char Lexer::advance()
