@@ -43,6 +43,10 @@ CompilerDriver::CompilerDriver(const Options& opts)
 
 std::string CompilerDriver::getTempFileName(const std::string& baseName, const std::string& extension)
 {
+    // If baseName is already an absolute path, don't prepend tempDir
+    if (!baseName.empty() && baseName[0] == '/') {
+        return baseName + extension;
+    }
     return tempDir + "/" + baseName + extension;
 }
 
