@@ -227,6 +227,10 @@ private:
     std::string getRegisterForValue(const SSAValue* value) const;
     std::string getOperandString(const IROperand& operand) const;
 
+    // Get destination for a result value, handling spills with scratch register
+    // Returns the register/memory location and sets needsSpillStore if result needs to be stored
+    std::string getDestinationForResult(const SSAValue* result, bool& needsSpillStore, int& spillOffset);
+
     // ========================================================================
     // Helper Methods - Code Emission
     // ========================================================================

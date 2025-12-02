@@ -96,8 +96,8 @@ void LinearScanAllocator::buildLiveIntervals(IRFunction* function)
     intervals.clear();
     nextSpillSlot = 0;
 
-    // Map SSA values to their live intervals
-    std::unordered_map<const SSAValue*, int> valueToInterval;
+    // Map SSA names to their live intervals (use names since operands contain copies)
+    std::unordered_map<std::string, int> nameToInterval;
 
     int instructionIndex = 0;
 
@@ -107,13 +107,14 @@ void LinearScanAllocator::buildLiveIntervals(IRFunction* function)
             // If instruction defines a result, start a new interval
             if (inst->getResult() != nullptr) {
                 SSAValue* result = inst->getResult();
+                std::string ssaName = result->getSSAName();
 
                 // Check if interval already exists
-                auto it = valueToInterval.find(result);
-                if (it == valueToInterval.end()) {
+                auto it = nameToInterval.find(ssaName);
+                if (it == nameToInterval.end()) {
                     // Create new interval
                     intervals.emplace_back(result, instructionIndex, instructionIndex);
-                    valueToInterval[result] = intervals.size() - 1;
+                    nameToInterval[ssaName] = intervals.size() - 1;
                 } else {
                     // Extend existing interval
                     intervals[it->second].end = instructionIndex;
@@ -124,8 +125,9 @@ void LinearScanAllocator::buildLiveIntervals(IRFunction* function)
             for (const auto& operand : inst->getOperands()) {
                 if (operand.isSSAValue()) {
                     const SSAValue& value = operand.getSSAValue();
-                    auto it = valueToInterval.find(&value);
-                    if (it != valueToInterval.end()) {
+                    std::string ssaName = value.getSSAName();
+                    auto it = nameToInterval.find(ssaName);
+                    if (it != nameToInterval.end()) {
                         // Extend interval to this use
                         intervals[it->second].end = instructionIndex;
                     }
@@ -675,6 +677,22 @@ std::string CodeGenerator::getOperandString(const IROperand& operand) const
     return "<unknown>";
 }
 
+std::string CodeGenerator::getDestinationForResult(const SSAValue* result, bool& needsSpillStore, int& spillOffset)
+{
+    // Check if result is spilled
+    if (allocator.isSpilled(result)) {
+        // Use R11 as scratch register for spilled destinations
+        needsSpillStore = true;
+        int slot = allocator.getSpillSlot(result);
+        spillOffset = -(slot + 1) * 8;
+        return "%r11";
+    } else {
+        needsSpillStore = false;
+        spillOffset = 0;
+        return getRegisterForValue(result);
+    }
+}
+
 void CodeGenerator::emit(const std::string& instruction)
 {
     // When peephole optimization is enabled, collect instructions for optimization
@@ -908,7 +926,9 @@ void CodeGenerator::emitArithmeticInst(const IRInstruction* inst)
             return;
     }
 
-    std::string dest = getRegisterForValue(result);
+    bool needsSpillStore = false;
+    int spillOffset = 0;
+    std::string dest = getDestinationForResult(result, needsSpillStore, spillOffset);
     std::string src1 = getOperandString(operands[0]);
     std::string src2 = getOperandString(operands[1]);
 
@@ -927,6 +947,11 @@ void CodeGenerator::emitArithmeticInst(const IRInstruction* inst)
 
     // Apply operation
     emit(op + " " + src2 + ", " + dest);
+
+    // Store to spill slot if needed
+    if (needsSpillStore) {
+        emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
+    }
 }
 
 void CodeGenerator::emitDivisionInst(const IRInstruction* inst)
@@ -940,7 +965,10 @@ void CodeGenerator::emitDivisionInst(const IRInstruction* inst)
     IROpcode opcode = inst->getOpcode();
     std::string src1 = getOperandString(operands[0]);
     std::string src2 = getOperandString(operands[1]);
-    std::string dest = getRegisterForValue(result);
+
+    bool needsSpillStore = false;
+    int spillOffset = 0;
+    std::string dest = getDestinationForResult(result, needsSpillStore, spillOffset);
 
     emitComment(result->getSSAName() + " = " +
                 operands[0].toString() + (opcode == IROpcode::DIV ? " / " : " % ") +
@@ -1019,6 +1047,11 @@ void CodeGenerator::emitDivisionInst(const IRInstruction* inst)
     if (!destIsRdx && !src1IsRdx) {
         emit("movq %r11, %rdx");
     }
+
+    // Store to spill slot if needed
+    if (needsSpillStore) {
+        emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
+    }
 }
 
 void CodeGenerator::emitComparisonInst(const IRInstruction* inst)
@@ -1042,7 +1075,9 @@ void CodeGenerator::emitComparisonInst(const IRInstruction* inst)
         default: return;
     }
 
-    std::string dest = getRegisterForValue(result);
+    bool needsSpillStore = false;
+    int spillOffset = 0;
+    std::string dest = getDestinationForResult(result, needsSpillStore, spillOffset);
     std::string src1 = getOperandString(operands[0]);
     std::string src2 = getOperandString(operands[1]);
 
@@ -1065,6 +1100,11 @@ void CodeGenerator::emitComparisonInst(const IRInstruction* inst)
 
     // Zero-extend to 64-bit
     emit("movzbq " + dest8bit + ", " + dest);
+
+    // Store to spill slot if needed
+    if (needsSpillStore) {
+        emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
+    }
 }
 
 void CodeGenerator::emitMoveInst(const IRInstruction* inst)
@@ -1075,7 +1115,9 @@ void CodeGenerator::emitMoveInst(const IRInstruction* inst)
     SSAValue* result = inst->getResult();
     if (!result) return;
 
-    std::string dest = getRegisterForValue(result);
+    bool needsSpillStore = false;
+    int spillOffset = 0;
+    std::string dest = getDestinationForResult(result, needsSpillStore, spillOffset);
     std::string src = getOperandString(operands[0]);
 
     emitComment(result->getSSAName() + " = " + operands[0].toString());
@@ -1083,6 +1125,11 @@ void CodeGenerator::emitMoveInst(const IRInstruction* inst)
     // Don't emit move if source and dest are the same
     if (src != dest) {
         emit("movq " + src + ", " + dest);
+    }
+
+    // Store to spill slot if needed
+    if (needsSpillStore) {
+        emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
     }
 }
 
@@ -1354,9 +1401,15 @@ void CodeGenerator::emitCallInst(const IRInstruction* inst)
     // - Floating-point return value is in XMM0
     // TODO: Check return type to use appropriate register
     if (inst->getResult()) {
-        std::string dest = getRegisterForValue(inst->getResult());
+        bool needsSpillStore = false;
+        int spillOffset = 0;
+        std::string dest = getDestinationForResult(inst->getResult(), needsSpillStore, spillOffset);
         if (dest != "%rax") {
             emit("movq %rax, " + dest);
+        }
+        // Store to spill slot if needed
+        if (needsSpillStore) {
+            emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
         }
     }
 }
@@ -1370,7 +1423,10 @@ void CodeGenerator::emitLoadInst(const IRInstruction* inst)
     if (!result) return;
 
     std::string address = getOperandString(operands[0]);
-    std::string dest = getRegisterForValue(result);
+
+    bool needsSpillStore = false;
+    int spillOffset = 0;
+    std::string dest = getDestinationForResult(result, needsSpillStore, spillOffset);
 
     emitComment("Load from memory: " + result->getSSAName() + " = *(" + operands[0].toString() + ")");
 
@@ -1382,6 +1438,11 @@ void CodeGenerator::emitLoadInst(const IRInstruction* inst)
         // Address is a memory location or constant
         emit("movq " + address + ", %r11");
         emit("movq (%r11), " + dest);
+    }
+
+    // Store to spill slot if needed
+    if (needsSpillStore) {
+        emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
     }
 }
 
@@ -1433,7 +1494,10 @@ void CodeGenerator::emitParamInst(const IRInstruction* inst)
     int paramIndex = std::stoi(operands[0].getConstant());
 
     std::vector<std::string> paramRegs = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
-    std::string dest = getRegisterForValue(result);
+
+    bool needsSpillStore = false;
+    int spillOffset = 0;
+    std::string dest = getDestinationForResult(result, needsSpillStore, spillOffset);
 
     if (paramIndex < (int)paramRegs.size()) {
         // Parameter is in a register
@@ -1445,6 +1509,11 @@ void CodeGenerator::emitParamInst(const IRInstruction* inst)
         // Parameter is on stack (above return address and saved RBP)
         int stackOffset = 16 + (paramIndex - 6) * 8;  // 8 for ret addr + 8 for saved RBP
         emit("movq " + std::to_string(stackOffset) + "(%rbp), " + dest);
+    }
+
+    // Store to spill slot if needed
+    if (needsSpillStore) {
+        emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
     }
 }
 
