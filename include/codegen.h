@@ -225,7 +225,7 @@ private:
     std::string getRegisterName(X86Register reg, int size = 64) const;
     std::string get8BitRegisterName(const std::string& reg64) const;
     std::string getRegisterForValue(const SSAValue* value) const;
-    std::string getOperandString(const IROperand& operand) const;
+    std::string getOperandString(const IROperand& operand);  // Non-const to allow adding string literals
 
     // Get destination for a result value, handling spills with scratch register
     // Returns the register/memory location and sets needsSpillStore if result needs to be stored

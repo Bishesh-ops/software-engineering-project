@@ -655,11 +655,44 @@ std::string CodeGenerator::getRegisterForValue(const SSAValue* value) const
     return getRegisterName(reg, 64);
 }
 
-std::string CodeGenerator::getOperandString(const IROperand& operand) const
+std::string CodeGenerator::getOperandString(const IROperand& operand)
 {
     if (operand.isConstant()) {
-        // Immediate value in AT&T syntax: $123
-        return "$" + operand.getConstant();
+        std::string constVal = operand.getConstant();
+
+        // Check if this is a string literal (not a number)
+        // String literals contain spaces, or are not valid numbers
+        bool isStringLiteral = false;
+        if (!constVal.empty()) {
+            // Check if it's NOT a valid number (integer or negative)
+            bool isNumber = true;
+            size_t start = 0;
+            if (constVal[0] == '-') {
+                start = 1;  // Skip negative sign
+            }
+            for (size_t i = start; i < constVal.size(); ++i) {
+                if (!isdigit(constVal[i])) {
+                    isNumber = false;
+                    break;
+                }
+            }
+            // Empty after stripping negative is not a number
+            if (start >= constVal.size()) {
+                isNumber = false;
+            }
+            isStringLiteral = !isNumber;
+        }
+
+        if (isStringLiteral) {
+            // This is a string literal - add to data section and return label reference
+            std::string label = const_cast<CodeGenerator*>(this)->addStringLiteral(constVal);
+            // Use LEA (load effective address) to get the address of the string
+            // Mark with special prefix that caller needs to handle with leaq
+            return "$" + label;  // Will be handled specially as an address constant
+        } else {
+            // Immediate value in AT&T syntax: $123
+            return "$" + constVal;
+        }
     } else if (operand.isSSAValue()) {
         const SSAValue& value = operand.getSSAValue();
 
@@ -1124,7 +1157,14 @@ void CodeGenerator::emitMoveInst(const IRInstruction* inst)
 
     // Don't emit move if source and dest are the same
     if (src != dest) {
-        emit("movq " + src + ", " + dest);
+        // Check if source is a string label address (starts with $.STR)
+        if (src.substr(0, 5) == "$.STR") {
+            // Use leaq to load address of string literal
+            std::string label = src.substr(1);  // Remove $ prefix
+            emit("leaq " + label + "(%rip), " + dest);
+        } else {
+            emit("movq " + src + ", " + dest);
+        }
     }
 
     // Store to spill slot if needed
