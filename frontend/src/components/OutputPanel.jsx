@@ -31,7 +31,7 @@ const OutputPanel = ({ data }) => {
     // Show loading state while compiling
     if (isCompiling) {
       return (
-        <div className="flex items-center justify-center h-full">
+        <div className="h-full flex items-center justify-center p-4">
           <div className="text-center text-gray-400 font-mono fade-in">
             <div className="text-6xl mb-4 spin">⟳</div>
             <p className="text-lg">Compiling...</p>
@@ -45,7 +45,7 @@ const OutputPanel = ({ data }) => {
 
     if (!data[activeTab]) {
       return (
-        <div className="flex items-center justify-center h-full">
+        <div className="h-full flex items-center justify-center p-4">
           <div className="text-center text-gray-500 font-mono fade-in">
             <div className="text-4xl mb-4">📋</div>
             <p>No data available</p>
@@ -89,7 +89,7 @@ const OutputPanel = ({ data }) => {
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-auto bg-cyber-dark/30 p-4">
+      <div className="flex-1 overflow-hidden bg-cyber-dark/30">
         {renderContent()}
       </div>
     </div>
@@ -101,32 +101,45 @@ const TokenView = ({ data }) => {
   const tokens = Array.isArray(data) ? data : data?.tokens || [];
 
   return (
-    <div className="overflow-auto">
-      <table className="w-full text-sm font-mono">
-        <thead>
-          <tr className="text-cyber-blue border-b border-cyber-blue/30">
-            <th className="text-left py-2 px-4">#</th>
-            <th className="text-left py-2 px-4">TYPE</th>
-            <th className="text-left py-2 px-4">VALUE</th>
-            <th className="text-left py-2 px-4">LINE</th>
-            <th className="text-left py-2 px-4">COLUMN</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tokens.map((token, index) => (
-            <tr
-              key={index}
-              className="border-b border-gray-800 hover:bg-cyber-blue/5 transition-colors"
-            >
-              <td className="py-2 px-4 text-gray-500">{index + 1}</td>
-              <td className="py-2 px-4 text-cyber-green">{token.type}</td>
-              <td className="py-2 px-4 text-white">{token.value}</td>
-              <td className="py-2 px-4 text-gray-400">{token.location?.line || '-'}</td>
-              <td className="py-2 px-4 text-gray-400">{token.location?.column || '-'}</td>
+    <div className="h-full flex flex-col">
+      {/* Header with stats */}
+      <div className="p-4 border-b border-cyber-blue/20 bg-cyber-dark/50">
+        <div className="flex items-center space-x-4 text-sm font-mono">
+          <div>
+            <span className="text-cyber-blue">●</span>
+            <span className="text-gray-400 ml-2">{tokens.length} tokens</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable table container */}
+      <div className="flex-1 overflow-auto p-4">
+        <table className="w-full text-sm font-mono">
+          <thead className="sticky top-0 bg-cyber-dark">
+            <tr className="text-cyber-blue border-b border-cyber-blue/30">
+              <th className="text-left py-2 px-4">#</th>
+              <th className="text-left py-2 px-4">TYPE</th>
+              <th className="text-left py-2 px-4">VALUE</th>
+              <th className="text-left py-2 px-4">LINE</th>
+              <th className="text-left py-2 px-4">COLUMN</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {tokens.map((token, index) => (
+              <tr
+                key={index}
+                className="border-b border-gray-800 hover:bg-cyber-blue/5 transition-colors"
+              >
+                <td className="py-2 px-4 text-gray-500">{index + 1}</td>
+                <td className="py-2 px-4 text-cyber-green">{token.type}</td>
+                <td className="py-2 px-4 text-white">{token.value}</td>
+                <td className="py-2 px-4 text-gray-400">{token.location?.line || '-'}</td>
+                <td className="py-2 px-4 text-gray-400">{token.location?.column || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
