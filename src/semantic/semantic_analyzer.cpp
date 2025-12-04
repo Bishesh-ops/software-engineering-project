@@ -1167,7 +1167,10 @@ void SemanticAnalyzer::visit(CallExpr &node) {
     return;
   }
 
-  if (actual_args.size() > expected_params.size()) {
+  // For non-variadic functions, check if we have too many arguments
+  // Variadic functions (like printf, scanf) can accept more arguments than
+  // declared
+  if (!func_symbol.is_variadic && actual_args.size() > expected_params.size()) {
     add_error("Too many arguments to function '" + callee_id->getName() +
                   "': expected " + std::to_string(expected_params.size()) +
                   ", got " + std::to_string(actual_args.size()),

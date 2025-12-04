@@ -197,6 +197,79 @@ void IRCodeGenerator::visit(UnaryExpr &node) {
     exprStack.push(makeSSAOperand(result));
     resultStack.push(result);
   }
+  // Handle increment operator (++)
+  else if (op == "++") {
+    // Evaluate the operand (get current value)
+    node.getOperand()->accept(*this);
+    IROperand operand = exprStack.top();
+    exprStack.pop();
+    if (!resultStack.empty())
+      resultStack.pop();
+
+    // Generate: temp = operand + 1
+    IROperand one = makeConstant("1");
+    SSAValue *tempResult = new SSAValue(tempGen.newTemp(), getDefaultType(), 0);
+    auto addInst = std::make_unique<ArithmeticInst>(IROpcode::ADD, tempResult,
+                                                    operand, one);
+    addInstruction(std::move(addInst));
+
+    // Generate: STORE operand, temp (write back incremented value)
+    // For simplicity, we need to store back to the variable
+    // Get the variable name from the operand
+    if (auto *identExpr = dynamic_cast<IdentifierExpr *>(node.getOperand())) {
+      std::string varName = identExpr->getName();
+      SSAValue *varSSA = new SSAValue(varName, getDefaultType(), 0);
+      auto storeInst = std::make_unique<StoreInst>(makeSSAOperand(varSSA),
+                                                   makeSSAOperand(tempResult));
+      addInstruction(std::move(storeInst));
+    }
+
+    // For postfix, push the ORIGINAL value (before increment)
+    // For prefix, push the NEW value (after increment)
+    if (node.isPrefixOp()) {
+      exprStack.push(makeSSAOperand(tempResult));
+      resultStack.push(tempResult);
+    } else {
+      // For postfix, we need to return the original value
+      // but the variable has already been incremented
+      exprStack.push(operand);
+      // No resultStack push needed since we're using the original operand
+    }
+  }
+  // Handle decrement operator (--)
+  else if (op == "--") {
+    // Evaluate the operand (get current value)
+    node.getOperand()->accept(*this);
+    IROperand operand = exprStack.top();
+    exprStack.pop();
+    if (!resultStack.empty())
+      resultStack.pop();
+
+    // Generate: temp = operand - 1
+    IROperand one = makeConstant("1");
+    SSAValue *tempResult = new SSAValue(tempGen.newTemp(), getDefaultType(), 0);
+    auto subInst = std::make_unique<ArithmeticInst>(IROpcode::SUB, tempResult,
+                                                    operand, one);
+    addInstruction(std::move(subInst));
+
+    // Generate: STORE operand, temp (write back decremented value)
+    if (auto *identExpr = dynamic_cast<IdentifierExpr *>(node.getOperand())) {
+      std::string varName = identExpr->getName();
+      SSAValue *varSSA = new SSAValue(varName, getDefaultType(), 0);
+      auto storeInst = std::make_unique<StoreInst>(makeSSAOperand(varSSA),
+                                                   makeSSAOperand(tempResult));
+      addInstruction(std::move(storeInst));
+    }
+
+    // For postfix, push the ORIGINAL value (before decrement)
+    // For prefix, push the NEW value (after decrement)
+    if (node.isPrefixOp()) {
+      exprStack.push(makeSSAOperand(tempResult));
+      resultStack.push(tempResult);
+    } else {
+      exprStack.push(operand);
+    }
+  }
   // Other unary operators can be added here
   else {
     // For now, just evaluate the operand for unsupported operators
