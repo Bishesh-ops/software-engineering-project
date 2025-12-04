@@ -717,6 +717,18 @@ void SemanticAnalyzer::visit(DeclStmt &node) {
   }
 }
 
+void SemanticAnalyzer::visit(BreakStmt &node) {
+  // Break statement - no semantic analysis needed beyond parsing
+  // The parser already validated it appears inside a loop
+  (void)node; // Suppress unused parameter warning
+}
+
+void SemanticAnalyzer::visit(ContinueStmt &node) {
+  // Continue statement - no semantic analysis needed beyond parsing
+  // The parser already validated it appears inside a loop
+  (void)node; // Suppress unused parameter warning
+}
+
 // ============================================================================
 // Expression Visitors - Traverse expressions but don't register anything
 // ============================================================================

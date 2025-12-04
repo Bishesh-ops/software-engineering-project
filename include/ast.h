@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-
 // Forward Declarations
 class ASTVisitor;
 class Expression;
@@ -27,6 +26,8 @@ class ReturnStmt;
 class CompoundStmt;
 class ExpressionStmt;
 class DeclStmt;
+class BreakStmt;
+class ContinueStmt;
 class VarDecl;
 class TypeDecl;
 class StructDecl;
@@ -58,6 +59,8 @@ enum class ASTNodeType {
   RETURN_STMT,
   COMPOUND_STMT,
   EXPRESSION_STMT,
+  BREAK_STMT,
+  CONTINUE_STMT,
 
   // Declaration types
   VAR_DECL,
@@ -120,6 +123,8 @@ public:
   virtual void visit(CompoundStmt &node) = 0;
   virtual void visit(ExpressionStmt &node) = 0;
   virtual void visit(DeclStmt &node) = 0;
+  virtual void visit(BreakStmt &node) = 0;
+  virtual void visit(ContinueStmt &node) = 0;
 
   // Declaration visitors
   virtual void visit(VarDecl &node) = 0;
@@ -471,6 +476,24 @@ public:
   void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
 
   Declaration *getDeclaration() const { return declaration.get(); }
+};
+
+// Break Statement (break;)
+class BreakStmt : public Statement {
+public:
+  BreakStmt(const SourceLocation &loc)
+      : Statement(ASTNodeType::BREAK_STMT, loc) {}
+
+  void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+};
+
+// Continue Statement (continue;)
+class ContinueStmt : public Statement {
+public:
+  ContinueStmt(const SourceLocation &loc)
+      : Statement(ASTNodeType::CONTINUE_STMT, loc) {}
+
+  void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
 };
 
 // ============================================================================

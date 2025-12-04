@@ -510,6 +510,24 @@ std::unique_ptr<Statement> Parser::parseStatement() {
   case TokenType::LBRACE:
     return parseCompoundStatement();
 
+  case TokenType::KW_BREAK: {
+    Token break_token = current_token_;
+    advance(); // consume 'break'
+    consume(TokenType::SEMICOLON, "Expected ';' after 'break'");
+    SourceLocation loc(break_token.filename, break_token.line,
+                       break_token.column);
+    return std::make_unique<BreakStmt>(loc);
+  }
+
+  case TokenType::KW_CONTINUE: {
+    Token continue_token = current_token_;
+    advance(); // consume 'continue'
+    consume(TokenType::SEMICOLON, "Expected ';' after 'continue'");
+    SourceLocation loc(continue_token.filename, continue_token.line,
+                       continue_token.column);
+    return std::make_unique<ContinueStmt>(loc);
+  }
+
   default:
     return parseExpressionStatement();
   }

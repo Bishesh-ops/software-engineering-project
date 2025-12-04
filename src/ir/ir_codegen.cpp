@@ -624,6 +624,11 @@ void IRCodeGenerator::visit(WhileStmt &node) {
   std::string startLabel = labelGen.newLabel("while_start");
   std::string endLabel = labelGen.newLabel("while_end");
 
+  // Push loop context for break/continue support
+  // For while loops: break -> endLabel, continue -> startLabel (re-evaluate
+  // condition)
+  loopStack.push({endLabel, startLabel});
+
   // Generate L_start label
   auto startLabelInst = std::make_unique<LabelInst>(startLabel);
   addInstruction(std::move(startLabelInst));
@@ -650,6 +655,9 @@ void IRCodeGenerator::visit(WhileStmt &node) {
   // Generate L_end label
   auto endLabelInst = std::make_unique<LabelInst>(endLabel);
   addInstruction(std::move(endLabelInst));
+
+  // Pop loop context
+  loopStack.pop();
 }
 
 // ============================================================================
@@ -668,6 +676,7 @@ void IRCodeGenerator::visit(WhileStmt &node) {
 void IRCodeGenerator::visit(ForStmt &node) {
   // Generate loop labels
   std::string startLabel = labelGen.newLabel("for_start");
+  std::string updateLabel = labelGen.newLabel("for_update");
   std::string endLabel = labelGen.newLabel("for_end");
 
   // Generate initialization (if present)
@@ -694,10 +703,22 @@ void IRCodeGenerator::visit(ForStmt &node) {
   }
   // If no condition, it's an infinite loop (condition implicitly true)
 
+  // Push loop context for break/continue support
+  // For for loops: break -> endLabel, continue -> updateLabel (run increment
+  // then loop)
+  loopStack.push({endLabel, updateLabel});
+
   // Generate loop body
   if (node.getBody() != nullptr) {
     node.getBody()->accept(*this);
   }
+
+  // Pop loop context before generating update label
+  loopStack.pop();
+
+  // Generate L_update label (target for continue statements)
+  auto updateLabelInst = std::make_unique<LabelInst>(updateLabel);
+  addInstruction(std::move(updateLabelInst));
 
   // Generate update expression (if present)
   if (node.getIncrement() != nullptr) {
@@ -823,6 +844,34 @@ void IRCodeGenerator::visit(FunctionDecl & /* node */) {
 
 void IRCodeGenerator::visit(ParameterDecl & /* node */) {
   throw std::runtime_error("ParameterDecl lowering not yet implemented");
+}
+
+void IRCodeGenerator::visit(BreakStmt & /* node */) {
+  // Break statement - generates a jump to the loop exit label
+  if (loopStack.empty()) {
+    throw std::runtime_error("'break' statement not within a loop");
+  }
+
+  // Get the break target label from the current loop context
+  std::string breakLabel = loopStack.top().breakLabel;
+
+  // Generate unconditional jump to loop exit
+  auto jumpInst = std::make_unique<JumpInst>(breakLabel);
+  addInstruction(std::move(jumpInst));
+}
+
+void IRCodeGenerator::visit(ContinueStmt & /* node */) {
+  // Continue statement - generates a jump to the loop continue target
+  if (loopStack.empty()) {
+    throw std::runtime_error("'continue' statement not within a loop");
+  }
+
+  // Get the continue target label from the current loop context
+  std::string continueLabel = loopStack.top().continueLabel;
+
+  // Generate unconditional jump to loop continue point
+  auto jumpInst = std::make_unique<JumpInst>(continueLabel);
+  addInstruction(std::move(jumpInst));
 }
 
 // ============================================================================
