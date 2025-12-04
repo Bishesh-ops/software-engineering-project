@@ -255,6 +255,14 @@ std::unique_ptr<Expression> Parser::parseIdentifier() {
                                    "Expected member name after '.' or '->'");
       std::string memberName(member_token.value);
 
+      // Desugar arrow operator: expr->member becomes (*expr).member
+      if (isArrow) {
+        // Create unary expression (*expr)
+        expr = std::make_unique<UnaryExpr>("*", std::move(expr), true, loc);
+        // Now treat as dot access (isArrow = false)
+        isArrow = false;
+      }
+
       // Create MemberAccessExpr
       expr = std::make_unique<MemberAccessExpr>(std::move(expr), memberName,
                                                 isArrow, loc);
@@ -1128,8 +1136,13 @@ std::vector<std::unique_ptr<ParameterDecl>> Parser::parseParameterList() {
     // Parse parameter type
     std::string paramType = parseType();
 
-    // Parse parameter name (optional in forward declarations, but we'll require
-    // it)
+    // Handle pointer types (e.g., int* p, struct Ball* b)
+    while (check(TokenType::OP_STAR)) {
+      paramType += "*";
+      advance(); // consume '*'
+    }
+
+    // Parse parameter name
     Token param_name_token =
         consume(TokenType::IDENTIFIER, "Expected parameter name");
     std::string paramName(param_name_token.value);
