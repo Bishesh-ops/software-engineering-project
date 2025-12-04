@@ -266,6 +266,13 @@ std::unique_ptr<Expression> Parser::parseIdentifier() {
       // Create MemberAccessExpr
       expr = std::make_unique<MemberAccessExpr>(std::move(expr), memberName,
                                                 isArrow, loc);
+    } else if (check(TokenType::OP_INC) || check(TokenType::OP_DEC)) {
+      // Handle postfix increment/decrement (e.g., i++, i--)
+      std::string op = check(TokenType::OP_INC) ? "++" : "--";
+      advance(); // consume '++' or '--'
+
+      // Create UnaryExpr with prefix=false for postfix
+      expr = std::make_unique<UnaryExpr>(op, std::move(expr), false, loc);
     } else {
       // No more postfix operations
       break;
