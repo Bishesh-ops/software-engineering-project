@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * ASTNode - Recursive component for rendering AST tree nodes
@@ -14,6 +14,16 @@ const ASTNode = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(level < 2); // Auto-expand first 2 levels
   const [showDetails, setShowDetails] = useState(false);
+
+  // React to expandAll prop changes - key fix for Expand All functionality
+  useEffect(() => {
+    if (expandAll) {
+      setIsExpanded(true);
+    } else {
+      // When collapsing, restore to default (first 2 levels expanded)
+      setIsExpanded(level < 2);
+    }
+  }, [expandAll, level]);
 
   if (!node) return null;
 
@@ -143,7 +153,6 @@ const ASTNode = ({
             onClick={() => setShowDetails(!showDetails)}
             className={`${getNodeColor()} hover:brightness-150 transition-all`}
           >
-            <span className="mr-2">{getNodeIcon()}</span>
             <span className="font-bold">{getNodeLabel()}</span>
           </button>
 

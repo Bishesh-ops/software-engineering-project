@@ -27,13 +27,25 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-cyber-dark border-b border-cyber-blue/30 px-6 py-4 flex items-center justify-between" style={{ backgroundColor: theme === 'dark' ? '#0a0e27' : '#f5f5f7', borderBottom: '1px solid rgba(0, 217, 255, 0.3)' }}>
+    <header
+      className="bg-cyber-dark px-6 py-4 flex items-center justify-between border-none outline-none"
+      style={{
+        backgroundColor: theme === 'dark' ? '#0a0e27' : '#f5f5f7',
+        borderBottom: theme === 'dark' ? '1px solid rgba(0, 217, 255, 0.2)' : '1px solid #e5e7eb'
+      }}
+    >
       <div className="flex items-center space-x-4">
         <div>
-          <h1 className="text-2xl font-bold text-glow-cyan tracking-wider" style={{ color: '#00d9ff' }}>
+          <h1
+            className="text-2xl font-bold tracking-wider"
+            style={{ color: theme === 'dark' ? '#00d9ff' : '#1E293B' }}
+          >
             C COMPILER
           </h1>
-          <p className="text-xs text-cyber-green/70 font-mono fade-in" style={{ color: '#00ff9f' }}>
+          <p
+            className="text-xs font-mono fade-in"
+            style={{ color: theme === 'dark' ? '#00ff9f' : '#64748B' }}
+          >
             Interactive Visualization Suite
           </p>
         </div>

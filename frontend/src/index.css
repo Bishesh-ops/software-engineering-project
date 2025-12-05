@@ -141,12 +141,140 @@ html.light-mode .hover\:bg-white\/5:hover {
   background-color: rgba(0, 0, 0, 0.05) !important;
 }
 
+/* ============================================
+   Light Mode AST Visualization Colors
+   ============================================ */
+
+/* AST Declarations (struct, function) - Forest Green */
+html.light-mode .text-cyber-green {
+  color: #166534 !important;
+  /* Forest Green */
+  text-shadow: none !important;
+}
+
+/* AST Statements (if, for, return) - Dark Purple */
+html.light-mode .text-cyber-purple {
+  color: #6B21A8 !important;
+  /* Dark Purple */
+  text-shadow: none !important;
+}
+
+/* AST Expressions (binary, unary) - Navy Blue */
+html.light-mode .text-cyber-blue {
+  color: #1E40AF !important;
+  /* Navy Blue */
+  text-shadow: none !important;
+}
+
+/* Types and special elements - Dark Pink/Magenta */
+html.light-mode .text-cyber-pink {
+  color: #9D174D !important;
+  /* Dark Pink */
+  text-shadow: none !important;
+}
+
+/* General UI elements in light mode */
+html.light-mode .font-mono {
+  color: #1E293B;
+  /* Dark Slate for general text */
+}
+
+/* AST tree structure lines */
+html.light-mode .text-gray-600 {
+  color: #64748B !important;
+  /* Slate gray for tree lines */
+}
+
+/* Search input and form elements */
+html.light-mode input.bg-gray-800 {
+  background-color: #FFFFFF !important;
+  border-color: #D1D5DB !important;
+  color: #1E293B !important;
+}
+
+html.light-mode input.bg-gray-800::placeholder {
+  color: #9CA3AF !important;
+}
+
+/* Node details panel */
+html.light-mode .bg-gray-800\/50 {
+  background-color: rgba(241, 245, 249, 0.8) !important;
+  /* Light slate */
+}
+
+html.light-mode .bg-gray-800\/30 {
+  background-color: rgba(241, 245, 249, 0.5) !important;
+}
+
+/* Neon borders become solid in light mode */
+html.light-mode .neon-border-blue,
+html.light-mode .neon-border-green,
+html.light-mode .neon-border-purple,
+html.light-mode .neon-border-pink {
+  box-shadow: none !important;
+}
+
+html.light-mode .neon-border-blue {
+  border-color: #1E40AF !important;
+}
+
+html.light-mode .neon-border-green {
+  border-color: #166534 !important;
+}
+
+html.light-mode .neon-border-purple {
+  border-color: #6B21A8 !important;
+}
+
+html.light-mode .neon-border-pink {
+  border-color: #9D174D !important;
+}
+
+/* Remove neon text shadows in light mode */
+html.light-mode .neon-text-blue,
+html.light-mode .neon-text-green,
+html.light-mode .neon-text-purple,
+html.light-mode .neon-text-pink {
+  text-shadow: none !important;
+}
+
+html.light-mode .neon-text-blue {
+  color: #1E40AF !important;
+}
+
+html.light-mode .neon-text-green {
+  color: #166534 !important;
+}
+
+html.light-mode .neon-text-purple {
+  color: #6B21A8 !important;
+}
+
+html.light-mode .neon-text-pink {
+  color: #9D174D !important;
+}
+
+/* Hover states for AST nodes */
+html.light-mode .hover\:bg-cyber-blue\/5:hover {
+  background-color: rgba(30, 64, 175, 0.08) !important;
+}
+
+/* Button hover brightness in light mode */
+html.light-mode .hover\:brightness-150:hover {
+  filter: brightness(0.8) !important;
+  /* Darken instead of brighten */
+}
+
 /* Transition for smooth theme switching */
 body,
 .bg-cyber-dark,
 .text-white,
 .text-gray-400,
 .text-gray-500,
+.text-cyber-green,
+.text-cyber-blue,
+.text-cyber-purple,
+.text-cyber-pink,
 .border-cyber-blue\/30 {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, text-shadow 0.3s ease;
 }

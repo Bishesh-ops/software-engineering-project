@@ -3,6 +3,7 @@ import { useState } from 'react';
 /**
  * LogDisplay - Professional error and log viewer
  * Displays compilation errors, warnings, and stdout/stderr with proper formatting
+ * TEXT-ONLY MINIMALIST VERSION - No icons
  */
 const LogDisplay = ({ logs = [], error = null, onScrollToLine }) => {
   const [expandedSections, setExpandedSections] = useState({
@@ -86,10 +87,8 @@ const LogDisplay = ({ logs = [], error = null, onScrollToLine }) => {
 
   const hasErrors = categorizedLogs.errors.length > 0;
   const hasWarnings = categorizedLogs.warnings.length > 0;
-  const hasStdout = categorizedLogs.stdout.length > 0;
-  const hasStderr = categorizedLogs.stderr.length > 0;
 
-  // Render a single log entry
+  // Render a single log entry - TEXT ONLY, NO ICONS
   const renderLogEntry = (entry, index) => {
     const isError = entry.type === 'error';
     const isWarning = entry.type === 'warning';
@@ -97,16 +96,14 @@ const LogDisplay = ({ logs = [], error = null, onScrollToLine }) => {
     const bgColor = isError
       ? 'bg-red-900/20 border-red-500/30'
       : isWarning
-      ? 'bg-yellow-900/20 border-yellow-500/30'
-      : 'bg-blue-900/20 border-blue-500/30';
+        ? 'bg-yellow-900/20 border-yellow-500/30'
+        : 'bg-blue-900/20 border-blue-500/30';
 
     const textColor = isError
       ? 'text-red-400'
       : isWarning
-      ? 'text-yellow-400'
-      : 'text-blue-400';
-
-    const icon = isError ? '❌' : isWarning ? '⚠️' : 'ℹ️';
+        ? 'text-yellow-400'
+        : 'text-blue-400';
 
     const handleClick = () => {
       if (entry.line && onScrollToLine) {
@@ -121,39 +118,36 @@ const LogDisplay = ({ logs = [], error = null, onScrollToLine }) => {
                    ${entry.line ? 'cursor-pointer hover:brightness-125' : ''}`}
         onClick={handleClick}
       >
-        <div className="flex items-start space-x-3">
-          <span className="text-xl">{icon}</span>
-          <div className="flex-1">
-            {/* Header with type and location */}
-            <div className="flex items-center space-x-2 mb-1">
-              <span className={`font-bold uppercase text-xs ${textColor}`}>
-                {entry.type}
+        <div className="flex-1">
+          {/* Header with type and location */}
+          <div className="flex items-center space-x-2 mb-1">
+            <span className={`font-bold uppercase text-xs ${textColor}`}>
+              {entry.type}
+            </span>
+            {entry.file && (
+              <span className="text-gray-500 text-xs">
+                {entry.file}
+                {entry.line && `:${entry.line}`}
+                {entry.column && `:${entry.column}`}
               </span>
-              {entry.file && (
-                <span className="text-gray-500 text-xs">
-                  {entry.file}
-                  {entry.line && `:${entry.line}`}
-                  {entry.column && `:${entry.column}`}
-                </span>
-              )}
-            </div>
-
-            {/* Message */}
-            <div className="text-white">{entry.message}</div>
-
-            {/* Click hint */}
-            {entry.line && (
-              <div className="text-xs text-gray-500 mt-2">
-                Click to jump to line {entry.line}
-              </div>
             )}
           </div>
+
+          {/* Message */}
+          <div className="text-white">{entry.message}</div>
+
+          {/* Click hint */}
+          {entry.line && (
+            <div className="text-xs text-gray-500 mt-2">
+              Click to jump to line {entry.line}
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
-  // Collapsible section component
+  // Collapsible section component - TEXT ONLY
   const CollapsibleSection = ({ title, count, isExpanded, onToggle, color, children }) => {
     if (count === 0) return null;
 
@@ -189,25 +183,25 @@ const LogDisplay = ({ logs = [], error = null, onScrollToLine }) => {
 
   return (
     <div className="h-full flex flex-col bg-cyber-dark/30 overflow-auto p-4">
-      {/* Header */}
+      {/* Header - TEXT ONLY */}
       <div className="mb-4 pb-3 border-b border-gray-700">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold font-mono text-cyber-blue">
-            📊 Compilation Logs
+            Compilation Logs
           </h3>
           <div className="flex items-center space-x-3 text-sm font-mono">
             {hasErrors && (
               <span className="text-red-400">
-                ❌ {categorizedLogs.errors.length} errors
+                {categorizedLogs.errors.length} errors
               </span>
             )}
             {hasWarnings && (
               <span className="text-yellow-400">
-                ⚠️ {categorizedLogs.warnings.length} warnings
+                {categorizedLogs.warnings.length} warnings
               </span>
             )}
             {!hasErrors && !hasWarnings && (
-              <span className="text-cyber-green">✅ No issues</span>
+              <span className="text-cyber-green">No issues</span>
             )}
           </div>
         </div>
@@ -217,7 +211,6 @@ const LogDisplay = ({ logs = [], error = null, onScrollToLine }) => {
       {logs.length === 0 && !error && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-gray-500 font-mono">
-            <div className="text-4xl mb-4">📋</div>
             <p>No logs yet</p>
             <p className="text-sm mt-2">Compile your code to see output</p>
           </div>
@@ -274,18 +267,6 @@ const LogDisplay = ({ logs = [], error = null, onScrollToLine }) => {
       >
         {renderRawOutput(categorizedLogs.stderr)}
       </CollapsibleSection>
-
-      {/* Help text */}
-      {(hasErrors || hasWarnings) && (
-        <div className="mt-4 p-3 bg-gray-800/30 border border-gray-700 rounded text-xs font-mono text-gray-500">
-          <div className="font-bold text-cyber-blue mb-2">💡 Tips:</div>
-          <ul className="space-y-1">
-            <li>• Click on errors/warnings with line numbers to jump to source code</li>
-            <li>• Errors are highlighted in red, warnings in yellow</li>
-            <li>• Expand stdout/stderr sections to see full compiler output</li>
-          </ul>
-        </div>
-      )}
     </div>
   );
 };

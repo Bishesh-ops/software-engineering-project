@@ -98,7 +98,7 @@ const ASTVisualization = ({ data }) => {
   return (
     <div className="h-full flex flex-col">
       {/* Controls Header */}
-      <div className="p-4 border-b border-cyber-blue/20 bg-cyber-dark/50">
+      <div className="p-4 bg-transparent">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-4">
             <div className="text-sm font-mono">
@@ -123,7 +123,7 @@ const ASTVisualization = ({ data }) => {
                          hover:border-cyber-blue hover:bg-cyber-blue/10 text-cyber-blue
                          transition-all"
             >
-              💾 Export JSON
+              Export JSON
             </button>
 
             <button
@@ -132,7 +132,7 @@ const ASTVisualization = ({ data }) => {
                          hover:border-cyber-purple hover:bg-cyber-purple/10 text-cyber-purple
                          transition-all"
             >
-              {expandAll ? '📁 Collapse All' : '📂 Expand All'}
+              {expandAll ? 'Collapse All' : 'Expand All'}
             </button>
           </div>
         </div>
@@ -151,11 +151,6 @@ const ASTVisualization = ({ data }) => {
 
       {/* Tree Display */}
       <div className="flex-1 overflow-auto p-4">
-        <div className="text-cyber-green font-mono text-sm mb-4">
-          <span className="text-2xl">🌳</span>
-          <span className="ml-2 font-bold">Abstract Syntax Tree</span>
-        </div>
-
         <ASTNode
           node={astRoot}
           level={0}
@@ -164,21 +159,6 @@ const ASTVisualization = ({ data }) => {
           searchTerm={searchTerm}
           maxDepth={maxDepth}
         />
-
-        {/* Help text */}
-        <div className="mt-6 p-4 bg-gray-800/30 border border-gray-700 rounded text-xs font-mono text-gray-500">
-          <div className="font-bold text-cyber-blue mb-2">💡 Tips:</div>
-          <ul className="space-y-1">
-            <li>• Click <span className="text-cyber-blue">▶</span> to expand/collapse nodes</li>
-            <li>• Click node names to see detailed properties</li>
-            <li>
-              • Color coding: <span className="text-cyber-green">Declarations</span>,{' '}
-              <span className="text-cyber-purple">Statements</span>,{' '}
-              <span className="text-cyber-blue">Expressions</span>
-            </li>
-            <li>• Export JSON to save the complete AST structure</li>
-          </ul>
-        </div>
       </div>
     </div>
   );
