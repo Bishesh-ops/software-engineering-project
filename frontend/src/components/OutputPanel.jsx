@@ -18,13 +18,13 @@ const OutputPanel = ({ data }) => {
   const getTabColorClass = (color, isActive) => {
     if (isActive) {
       return {
-        blue: 'border-cyber-blue text-cyber-blue neon-border-blue',
-        green: 'border-cyber-green text-cyber-green neon-border-green',
-        purple: 'border-cyber-purple text-cyber-purple neon-border-purple',
-        pink: 'border-cyber-pink text-cyber-pink neon-border-pink',
+        blue: 'border-cyber-blue text-cyber-blue bg-cyber-blue/10',
+        green: 'border-cyber-green text-cyber-green bg-cyber-green/10',
+        purple: 'border-cyber-purple text-cyber-purple bg-cyber-purple/10',
+        pink: 'border-cyber-pink text-cyber-pink bg-cyber-pink/10',
       }[color];
     }
-    return 'border-gray-600 text-gray-500 hover:text-white hover:border-gray-400';
+    return 'border-transparent text-gray-500 hover:text-white hover:bg-white/5';
   };
 
   const renderContent = () => {
@@ -70,13 +70,13 @@ const OutputPanel = ({ data }) => {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Tab Headers */}
-      <div className="flex border-b border-cyber-blue/30 bg-cyber-dark/50 flex-shrink-0">
+      <div className="flex gap-2 px-2 border-b border-cyber-blue/30 bg-cyber-dark/50 flex-shrink-0">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-6 py-3 font-mono text-sm font-bold tracking-wider transition-all duration-200
-                       border-b-2 ${getTabColorClass(tab.color, activeTab === tab.id)}`}
+            className={`px-5 py-3 font-mono text-sm font-bold tracking-wider transition-all duration-200
+                       border-b-3 rounded-t-md ${getTabColorClass(tab.color, activeTab === tab.id)}`}
           >
             {tab.label}
           </button>
