@@ -13,6 +13,7 @@ import os
 import subprocess
 import tempfile
 import json
+import platform
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -76,6 +77,11 @@ class CompilerInvoker:
             # Write source code to file
             source_file.write_text(source_code)
 
+            # Detect if we're on ARM64 Mac (can't assemble x86-64)
+            # In this case, skip hex dump since assembly will fail
+            is_arm64_mac = (platform.system() == "Darwin" and
+                           platform.machine() == "arm64")
+
             # Build compiler command with absolute paths
             cmd = [
                 self.compiler_path,
@@ -83,9 +89,16 @@ class CompilerInvoker:
                 "--dump-tokens", str(tokens_file),
                 "--dump-ast", str(ast_file),
                 "--dump-asm", str(assembly_file),
-                "--dump-hex", str(hex_file),
-                "-o", str(output_exe)
             ]
+
+            # Only request hex dump on platforms that can assemble x86-64
+            # (Windows, Linux x86-64, or Intel Mac)
+            if not is_arm64_mac:
+                cmd.extend(["--dump-hex", str(hex_file)])
+                cmd.extend(["-o", str(output_exe)])
+            else:
+                # On ARM64 Mac, stop at assembly stage (-S flag)
+                cmd.append("-S")
 
             # Execute compiler
             # Remove TMPDIR from environment to prevent path doubling
@@ -111,9 +124,15 @@ class CompilerInvoker:
                 tokens = self._read_json_file(tokens_file)
                 ast = self._read_json_file(ast_file)
                 assembly = self._read_text_file(assembly_file)
-                hex_dump = self._read_text_file(hex_file)
+
+                # Hex dump only available on platforms that can assemble x86-64
+                if is_arm64_mac:
+                    hex_dump = None  # Not available on ARM64 Mac
+                else:
+                    hex_dump = self._read_text_file(hex_file)
 
                 # Determine success
+                # On ARM64 Mac, success means tokens + AST + assembly were generated
                 success = result.returncode == 0
 
                 # Collect errors from stderr
