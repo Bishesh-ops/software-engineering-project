@@ -1,14 +1,51 @@
 import Editor from '@monaco-editor/react';
+import { useState, useEffect, useRef } from 'react';
 
 const CodeEditor = ({ code, onChange, onCompile, editorRef }) => {
+  const [currentTheme, setCurrentTheme] = useState('cyberpunk');
+  const monacoRef = useRef(null);
+
+  // Watch for theme changes on documentElement
+  useEffect(() => {
+    const checkTheme = () => {
+      const isLightMode = document.documentElement.classList.contains('light-mode');
+      const newTheme = isLightMode ? 'cyberpunk-light' : 'cyberpunk';
+      setCurrentTheme(newTheme);
+
+      // Also update Monaco editor theme if already mounted
+      if (monacoRef.current) {
+        monacoRef.current.editor.setTheme(newTheme);
+      }
+    };
+
+    // Check initial theme
+    checkTheme();
+
+    // Watch for class changes on html element
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          checkTheme();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+
+    return () => observer.disconnect();
+  }, []);
+
   // Handle editor mount
   const handleEditorDidMount = (editor, monaco) => {
+    // Store monaco reference for theme switching
+    monacoRef.current = monaco;
+
     // Store editor instance in ref passed from parent
     if (editorRef) {
       editorRef.current = editor;
     }
 
-    // Define custom cyberpunk theme
+    // Define custom dark cyberpunk theme
     monaco.editor.defineTheme('cyberpunk', {
       base: 'vs-dark',
       inherit: true,
@@ -38,8 +75,48 @@ const CodeEditor = ({ code, onChange, onCompile, editorRef }) => {
       },
     });
 
-    // Set the custom theme
-    monaco.editor.setTheme('cyberpunk');
+    // Define custom light theme with specified color palette
+    monaco.editor.defineTheme('cyberpunk-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '6A737D', fontStyle: 'italic' },      // Grey
+        { token: 'keyword', foreground: 'D73A49', fontStyle: 'bold' },        // Red
+        { token: 'keyword.control', foreground: 'D73A49', fontStyle: 'bold' },
+        { token: 'keyword.operator', foreground: 'D73A49' },
+        { token: 'string', foreground: '032F62' },                             // Dark Blue
+        { token: 'string.escape', foreground: '032F62' },
+        { token: 'number', foreground: '005CC5' },                             // Blue
+        { token: 'type', foreground: '005CC5', fontStyle: 'bold' },           // Blue
+        { token: 'type.identifier', foreground: '005CC5' },
+        { token: 'identifier', foreground: '24292E' },                         // Dark Grey/Black
+        { token: 'delimiter', foreground: '24292E' },
+        { token: 'operator', foreground: 'D73A49' },                           // Red
+        { token: 'function', foreground: '6F42C1' },                           // Purple
+        { token: 'variable', foreground: '24292E' },
+      ],
+      colors: {
+        'editor.background': '#FFFFFF',                                        // Pure White
+        'editor.foreground': '#24292E',                                        // Dark Grey/Black
+        'editor.lineHighlightBackground': '#F6F8FA',
+        'editor.selectionBackground': '#0366D633',
+        'editor.inactiveSelectionBackground': '#0366D622',
+        'editorCursor.foreground': '#0366D6',
+        'editorLineNumber.foreground': '#6A737D',                              // Grey
+        'editorLineNumber.activeForeground': '#005CC5',
+        'editorIndentGuide.background': '#E1E4E8',
+        'editorIndentGuide.activeBackground': '#C8C8C8',
+        'editorBracketMatch.background': '#0366D622',
+        'editorBracketMatch.border': '#0366D6',
+        'editorGutter.background': '#FAFBFC',
+      },
+    });
+
+    // Set initial theme based on current mode
+    const isLightMode = document.documentElement.classList.contains('light-mode');
+    const initialTheme = isLightMode ? 'cyberpunk-light' : 'cyberpunk';
+    monaco.editor.setTheme(initialTheme);
+    setCurrentTheme(initialTheme);
 
     // Add keyboard shortcut for compile (Ctrl+Enter / Cmd+Enter)
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
@@ -108,10 +185,10 @@ const CodeEditor = ({ code, onChange, onCompile, editorRef }) => {
           value={code}
           onChange={handleEditorChange}
           onMount={handleEditorDidMount}
-          theme="cyberpunk"
+          theme={currentTheme}
           options={{
-            // Display
-            minimap: { enabled: true, scale: 1 },
+            // Display - MINIMAP DISABLED to remove blue window artifact
+            minimap: { enabled: false },
             fontSize: 14,
             fontFamily: "'Fira Code', 'Courier New', monospace",
             fontLigatures: true,
@@ -185,3 +262,4 @@ const CodeEditor = ({ code, onChange, onCompile, editorRef }) => {
 };
 
 export default CodeEditor;
+

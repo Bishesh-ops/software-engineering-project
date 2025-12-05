@@ -70,7 +70,7 @@ const OutputPanel = ({ data }) => {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Tab Headers */}
-      <div className="flex gap-2 px-2 border-b border-cyber-blue/30 bg-cyber-dark/50 flex-shrink-0">
+      <div className="flex gap-6 px-4 border-b border-cyber-blue/30 bg-cyber-dark/50 flex-shrink-0">
         {tabs.map((tab) => (
           <button
             key={tab.id}
