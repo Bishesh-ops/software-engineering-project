@@ -13,16 +13,13 @@ const Header = () => {
   return (
     <header className="bg-cyber-dark border-b border-cyber-blue/30 px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#0a0e27', borderBottom: '1px solid rgba(0, 217, 255, 0.3)' }}>
       <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-3">
-          <div className="text-3xl text-flicker">⚡</div>
-          <div>
-            <h1 className="text-2xl font-bold text-glow-cyan tracking-wider" style={{ color: '#00d9ff' }}>
-              C COMPILER
-            </h1>
-            <p className="text-xs text-cyber-green/70 font-mono fade-in" style={{ color: '#00ff9f' }}>
-              Interactive Visualization Suite
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-glow-cyan tracking-wider" style={{ color: '#00d9ff' }}>
+            C COMPILER
+          </h1>
+          <p className="text-xs text-cyber-green/70 font-mono fade-in" style={{ color: '#00ff9f' }}>
+            Interactive Visualization Suite
+          </p>
         </div>
       </div>
 
@@ -34,15 +31,11 @@ const Header = () => {
                      text-cyber-purple hover:text-white font-mono text-sm"
           aria-label="Toggle theme"
         >
-          <span className="flex items-center space-x-2">
-            <span>{theme === 'dark' ? '🌙' : '☀️'}</span>
-            <span>THEME</span>
-          </span>
+          THEME
         </button>
 
-        <div className="flex items-center space-x-2 text-xs font-mono">
-          <span className="text-cyber-green">●</span>
-          <span className="text-gray-400">READY</span>
+        <div className="text-xs font-mono text-gray-400">
+          READY
         </div>
       </div>
     </header>

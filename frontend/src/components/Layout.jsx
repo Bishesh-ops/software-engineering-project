@@ -35,12 +35,12 @@ const Layout = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-cyber-dark" style={{ backgroundColor: '#0a0e27', minHeight: '100vh' }}>
+    <div className="h-screen flex flex-col bg-cyber-dark overflow-hidden" style={{ backgroundColor: '#0a0e27' }}>
       <Header />
 
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
         {/* Left Panel - Code Editor (40% on desktop, full width on mobile) */}
-        <div className="w-full lg:w-2/5 border-r border-cyber-blue/30 flex flex-col min-h-[40vh] lg:min-h-0">
+        <div className="w-full lg:w-2/5 border-r border-cyber-blue/30 flex flex-col min-h-[40vh] lg:min-h-0 overflow-hidden">
           <CodeEditor
             code={source}
             onChange={setSource}
@@ -50,7 +50,7 @@ const Layout = () => {
         </div>
 
         {/* Right Panel - Output Display (60% on desktop, full width on mobile) */}
-        <div className="w-full lg:w-3/5 flex flex-col min-h-[40vh] lg:min-h-0">
+        <div className="w-full lg:w-3/5 flex flex-col min-h-[40vh] lg:min-h-0 overflow-hidden">
           <OutputPanel data={result} />
         </div>
       </div>

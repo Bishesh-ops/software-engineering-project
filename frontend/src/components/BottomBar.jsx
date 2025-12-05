@@ -55,23 +55,12 @@ const BottomBar = ({ onCompile, isCompiling, status, logs, error, onScrollToLine
             disabled={isCompiling}
             className={`px-6 py-2 font-mono font-bold text-sm tracking-wider
                        border rounded-md transition-all duration-300 gpu-accelerated
-                       ${
-                         isCompiling
-                           ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed'
-                           : 'bg-cyber-dark border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-black hover-brightness'
-                       }`}
+                       ${isCompiling
+                ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-cyber-dark border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-black hover-brightness'
+              }`}
           >
-            {isCompiling ? (
-              <span className="flex items-center space-x-2">
-                <span className="animate-spin">⟳</span>
-                <span>COMPILING...</span>
-              </span>
-            ) : (
-              <span className="flex items-center space-x-2">
-                <span>▶</span>
-                <span>COMPILE</span>
-              </span>
-            )}
+            {isCompiling ? 'COMPILING...' : 'COMPILE'}
           </button>
 
           <div className={`flex items-center space-x-2 font-mono text-sm ${getStatusColor()}`}>
@@ -83,10 +72,10 @@ const BottomBar = ({ onCompile, isCompiling, status, logs, error, onScrollToLine
           {(errorCount > 0 || warningCount > 0) && (
             <div className="flex items-center space-x-3 text-xs font-mono">
               {errorCount > 0 && (
-                <span className="text-red-400">❌ {errorCount} errors</span>
+                <span className="text-red-400">{errorCount} errors</span>
               )}
               {warningCount > 0 && (
-                <span className="text-yellow-400">⚠️ {warningCount} warnings</span>
+                <span className="text-yellow-400">{warningCount} warnings</span>
               )}
             </div>
           )}

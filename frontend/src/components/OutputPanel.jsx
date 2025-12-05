@@ -9,10 +9,10 @@ const OutputPanel = ({ data }) => {
   const { isCompiling } = useCompilationStatus();
 
   const tabs = [
-    { id: 'tokens', label: 'TOKENS', icon: '🔤', color: 'blue' },
-    { id: 'ast', label: 'AST', icon: '🌳', color: 'green' },
-    { id: 'assembly', label: 'ASSEMBLY', icon: '⚙️', color: 'purple' },
-    { id: 'hex', label: 'HEX DUMP', icon: '🔢', color: 'pink' },
+    { id: 'tokens', label: 'TOKENS', color: 'blue' },
+    { id: 'ast', label: 'AST', color: 'green' },
+    { id: 'assembly', label: 'ASSEMBLY', color: 'purple' },
+    { id: 'hex', label: 'HEX DUMP', color: 'pink' },
   ];
 
   const getTabColorClass = (color, isActive) => {
@@ -33,7 +33,6 @@ const OutputPanel = ({ data }) => {
       return (
         <div className="h-full flex items-center justify-center p-4">
           <div className="text-center text-gray-400 font-mono fade-in">
-            <div className="text-6xl mb-4 spin">⟳</div>
             <p className="text-lg">Compiling...</p>
             <p className="text-sm mt-2 text-gray-600">
               Analyzing {activeTab === 'tokens' ? 'tokens' : activeTab === 'ast' ? 'syntax tree' : activeTab === 'assembly' ? 'assembly' : 'hex dump'}
@@ -47,7 +46,6 @@ const OutputPanel = ({ data }) => {
       return (
         <div className="h-full flex items-center justify-center p-4">
           <div className="text-center text-gray-500 font-mono fade-in">
-            <div className="text-4xl mb-4">📋</div>
             <p>No data available</p>
             <p className="text-sm mt-2">Compile your code to see results</p>
           </div>
@@ -70,9 +68,9 @@ const OutputPanel = ({ data }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col overflow-hidden">
       {/* Tab Headers */}
-      <div className="flex border-b border-cyber-blue/30 bg-cyber-dark/50">
+      <div className="flex border-b border-cyber-blue/30 bg-cyber-dark/50 flex-shrink-0">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -80,16 +78,13 @@ const OutputPanel = ({ data }) => {
             className={`px-6 py-3 font-mono text-sm font-bold tracking-wider transition-all duration-200
                        border-b-2 ${getTabColorClass(tab.color, activeTab === tab.id)}`}
           >
-            <span className="flex items-center space-x-2">
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-            </span>
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Tab Content */}
-      <div className="flex-1 overflow-hidden bg-cyber-dark/30">
+      {/* Tab Content - Independently scrollable */}
+      <div className="flex-1 overflow-y-auto bg-cyber-dark/30">
         {renderContent()}
       </div>
     </div>

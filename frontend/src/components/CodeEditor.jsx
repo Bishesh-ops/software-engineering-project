@@ -91,7 +91,7 @@ const CodeEditor = ({ code, onChange, onCompile, editorRef }) => {
     <div className="flex-1 flex flex-col">
       <div className="px-4 py-2 bg-cyber-dark/50 border-b border-cyber-blue/30 flex items-center justify-between">
         <h2 className="text-sm font-bold text-cyber-blue font-mono tracking-wider">
-          ⌨️ C SOURCE CODE
+          C SOURCE CODE
         </h2>
         <div className="text-xs text-gray-500 font-mono">
           <kbd className="px-2 py-1 bg-gray-800 border border-gray-700 rounded">
