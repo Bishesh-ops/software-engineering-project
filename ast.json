@@ -1,0 +1,75 @@
+{
+  "declaration_count": 1,
+  "declarations": [
+    {
+      "body": {
+        "location": {
+          "column": 12,
+          "file": "test_simple.c",
+          "line": 1
+        },
+        "node_type": "COMPOUND_STMT",
+        "statements": [
+          {
+            "declaration": {
+              "array_size": null,
+              "initializer": {
+                "literal_type": "INTEGER",
+                "location": {
+                  "column": 13,
+                  "file": "test_simple.c",
+                  "line": 2
+                },
+                "node_type": "LITERAL_EXPR",
+                "value": "42"
+              },
+              "is_array": false,
+              "location": {
+                "column": 5,
+                "file": "test_simple.c",
+                "line": 2
+              },
+              "name": "x",
+              "node_type": "VAR_DECL",
+              "pointer_level": 0,
+              "type": "int"
+            },
+            "location": {
+              "column": 5,
+              "file": "test_simple.c",
+              "line": 2
+            },
+            "node_type": "DECL_STMT"
+          },
+          {
+            "location": {
+              "column": 5,
+              "file": "test_simple.c",
+              "line": 3
+            },
+            "node_type": "RETURN_STMT",
+            "return_value": {
+              "location": {
+                "column": 12,
+                "file": "test_simple.c",
+                "line": 3
+              },
+              "name": "x",
+              "node_type": "IDENTIFIER_EXPR"
+            }
+          }
+        ]
+      },
+      "location": {
+        "column": 1,
+        "file": "test_simple.c",
+        "line": 1
+      },
+      "name": "main",
+      "node_type": "FUNCTION_DECL",
+      "parameters": [],
+      "return_type": "int"
+    }
+  ],
+  "stage": "parsing"
+}
