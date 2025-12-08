@@ -142,27 +142,7 @@ void Parser::synchronizeToDeclaration()
 
 std::unique_ptr<Expression> Parser::parseExpression()
 {
-    // Check for assignment: identifier = expression
-    if (current_token_.type == TokenType::IDENTIFIER)
-    {
-        auto expr = parseBinaryExpression(0);
-
-        // Check if followed by =
-        if (current_token_.type == TokenType::OP_ASSIGN)
-        {
-            Token assign_token = current_token_;
-            advance();
-
-            auto value = parseExpression();  // Parse right-hand side
-
-            SourceLocation loc(assign_token.filename, assign_token.line, assign_token.column);
-            return std::make_unique<AssignmentExpr>(std::move(expr), std::move(value), loc);
-        }
-
-        return expr;
-    }
-
-    // Parse binary expressions with operator precedence
+    // Parse all expressions (including assignments) as binary expressions with precedence
     return parseBinaryExpression(0);
 }
 
@@ -347,7 +327,7 @@ std::unique_ptr<Expression> Parser::parseLiteral()
 std::unique_ptr<Expression> Parser::parseBinaryExpression(int min_precedence)
 {
     // Precedence Climbing Algorithm
-    // Handles binary operators with correct precedence and left-to-right associativity
+    // Handles binary operators with correct precedence and associativity
 
     // Start with a primary expression (left-hand side)
     auto left = parsePrimaryExpression();
@@ -365,11 +345,26 @@ std::unique_ptr<Expression> Parser::parseBinaryExpression(int min_precedence)
 
         // Save operator token and advance
         Token op_token = current_token_;
+        TokenType op_type = op_token.type;
         advance();
 
-        // Parse right-hand side with higher precedence
+        // Parse right-hand side
         // For left-to-right associativity, use current_precedence + 1
-        auto right = parseBinaryExpression(current_precedence + 1);
+        // For right-to-left associativity (assignment), use current_precedence
+        int next_min_precedence = current_precedence + 1;
+
+        // Assignment operators are right-associative
+        if (op_type == TokenType::OP_ASSIGN ||
+            op_type == TokenType::OP_PLUS_ASSIGN ||
+            op_type == TokenType::OP_MINUS_ASSIGN ||
+            op_type == TokenType::OP_STAR_ASSIGN ||
+            op_type == TokenType::OP_SLASH_ASSIGN ||
+            op_type == TokenType::OP_MOD_ASSIGN)
+        {
+            next_min_precedence = current_precedence; // Right-associative
+        }
+
+        auto right = parseBinaryExpression(next_min_precedence);
 
         // Create binary expression node
         std::string op_string = tokenTypeToOperatorString(op_token.type);
@@ -392,12 +387,21 @@ std::unique_ptr<Expression> Parser::parseBinaryExpression(int min_precedence)
 
 int Parser::getOperatorPrecedence(TokenType type) const
 {
-    // Precedence levels as specified in User Story #3:
+    // Precedence levels:
     // Higher number = higher precedence (binds tighter)
 
     switch (type)
     {
-        // Level 1: Logical OR (lowest precedence)
+        // Level 0: Assignment (lowest precedence, right-to-left)
+        case TokenType::OP_ASSIGN:
+        case TokenType::OP_PLUS_ASSIGN:
+        case TokenType::OP_MINUS_ASSIGN:
+        case TokenType::OP_STAR_ASSIGN:
+        case TokenType::OP_SLASH_ASSIGN:
+        case TokenType::OP_MOD_ASSIGN:
+            return 0;
+
+        // Level 1: Logical OR
         case TokenType::OP_OR:
             return 1;
 
@@ -429,13 +433,13 @@ int Parser::getOperatorPrecedence(TokenType type) const
             return 6;
 
         default:
-            return 0; // Not a binary operator
+            return -1; // Not a binary operator
     }
 }
 
 bool Parser::isBinaryOperator(TokenType type) const
 {
-    return getOperatorPrecedence(type) > 0;
+    return getOperatorPrecedence(type) >= 0;
 }
 
 std::string Parser::tokenTypeToOperatorString(TokenType type) const
@@ -463,8 +467,23 @@ std::string Parser::tokenTypeToOperatorString(TokenType type) const
         case TokenType::OP_OR:      return "||";
         case TokenType::OP_NOT:     return "!";
 
-        // Bitwise (used as unary operators)
+        // Bitwise (used as unary/binary operators)
         case TokenType::OP_BIT_AND: return "&";
+        case TokenType::OP_BIT_NOT: return "~";
+        case TokenType::OP_BIT_OR:  return "|";
+        case TokenType::OP_BIT_XOR: return "^";
+
+        // Increment/Decrement
+        case TokenType::OP_INC:     return "++";
+        case TokenType::OP_DEC:     return "--";
+
+        // Assignment operators
+        case TokenType::OP_ASSIGN:       return "=";
+        case TokenType::OP_PLUS_ASSIGN:  return "+=";
+        case TokenType::OP_MINUS_ASSIGN: return "-=";
+        case TokenType::OP_STAR_ASSIGN:  return "*=";
+        case TokenType::OP_SLASH_ASSIGN: return "/=";
+        case TokenType::OP_MOD_ASSIGN:   return "%=";
 
         default:
             return "?"; // Unknown operator
@@ -508,6 +527,16 @@ std::unique_ptr<Statement> Parser::parseStatement()
 {
     switch (current_token_.type)
     {
+    case TokenType::SEMICOLON:
+        // Empty statement
+        {
+            Token semi_token = current_token_;
+            advance(); // Consume semicolon
+            SourceLocation loc(semi_token.filename, semi_token.line, semi_token.column);
+            // Create an expression statement with null expression to represent empty statement
+            return std::make_unique<ExpressionStmt>(nullptr, loc);
+        }
+
     case TokenType::KW_IF:
         return parseIfStatement();
 
@@ -754,6 +783,17 @@ std::unique_ptr<Declaration> Parser::parseDeclaration()
         return parseStructDeclarationOrDefinition();
     }
 
+    // Skip type qualifiers and storage class specifiers (const, static, volatile, extern, etc.)
+    while (current_token_.type == TokenType::KW_CONST ||
+           current_token_.type == TokenType::KW_VOLATILE ||
+           current_token_.type == TokenType::KW_STATIC ||
+           current_token_.type == TokenType::KW_EXTERN ||
+           current_token_.type == TokenType::KW_REGISTER ||
+           current_token_.type == TokenType::KW_AUTO)
+    {
+        advance(); // Skip the qualifier/specifier
+    }
+
     // Parse type and name first, then determine if function or variable
     if (!isTypeKeyword(current_token_.type))
     {
@@ -766,26 +806,70 @@ std::unique_ptr<Declaration> Parser::parseDeclaration()
     Token start_token = current_token_;
     std::string type = parseType();
 
-    // USER STORY #18: Parse pointer declarators (* symbols)
+    // Check for parenthesized declarator: int (*ptr)[10] or int (*func)(int)
     int pointerLevel = 0;
-    while (check(TokenType::OP_STAR))
-    {
-        advance(); // consume '*'
-        pointerLevel++;
-    }
+    std::string name;
+    bool isParenthesizedDeclarator = false;
 
-    Token name_token = consume(TokenType::IDENTIFIER, "Expected identifier in declaration");
-    std::string name(name_token.value);
+    if (check(TokenType::LPAREN))
+    {
+        // Could be:
+        // 1. Parenthesized declarator: (*name)...
+        // 2. Function with no name (error case)
+        // We need to peek inside to distinguish
+        advance(); // consume '('
+
+        if (check(TokenType::OP_STAR))
+        {
+            // Parenthesized declarator: (*name)
+            isParenthesizedDeclarator = true;
+
+            // Parse pointer level inside parentheses
+            while (check(TokenType::OP_STAR))
+            {
+                advance(); // consume '*'
+                pointerLevel++;
+            }
+
+            Token name_token = consume(TokenType::IDENTIFIER, "Expected identifier in declaration");
+            name = std::string(name_token.value);
+
+            consume(TokenType::RPAREN, "Expected ')' after identifier");
+        }
+        else
+        {
+            // Not a parenthesized declarator, likely an error
+            // Try to recover by treating it as invalid
+            reportError("Expected identifier in declaration");
+            synchronizeToDeclaration();
+            return nullptr;
+        }
+    }
+    else
+    {
+        // Regular declarator: *name or name
+        // USER STORY #18: Parse pointer declarators (* symbols)
+        while (check(TokenType::OP_STAR))
+        {
+            advance(); // consume '*'
+            pointerLevel++;
+        }
+
+        Token name_token = consume(TokenType::IDENTIFIER, "Expected identifier in declaration");
+        name = std::string(name_token.value);
+    }
 
     // Delegate to appropriate helper based on what follows the identifier
     if (check(TokenType::LPAREN))
     {
         // Function declaration: type name(...)
+        // For parenthesized declarators, this is a pointer to function
         return parseFunctionDeclarationImpl(start_token, type, name, pointerLevel);
     }
     else if (check(TokenType::LBRACKET))
     {
         // Array declaration: type name[size]
+        // For parenthesized declarators, this is a pointer to array
         return parseArrayDeclaration(start_token, type, name, pointerLevel);
     }
     else
@@ -980,16 +1064,39 @@ std::unique_ptr<Declaration> Parser::parseArrayDeclaration(
 {
     consume(TokenType::LBRACKET, "Expected '['");
 
-    // Parse array size expression
-    std::unique_ptr<Expression> arraySize = parseExpression();
+    // Parse array size expression (can be empty for arrays with initializers)
+    std::unique_ptr<Expression> arraySize = nullptr;
+    if (!check(TokenType::RBRACKET))
+    {
+        arraySize = parseExpression();
+    }
 
     consume(TokenType::RBRACKET, "Expected ']' after array size");
+
+    // Handle multidimensional arrays (parse additional [size] pairs)
+    while (check(TokenType::LBRACKET))
+    {
+        advance(); // Consume '['
+        if (!check(TokenType::RBRACKET))
+        {
+            parseExpression(); // Parse and discard additional dimensions for now
+        }
+        consume(TokenType::RBRACKET, "Expected ']'");
+    }
 
     // Arrays can optionally have initializers
     std::unique_ptr<Expression> initializer = nullptr;
     if (match(TokenType::OP_ASSIGN))
     {
-        initializer = parseExpression();
+        // Check if it's an initializer list {...}
+        if (check(TokenType::LBRACE))
+        {
+            initializer = parseInitializerList();
+        }
+        else
+        {
+            initializer = parseExpression();
+        }
     }
 
     if (!check(TokenType::SEMICOLON))
@@ -1002,6 +1109,32 @@ std::unique_ptr<Declaration> Parser::parseArrayDeclaration(
 
     SourceLocation loc(start_token.filename, start_token.line, start_token.column);
     return std::make_unique<VarDecl>(name, type, std::move(initializer), loc, true, std::move(arraySize), pointerLevel);
+}
+
+// Helper: Parse initializer list { expr, expr, ... }
+std::unique_ptr<Expression> Parser::parseInitializerList()
+{
+    consume(TokenType::LBRACE, "Expected '{'");
+
+    // For now, just consume the initializer list without creating a proper AST
+    // This allows the parser to not error out on initializer lists
+    int braceDepth = 1;
+    while (braceDepth > 0 && current_token_.type != TokenType::EOF_TOKEN)
+    {
+        if (current_token_.type == TokenType::LBRACE)
+        {
+            braceDepth++;
+        }
+        else if (current_token_.type == TokenType::RBRACE)
+        {
+            braceDepth--;
+        }
+        advance();
+    }
+
+    // Return a null expression as a placeholder
+    // In a complete implementation, this would return an InitializerListExpr
+    return nullptr;
 }
 
 // Helper: Parse regular variable declaration
@@ -1132,8 +1265,12 @@ std::unique_ptr<Declaration> Parser::parseFunctionDeclaration()
 
 bool Parser::isUnaryOperator(TokenType type) const
 {
-    return type == TokenType::OP_MINUS ||
+    return type == TokenType::OP_PLUS ||
+           type == TokenType::OP_MINUS ||
            type == TokenType::OP_NOT ||
+           type == TokenType::OP_BIT_NOT ||
+           type == TokenType::OP_INC ||
+           type == TokenType::OP_DEC ||
            type == TokenType::OP_STAR ||
            type == TokenType::OP_BIT_AND;
 }
@@ -1219,9 +1356,19 @@ std::vector<std::unique_ptr<ParameterDecl>> Parser::parseParameterList()
         // Parse parameter type
         std::string paramType = parseType();
 
-        // Parse parameter name (optional in forward declarations, but we'll require it)
-        Token param_name_token = consume(TokenType::IDENTIFIER, "Expected parameter name");
-        std::string paramName(param_name_token.value);
+        // Parse parameter name (optional in forward declarations and function pointer types)
+        std::string paramName;
+        if (check(TokenType::IDENTIFIER))
+        {
+            Token param_name_token = current_token_;
+            advance();
+            paramName = std::string(param_name_token.value);
+        }
+        else
+        {
+            // No parameter name - valid in function pointer declarations
+            paramName = ""; // Empty name for unnamed parameters
+        }
 
         SourceLocation loc(param_start.filename, param_start.line, param_start.column);
         parameters.push_back(std::make_unique<ParameterDecl>(paramName, paramType, loc));

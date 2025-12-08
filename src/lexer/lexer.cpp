@@ -66,11 +66,19 @@ void Lexer::skipComment()
     }
     else if (peek() == '*')
     {              // Multi-line comment
+        int comment_start_line = current_line_;
+        int comment_start_column = current_column_ - 2; // Account for the '/*' already consumed
         advance(); // Consume '*'
+        bool terminated = false;
         while (true)
         {
             if (peek() == '\0')
-                break; // Unterminated
+            {
+                // Unterminated comment - report error
+                error_handler_.error("Unterminated multi-line comment",
+                                    SourceLocation(current_filename_, comment_start_line, comment_start_column));
+                break;
+            }
             // --- CORRECTED: Check for '*' FIRST ---
             if (peek() == '*')
             {
@@ -78,6 +86,7 @@ void Lexer::skipComment()
                 if (peek() == '/')
                 {              // Check if the NEXT char is '/'
                     advance(); // Consume closing '/'
+                    terminated = true;
                     break;     // End of comment
                 }
                 // If not '/', it was just a '*', continue loop
@@ -546,34 +555,87 @@ Token Lexer::scanCharLiteral(int start_line, int start_column)
             string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
             return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
         }
-        char escape_char = advance();
-        switch (escape_char)
-        { // Process escape
-        case 'n':
-            actual_char = '\n';
-            break;
-        case 't':
-            actual_char = '\t';
-            break;
-        case 'r':
-            actual_char = '\r';
-            break;
-        case '\\':
-            actual_char = '\\';
-            break;
-        case '\'':
-            actual_char = '\'';
-            break;
-        case '0':
-            actual_char = '\0';
-            break;
-        default: // Invalid escape
-            error_handler_.error("Invalid escape sequence '\\" + string(1, escape_char) + "' in character literal",
-                                SourceLocation(start_filename, start_line, start_column));
-            string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
-            return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
+        char escape_char = peek();
+
+        // Handle octal escape sequences (\0-\777)
+        if (escape_char >= '0' && escape_char <= '7')
+        {
+            int octal_value = 0;
+            int digits = 0;
+            while (digits < 3 && peek() >= '0' && peek() <= '7')
+            {
+                octal_value = octal_value * 8 + (advance() - '0');
+                digits++;
+            }
+            actual_char = static_cast<char>(octal_value);
+            processed_value += actual_char;
         }
-        processed_value += actual_char; // Store processed char
+        // Handle hex escape sequences (\xHH)
+        else if (escape_char == 'x')
+        {
+            advance(); // Consume 'x'
+            if (!is_hex_digit(peek()))
+            {
+                error_handler_.error("Invalid hex escape sequence in character literal",
+                                    SourceLocation(start_filename, start_line, start_column));
+                string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
+                return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
+            }
+            int hex_value = 0;
+            while (is_hex_digit(peek()))
+            {
+                char c = advance();
+                if (c >= '0' && c <= '9')
+                    hex_value = hex_value * 16 + (c - '0');
+                else if (c >= 'a' && c <= 'f')
+                    hex_value = hex_value * 16 + (c - 'a' + 10);
+                else if (c >= 'A' && c <= 'F')
+                    hex_value = hex_value * 16 + (c - 'A' + 10);
+            }
+            actual_char = static_cast<char>(hex_value);
+            processed_value += actual_char;
+        }
+        // Handle standard escape sequences
+        else
+        {
+            advance(); // Consume escape char
+            switch (escape_char)
+            {
+            case 'n':
+                actual_char = '\n';
+                break;
+            case 't':
+                actual_char = '\t';
+                break;
+            case 'r':
+                actual_char = '\r';
+                break;
+            case '\\':
+                actual_char = '\\';
+                break;
+            case '\'':
+                actual_char = '\'';
+                break;
+            case '"':
+                actual_char = '"';
+                break;
+            case 'b':
+                actual_char = '\b';
+                break;
+            case 'f':
+                actual_char = '\f';
+                break;
+            case 'v':
+                actual_char = '\v';
+                break;
+            default: // Invalid escape
+                error_handler_.error("Invalid escape sequence '\\" + string(1, escape_char) + "' in character literal",
+                                    SourceLocation(start_filename, start_line, start_column));
+                string_view val = source_view_.substr(start_pos, current_pos_ - start_pos);
+                return Token(TokenType::UNKNOWN, val, start_filename, start_line, start_column);
+            }
+            processed_value += actual_char;
+        }
     }
     else
     {
@@ -696,11 +758,16 @@ Token Lexer::scanOperator(int start_line, int start_column)
     case '%':
     case '=':
     case '!':
-    case '|':
-    case '^': // Added '|' and '^' here
+    case '^': // Added '^' here
         // Check for '=', '++', '--', '->'
         if (peek() == '=' || (c == '+' && peek() == '+') || (c == '-' && peek() == '-') || (c == '-' && peek() == '>'))
         {
+            advance();
+        }
+        break;
+    case '|': // Special case for | and ||
+        if (peek() == '|' || peek() == '=')
+        { // Correctly check for || or |=
             advance();
         }
         break;

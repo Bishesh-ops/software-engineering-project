@@ -190,16 +190,23 @@ void SemanticAnalyzer::visit(VarDecl &node) {
             // A better approach would be to store the struct name with the pointer
         }
     } else {
-        // Regular type - convert from string
-        var_type = Type::fromString(node.getType());
+        // Check if this is an undefined struct type
+        if (node.getType().find(struct_prefix) == 0) {
+            // It's a struct type but not defined - error!
+            add_error("Use of undefined struct type '" + type_name + "'", node.getLocation());
+            var_type = Type::makeInt(); // Use int as fallback to continue analysis
+        } else {
+            // Regular type - convert from string
+            var_type = Type::fromString(node.getType());
 
-        // Handle pointer level
-        if (node.getPointerLevel() > 0 && var_type) {
-            var_type = Type::makePointer(var_type->getBaseType(), node.getPointerLevel());
-        }
-        // Handle arrays
-        else if (node.getIsArray() && var_type) {
-            var_type = Type::makeArray(var_type->getBaseType(), 0);  // Size TBD
+            // Handle pointer level
+            if (node.getPointerLevel() > 0 && var_type) {
+                var_type = Type::makePointer(var_type->getBaseType(), node.getPointerLevel());
+            }
+            // Handle arrays
+            else if (node.getIsArray() && var_type) {
+                var_type = Type::makeArray(var_type->getBaseType(), 0);  // Size TBD
+            }
         }
     }
 
@@ -1047,6 +1054,15 @@ void SemanticAnalyzer::visit(ArrayAccessExpr &node) {
     }
     if (node.getIndex()) {
         node.getIndex()->accept(*this);
+    }
+
+    // Validate that the array expression is actually an array or pointer type
+    auto array_type = get_expression_type(node.getArray());
+    if (array_type) {
+        // Check if it's an array or pointer type
+        if (!array_type->isArray() && !array_type->isPointer()) {
+            add_error("Array subscript applied to non-array, non-pointer type", node.getLocation());
+        }
     }
 }
 

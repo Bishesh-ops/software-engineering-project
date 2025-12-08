@@ -32,18 +32,11 @@ std::string Token::to_string() const
 
     // --- Logic to display value ---
     // If processed_value is non-empty (used for char/string literals), display that.
-    // Otherwise, convert the raw string_view 'value' to a string for display.
-    const std::string *value_ptr = &processed_value;
-    std::string temp_value_storage; // Temporary if conversion needed
-
-    if (processed_value.empty())
-    {
-        temp_value_storage = std::string(value);
-        value_ptr = &temp_value_storage;
-    }
+    // Otherwise, use the raw 'value' string.
+    const std::string& display_value = processed_value.empty() ? value : processed_value;
 
     // Escape control characters from the chosen value string
-    for (char c : *value_ptr)
+    for (char c : display_value)
     {
         switch (c)
         {

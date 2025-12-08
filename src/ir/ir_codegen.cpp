@@ -91,22 +91,154 @@ void IRCodeGenerator::visit(IdentifierExpr& node) {
 //   t0 = MUL b, c
 //   t1 = ADD a, t0
 void IRCodeGenerator::visit(BinaryExpr& node) {
+    const std::string& op = node.getOperator();
+
+    // Handle assignment operators specially
+    if (op == "=" || op == "+=" || op == "-=" || op == "*=" || op == "/=") {
+        // Evaluate the right-hand side first
+        node.getRight()->accept(*this);
+        IROperand rightOperand = exprStack.top();
+        exprStack.pop();
+        resultStack.pop();
+
+        // For compound assignments (+=, -=, etc.), we need to load the current value first
+        if (op != "=") {
+            // Evaluate left side to get current value
+            node.getLeft()->accept(*this);
+            IROperand leftOperand = exprStack.top();
+            exprStack.pop();
+            resultStack.pop();
+
+            // Perform the operation
+            std::string baseOp = op.substr(0, 1);  // Extract +, -, *, /
+            IROpcode opcode = operatorToOpcode(baseOp);
+            SSAValue* tempResult = new SSAValue(tempGen.newTemp(), getDefaultType(), 0);
+
+            if (opcode == IROpcode::ADD || opcode == IROpcode::SUB ||
+                opcode == IROpcode::MUL || opcode == IROpcode::DIV) {
+                auto inst = std::make_unique<ArithmeticInst>(opcode, tempResult, leftOperand, rightOperand);
+                addInstruction(std::move(inst));
+            }
+
+            rightOperand = makeSSAOperand(tempResult);
+        }
+
+        // Now store the result to the left-hand side
+        // For simple identifier on left side
+        if (node.getLeft()->getNodeType() == ASTNodeType::IDENTIFIER_EXPR) {
+            IdentifierExpr* identTarget = static_cast<IdentifierExpr*>(node.getLeft());
+            SSAValue* targetValue = new SSAValue(identTarget->getName(), getDefaultType(), 0);
+
+            // Generate MOVE or STORE instruction
+            auto moveInst = std::make_unique<MoveInst>(targetValue, rightOperand);
+            addInstruction(std::move(moveInst));
+
+            exprStack.push(makeSSAOperand(targetValue));
+            resultStack.push(targetValue);
+        } else {
+            // For other lvalues (arrays, pointers), use STORE
+            throw std::runtime_error("Assignment to complex lvalue not yet supported in BinaryExpr");
+        }
+        return;
+    }
+
+    // Handle logical operators specially (short-circuit evaluation)
+    if (op == "&&" || op == "||") {
+        // Generate short-circuit evaluation using conditional jumps
+        // Evaluate left operand
+        node.getLeft()->accept(*this);
+        IROperand leftOperand = exprStack.top();
+        exprStack.pop();
+        resultStack.pop();
+
+        // Create labels for short-circuit
+        std::string skipLabel = labelGen.newLabel("skip");
+        std::string endLabel = labelGen.newLabel("end");
+
+        if (op == "&&") {
+            // If left is false, skip right and result is false
+            auto jumpIfFalse = std::make_unique<JumpIfFalseInst>(leftOperand, skipLabel);
+            addInstruction(std::move(jumpIfFalse));
+
+            // Evaluate right operand
+            node.getRight()->accept(*this);
+            IROperand rightOperand = exprStack.top();
+            exprStack.pop();
+            resultStack.pop();
+
+            // Result is right operand
+            SSAValue* result = new SSAValue(tempGen.newTemp(), getDefaultType(), 0);
+            auto moveInst = std::make_unique<MoveInst>(result, rightOperand);
+            addInstruction(std::move(moveInst));
+
+            auto jumpToEnd = std::make_unique<JumpInst>(endLabel);
+            addInstruction(std::move(jumpToEnd));
+
+            // Skip label: result is false (0)
+            auto skipLabelInst = std::make_unique<LabelInst>(skipLabel);
+            addInstruction(std::move(skipLabelInst));
+
+            IROperand falseOp = makeConstant("0");
+            auto moveFalse = std::make_unique<MoveInst>(result, falseOp);
+            addInstruction(std::move(moveFalse));
+
+            // End label
+            auto endLabelInst = std::make_unique<LabelInst>(endLabel);
+            addInstruction(std::move(endLabelInst));
+
+            exprStack.push(makeSSAOperand(result));
+            resultStack.push(result);
+        } else {  // ||
+            // If left is true, skip right and result is true
+            auto jumpIfFalse = std::make_unique<JumpIfFalseInst>(leftOperand, endLabel);
+            addInstruction(std::move(jumpIfFalse));
+
+            // Left is true, result is true
+            SSAValue* result = new SSAValue(tempGen.newTemp(), getDefaultType(), 0);
+            IROperand trueOp = makeConstant("1");
+            auto moveTrue = std::make_unique<MoveInst>(result, trueOp);
+            addInstruction(std::move(moveTrue));
+
+            auto jumpToSkip = std::make_unique<JumpInst>(skipLabel);
+            addInstruction(std::move(jumpToSkip));
+
+            // End label: evaluate right
+            auto endLabelInst = std::make_unique<LabelInst>(endLabel);
+            addInstruction(std::move(endLabelInst));
+
+            node.getRight()->accept(*this);
+            IROperand rightOperand = exprStack.top();
+            exprStack.pop();
+            resultStack.pop();
+
+            auto moveRight = std::make_unique<MoveInst>(result, rightOperand);
+            addInstruction(std::move(moveRight));
+
+            // Skip label
+            auto skipLabelInst = std::make_unique<LabelInst>(skipLabel);
+            addInstruction(std::move(skipLabelInst));
+
+            exprStack.push(makeSSAOperand(result));
+            resultStack.push(result);
+        }
+        return;
+    }
+
+    // Regular binary operators (arithmetic, comparison)
     // First, recursively lower the left operand
-    // This may generate multiple instructions for nested expressions
     node.getLeft()->accept(*this);
     IROperand leftOperand = exprStack.top();
     exprStack.pop();
     resultStack.pop();
 
     // Then, recursively lower the right operand
-    // This may also generate multiple instructions for nested expressions
     node.getRight()->accept(*this);
     IROperand rightOperand = exprStack.top();
     exprStack.pop();
     resultStack.pop();
 
     // Convert the AST operator to IR opcode
-    IROpcode opcode = operatorToOpcode(node.getOperator());
+    IROpcode opcode = operatorToOpcode(op);
 
     // Generate a temporary variable to hold the result
     SSAValue* tempResult = new SSAValue(tempGen.newTemp(), getDefaultType(), 0);
@@ -177,6 +309,23 @@ void IRCodeGenerator::visit(UnaryExpr& node) {
         SSAValue* result = new SSAValue(tempGen.newTemp(), getDefaultType(), 0);
         auto subInst = std::make_unique<ArithmeticInst>(IROpcode::SUB, result, zero, operand);
         addInstruction(std::move(subInst));
+
+        exprStack.push(makeSSAOperand(result));
+        resultStack.push(result);
+    }
+    // Handle unary logical NOT
+    else if (op == "!") {
+        // Evaluate the operand
+        node.getOperand()->accept(*this);
+        IROperand operand = exprStack.top();
+        exprStack.pop();
+        resultStack.pop();
+
+        // Generate: result = operand == 0
+        IROperand zero = makeConstant("0");
+        SSAValue* result = new SSAValue(tempGen.newTemp(), getDefaultType(), 0);
+        auto eqInst = std::make_unique<ComparisonInst>(IROpcode::EQ, result, operand, zero);
+        addInstruction(std::move(eqInst));
 
         exprStack.push(makeSSAOperand(result));
         resultStack.push(result);

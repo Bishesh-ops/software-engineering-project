@@ -122,7 +122,7 @@ std::string token_type_to_string(TokenType type);
 struct Token
 {
     TokenType type;
-    std::string_view value;      // Zero-copy view into source (lexeme)
+    std::string value;           // Lexeme (stored as string for lifetime safety)
     std::string processed_value; // Storage for processed strings (char/string literals)
     std::string filename;        // The source filename for this token
     int line;                    // 1-based line number in that file

@@ -98,6 +98,9 @@ private:
         const std::string& name,
         int pointerLevel
     );
+
+    // Helper: Parse initializer list { expr, expr, ... }
+    std::unique_ptr<Expression> parseInitializerList();
 };
 
 #endif // PARSER_H

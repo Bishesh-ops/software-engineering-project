@@ -262,6 +262,69 @@ target_link_libraries(test_warnings
 gtest_discover_tests(test_warnings)
 
 # ==============================================================================
+# IR Code Generation Tests
+# ==============================================================================
+add_executable(test_ir_codegen
+    backend/unit/ir/test_ir_codegen.cpp
+    ${CMAKE_SOURCE_DIR}/src/ir/ir_codegen.cpp
+    ${CMAKE_SOURCE_DIR}/src/ir/ir.cpp
+    ${CMAKE_SOURCE_DIR}/src/parser/parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/lexer.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/token.cpp
+    ${CMAKE_SOURCE_DIR}/src/error/error_handler.cpp
+)
+target_link_libraries(test_ir_codegen
+    GTest::gtest_main
+    test_helpers
+)
+gtest_discover_tests(test_ir_codegen)
+
+# ==============================================================================
+# x86-64 Code Generation Tests
+# ==============================================================================
+add_executable(test_codegen
+    backend/unit/codegen/test_codegen.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/codegen.cpp
+    ${CMAKE_SOURCE_DIR}/src/ir/ir.cpp
+)
+target_link_libraries(test_codegen
+    GTest::gtest_main
+    test_helpers
+)
+gtest_discover_tests(test_codegen)
+
+# ==============================================================================
+# Error Handler Unit Tests
+# ==============================================================================
+add_executable(test_error_handler
+    backend/unit/error/test_error_handler.cpp
+    ${CMAKE_SOURCE_DIR}/src/error/error_handler.cpp
+)
+target_link_libraries(test_error_handler
+    GTest::gtest_main
+    test_helpers
+)
+gtest_discover_tests(test_error_handler)
+
+# ==============================================================================
+# JSON Serializer Unit Tests
+# ==============================================================================
+add_executable(test_json_serializer
+    backend/unit/serializer/test_json_serializer.cpp
+    ${CMAKE_SOURCE_DIR}/src/serializer/json_serializer.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/lexer.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/token.cpp
+    ${CMAKE_SOURCE_DIR}/src/parser/parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/error/error_handler.cpp
+    ${CMAKE_SOURCE_DIR}/src/AST/ast_printer.cpp
+)
+target_link_libraries(test_json_serializer
+    GTest::gtest_main
+    test_helpers
+)
+gtest_discover_tests(test_json_serializer)
+
+# ==============================================================================
 # Test Summary Target
 # ==============================================================================
 
@@ -282,6 +345,10 @@ add_custom_target(run_all_tests
         test_scope_manager
         test_semantic_errors
         test_warnings
+        test_ir_codegen
+        test_codegen
+        test_error_handler
+        test_json_serializer
     COMMENT "Running all mycc compiler tests..."
 )
 
