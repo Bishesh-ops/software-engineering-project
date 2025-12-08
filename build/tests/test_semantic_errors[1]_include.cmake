@@ -1,0 +1,5 @@
+if(EXISTS "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_semantic_errors[1]_tests.cmake")
+  include("/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_semantic_errors[1]_tests.cmake")
+else()
+  add_test(test_semantic_errors_NOT_BUILT test_semantic_errors_NOT_BUILT)
+endif()

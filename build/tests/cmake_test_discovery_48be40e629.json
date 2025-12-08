@@ -1,0 +1,142 @@
+{
+  "tests": 26,
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "ParserDeclarationTest",
+      "tests": 26,
+      "testsuite": [
+        {
+          "name": "ParsesSimpleGlobalVariable",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 40
+        },
+        {
+          "name": "ParsesVariableWithInitializer",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 51
+        },
+        {
+          "name": "ParsesMultipleVariableTypes",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 62
+        },
+        {
+          "name": "ParsesConstVariable",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 74
+        },
+        {
+          "name": "ParsesStaticVariable",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 81
+        },
+        {
+          "name": "ParsesSimplePointer",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 92
+        },
+        {
+          "name": "ParsesPointerWithInitializer",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 102
+        },
+        {
+          "name": "ParsesDoublePointer",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 109
+        },
+        {
+          "name": "ParsesSimpleArray",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 120
+        },
+        {
+          "name": "ParsesArrayWithInitializer",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 127
+        },
+        {
+          "name": "ParsesMultidimensionalArray",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 134
+        },
+        {
+          "name": "ParsesSimpleFunctionDeclaration",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 145
+        },
+        {
+          "name": "ParsesFunctionWithNoParameters",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 156
+        },
+        {
+          "name": "ParsesFunctionWithMultipleParameters",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 163
+        },
+        {
+          "name": "ParsesSimpleFunctionDefinition",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 177
+        },
+        {
+          "name": "ParsesVoidFunction",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 191
+        },
+        {
+          "name": "ParsesMainFunction",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 202
+        },
+        {
+          "name": "ParsesSimpleStructDefinition",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 220
+        },
+        {
+          "name": "ParsesEmptyStruct",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 232
+        },
+        {
+          "name": "ParsesStructWithMultipleFields",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 239
+        },
+        {
+          "name": "ParsesStructVariable",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 252
+        },
+        {
+          "name": "ParsesPointerToFunction",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 269
+        },
+        {
+          "name": "ParsesArrayOfPointers",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 276
+        },
+        {
+          "name": "ParsesPointerToArray",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 283
+        },
+        {
+          "name": "ParsesCompleteProgram",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 294
+        },
+        {
+          "name": "ParsesProgramWithStructsAndFunctions",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_declarations.cpp",
+          "line": 314
+        }
+      ]
+    }
+  ]
+}

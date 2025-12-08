@@ -1,0 +1,212 @@
+{
+  "tests": 40,
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "ErrorHandlerTest",
+      "tests": 40,
+      "testsuite": [
+        {
+          "name": "SourceLocationToString",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 27
+        },
+        {
+          "name": "SourceLocationIsValid",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 32
+        },
+        {
+          "name": "SourceLocationDefault",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 46
+        },
+        {
+          "name": "ReportsSingleError",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 56
+        },
+        {
+          "name": "ReportsMultipleErrors",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 65
+        },
+        {
+          "name": "ReportsErrorWithoutLocation",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 74
+        },
+        {
+          "name": "ReportsSingleWarning",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 85
+        },
+        {
+          "name": "ReportsMultipleWarnings",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 95
+        },
+        {
+          "name": "WarningsDoNotCauseCompilationFailure",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 105
+        },
+        {
+          "name": "ReportsNote",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 116
+        },
+        {
+          "name": "NotesProvideContext",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 124
+        },
+        {
+          "name": "HandlesMixedDiagnostics",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 137
+        },
+        {
+          "name": "DiagnosticsAreCollected",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 149
+        },
+        {
+          "name": "FiltersErrorsOnly",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 171
+        },
+        {
+          "name": "FiltersWarningsOnly",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 183
+        },
+        {
+          "name": "ClearResetsAllCounters",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 199
+        },
+        {
+          "name": "DefaultMaxErrorsIs10",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 221
+        },
+        {
+          "name": "DetectsMaxErrorsReached",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 227
+        },
+        {
+          "name": "MaxErrorsDoesNotAffectWarnings",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 239
+        },
+        {
+          "name": "ColorsCanBeEnabled",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 255
+        },
+        {
+          "name": "ColorsCanBeDisabled",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 260
+        },
+        {
+          "name": "ColorSettingPersists",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 265
+        },
+        {
+          "name": "SourceContextCanBeEnabled",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 275
+        },
+        {
+          "name": "SourceContextCanBeDisabled",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 280
+        },
+        {
+          "name": "CanRegisterSourceCode",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 285
+        },
+        {
+          "name": "CanRegisterMultipleSourceFiles",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 294
+        },
+        {
+          "name": "HandlesEmptyErrorMessage",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 308
+        },
+        {
+          "name": "HandlesVeryLongErrorMessage",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 313
+        },
+        {
+          "name": "HandlesLargeLineNumbers",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 319
+        },
+        {
+          "name": "HandlesMultipleFilesInDiagnostics",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 325
+        },
+        {
+          "name": "DiagnosticLevelsAreDistinct",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 343
+        },
+        {
+          "name": "SummaryShowsErrorCount",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 363
+        },
+        {
+          "name": "SummaryShowsWarningCount",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 374
+        },
+        {
+          "name": "SummaryShowsBothErrorsAndWarnings",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 386
+        },
+        {
+          "name": "ErrorRecoveryWithMaxErrors",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 402
+        },
+        {
+          "name": "ErrorRecoveryDoesNotStopWarnings",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 417
+        },
+        {
+          "name": "CountsMatchDiagnosticsSize",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 433
+        },
+        {
+          "name": "ClearMaintainsConfigSettings",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 447
+        },
+        {
+          "name": "DefaultConstructorInitializesCorrectly",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 465
+        },
+        {
+          "name": "ConstructorWithColorsParameter",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/error\/test_error_handler.cpp",
+          "line": 476
+        }
+      ]
+    }
+  ]
+}

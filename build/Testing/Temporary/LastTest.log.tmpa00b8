@@ -1,0 +1,272 @@
+Start testing: Dec 07 12:20 CST
+----------------------------------------------------------
+1/340 Testing: LexerBasicTest.EmptySourceProducesEOF
+1/340 Test: LexerBasicTest.EmptySourceProducesEOF
+Command: "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_basic" "--gtest_filter=LexerBasicTest.EmptySourceProducesEOF" "--gtest_also_run_disabled_tests"
+Directory: /Users/mac/Desktop/c-compiler/software-engineering-project/build/tests
+"LexerBasicTest.EmptySourceProducesEOF" start time: Dec 07 12:20 CST
+Output:
+----------------------------------------------------------
+Running main() from /Users/mac/Desktop/c-compiler/software-engineering-project/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = LexerBasicTest.EmptySourceProducesEOF
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LexerBasicTest
+[ RUN      ] LexerBasicTest.EmptySourceProducesEOF
+[       OK ] LexerBasicTest.EmptySourceProducesEOF (0 ms)
+[----------] 1 test from LexerBasicTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"LexerBasicTest.EmptySourceProducesEOF" end time: Dec 07 12:20 CST
+"LexerBasicTest.EmptySourceProducesEOF" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/340 Testing: LexerBasicTest.WhitespaceOnlyProducesEOF
+2/340 Test: LexerBasicTest.WhitespaceOnlyProducesEOF
+Command: "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_basic" "--gtest_filter=LexerBasicTest.WhitespaceOnlyProducesEOF" "--gtest_also_run_disabled_tests"
+Directory: /Users/mac/Desktop/c-compiler/software-engineering-project/build/tests
+"LexerBasicTest.WhitespaceOnlyProducesEOF" start time: Dec 07 12:20 CST
+Output:
+----------------------------------------------------------
+Running main() from /Users/mac/Desktop/c-compiler/software-engineering-project/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = LexerBasicTest.WhitespaceOnlyProducesEOF
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LexerBasicTest
+[ RUN      ] LexerBasicTest.WhitespaceOnlyProducesEOF
+[       OK ] LexerBasicTest.WhitespaceOnlyProducesEOF (0 ms)
+[----------] 1 test from LexerBasicTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"LexerBasicTest.WhitespaceOnlyProducesEOF" end time: Dec 07 12:20 CST
+"LexerBasicTest.WhitespaceOnlyProducesEOF" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/340 Testing: LexerBasicTest.SingleLineCommentSkipped
+3/340 Test: LexerBasicTest.SingleLineCommentSkipped
+Command: "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_basic" "--gtest_filter=LexerBasicTest.SingleLineCommentSkipped" "--gtest_also_run_disabled_tests"
+Directory: /Users/mac/Desktop/c-compiler/software-engineering-project/build/tests
+"LexerBasicTest.SingleLineCommentSkipped" start time: Dec 07 12:20 CST
+Output:
+----------------------------------------------------------
+Running main() from /Users/mac/Desktop/c-compiler/software-engineering-project/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = LexerBasicTest.SingleLineCommentSkipped
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LexerBasicTest
+[ RUN      ] LexerBasicTest.SingleLineCommentSkipped
+[       OK ] LexerBasicTest.SingleLineCommentSkipped (0 ms)
+[----------] 1 test from LexerBasicTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"LexerBasicTest.SingleLineCommentSkipped" end time: Dec 07 12:20 CST
+"LexerBasicTest.SingleLineCommentSkipped" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/340 Testing: LexerBasicTest.MultiLineCommentSkipped
+4/340 Test: LexerBasicTest.MultiLineCommentSkipped
+Command: "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_basic" "--gtest_filter=LexerBasicTest.MultiLineCommentSkipped" "--gtest_also_run_disabled_tests"
+Directory: /Users/mac/Desktop/c-compiler/software-engineering-project/build/tests
+"LexerBasicTest.MultiLineCommentSkipped" start time: Dec 07 12:20 CST
+Output:
+----------------------------------------------------------
+Running main() from /Users/mac/Desktop/c-compiler/software-engineering-project/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = LexerBasicTest.MultiLineCommentSkipped
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LexerBasicTest
+[ RUN      ] LexerBasicTest.MultiLineCommentSkipped
+[       OK ] LexerBasicTest.MultiLineCommentSkipped (0 ms)
+[----------] 1 test from LexerBasicTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"LexerBasicTest.MultiLineCommentSkipped" end time: Dec 07 12:20 CST
+"LexerBasicTest.MultiLineCommentSkipped" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/340 Testing: LexerBasicTest.InterleavedComments
+5/340 Test: LexerBasicTest.InterleavedComments
+Command: "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_basic" "--gtest_filter=LexerBasicTest.InterleavedComments" "--gtest_also_run_disabled_tests"
+Directory: /Users/mac/Desktop/c-compiler/software-engineering-project/build/tests
+"LexerBasicTest.InterleavedComments" start time: Dec 07 12:20 CST
+Output:
+----------------------------------------------------------
+Running main() from /Users/mac/Desktop/c-compiler/software-engineering-project/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = LexerBasicTest.InterleavedComments
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LexerBasicTest
+[ RUN      ] LexerBasicTest.InterleavedComments
+[       OK ] LexerBasicTest.InterleavedComments (0 ms)
+[----------] 1 test from LexerBasicTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"LexerBasicTest.InterleavedComments" end time: Dec 07 12:20 CST
+"LexerBasicTest.InterleavedComments" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/340 Testing: LexerBasicTest.SimpleTokenSequence
+6/340 Test: LexerBasicTest.SimpleTokenSequence
+Command: "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_basic" "--gtest_filter=LexerBasicTest.SimpleTokenSequence" "--gtest_also_run_disabled_tests"
+Directory: /Users/mac/Desktop/c-compiler/software-engineering-project/build/tests
+"LexerBasicTest.SimpleTokenSequence" start time: Dec 07 12:20 CST
+Output:
+----------------------------------------------------------
+Running main() from /Users/mac/Desktop/c-compiler/software-engineering-project/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = LexerBasicTest.SimpleTokenSequence
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LexerBasicTest
+[ RUN      ] LexerBasicTest.SimpleTokenSequence
+[       OK ] LexerBasicTest.SimpleTokenSequence (0 ms)
+[----------] 1 test from LexerBasicTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"LexerBasicTest.SimpleTokenSequence" end time: Dec 07 12:20 CST
+"LexerBasicTest.SimpleTokenSequence" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/340 Testing: LexerBasicTest.NoWhitespaceBetweenDelimiters
+7/340 Test: LexerBasicTest.NoWhitespaceBetweenDelimiters
+Command: "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_basic" "--gtest_filter=LexerBasicTest.NoWhitespaceBetweenDelimiters" "--gtest_also_run_disabled_tests"
+Directory: /Users/mac/Desktop/c-compiler/software-engineering-project/build/tests
+"LexerBasicTest.NoWhitespaceBetweenDelimiters" start time: Dec 07 12:20 CST
+Output:
+----------------------------------------------------------
+Running main() from /Users/mac/Desktop/c-compiler/software-engineering-project/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = LexerBasicTest.NoWhitespaceBetweenDelimiters
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LexerBasicTest
+[ RUN      ] LexerBasicTest.NoWhitespaceBetweenDelimiters
+[       OK ] LexerBasicTest.NoWhitespaceBetweenDelimiters (0 ms)
+[----------] 1 test from LexerBasicTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"LexerBasicTest.NoWhitespaceBetweenDelimiters" end time: Dec 07 12:20 CST
+"LexerBasicTest.NoWhitespaceBetweenDelimiters" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/340 Testing: LexerBasicTest.LineNumberTracking
+8/340 Test: LexerBasicTest.LineNumberTracking
+Command: "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_basic" "--gtest_filter=LexerBasicTest.LineNumberTracking" "--gtest_also_run_disabled_tests"
+Directory: /Users/mac/Desktop/c-compiler/software-engineering-project/build/tests
+"LexerBasicTest.LineNumberTracking" start time: Dec 07 12:20 CST
+Output:
+----------------------------------------------------------
+Running main() from /Users/mac/Desktop/c-compiler/software-engineering-project/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = LexerBasicTest.LineNumberTracking
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LexerBasicTest
+[ RUN      ] LexerBasicTest.LineNumberTracking
+[       OK ] LexerBasicTest.LineNumberTracking (0 ms)
+[----------] 1 test from LexerBasicTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"LexerBasicTest.LineNumberTracking" end time: Dec 07 12:20 CST
+"LexerBasicTest.LineNumberTracking" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/340 Testing: LexerBasicTest.ColumnNumberTracking
+9/340 Test: LexerBasicTest.ColumnNumberTracking
+Command: "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_basic" "--gtest_filter=LexerBasicTest.ColumnNumberTracking" "--gtest_also_run_disabled_tests"
+Directory: /Users/mac/Desktop/c-compiler/software-engineering-project/build/tests
+"LexerBasicTest.ColumnNumberTracking" start time: Dec 07 12:20 CST
+Output:
+----------------------------------------------------------
+Running main() from /Users/mac/Desktop/c-compiler/software-engineering-project/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = LexerBasicTest.ColumnNumberTracking
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LexerBasicTest
+[ RUN      ] LexerBasicTest.ColumnNumberTracking
+[       OK ] LexerBasicTest.ColumnNumberTracking (0 ms)
+[----------] 1 test from LexerBasicTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"LexerBasicTest.ColumnNumberTracking" end time: Dec 07 12:20 CST
+"LexerBasicTest.ColumnNumberTracking" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/340 Testing: LexerBasicTest.FilenameTracking
+10/340 Test: LexerBasicTest.FilenameTracking
+Command: "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_basic" "--gtest_filter=LexerBasicTest.FilenameTracking" "--gtest_also_run_disabled_tests"
+Directory: /Users/mac/Desktop/c-compiler/software-engineering-project/build/tests
+"LexerBasicTest.FilenameTracking" start time: Dec 07 12:20 CST
+Output:
+----------------------------------------------------------
+Running main() from /Users/mac/Desktop/c-compiler/software-engineering-project/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = LexerBasicTest.FilenameTracking
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LexerBasicTest
+[ RUN      ] LexerBasicTest.FilenameTracking
+[       OK ] LexerBasicTest.FilenameTracking (0 ms)
+[----------] 1 test from LexerBasicTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"LexerBasicTest.FilenameTracking" end time: Dec 07 12:20 CST
+"LexerBasicTest.FilenameTracking" time elapsed: 00:00:00
+----------------------------------------------------------
+

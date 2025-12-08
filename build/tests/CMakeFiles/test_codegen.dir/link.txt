@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/test_codegen.dir/backend/unit/codegen/test_codegen.cpp.o CMakeFiles/test_codegen.dir/__/src/codegen/codegen.cpp.o CMakeFiles/test_codegen.dir/__/src/ir/ir.cpp.o -o test_codegen  ../lib/libgtest_main.a ../lib/libgtest.a

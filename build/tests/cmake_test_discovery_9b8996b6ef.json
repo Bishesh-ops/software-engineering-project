@@ -1,0 +1,137 @@
+{
+  "tests": 25,
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "SemanticErrorTest",
+      "tests": 25,
+      "testsuite": [
+        {
+          "name": "UndeclaredVariableUsage",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 48
+        },
+        {
+          "name": "UndeclaredFunctionCall",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 67
+        },
+        {
+          "name": "VariableUsedBeforeDeclaration",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 85
+        },
+        {
+          "name": "VariableRedeclarationInSameScope",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 108
+        },
+        {
+          "name": "FunctionRedeclaration",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 127
+        },
+        {
+          "name": "DuplicateParameterNames",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 152
+        },
+        {
+          "name": "GlobalVariableRedeclaration",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 173
+        },
+        {
+          "name": "AssignmentTypeMismatch",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 197
+        },
+        {
+          "name": "BinaryOperationTypeMismatch",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 216
+        },
+        {
+          "name": "ReturnTypeMismatch",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 244
+        },
+        {
+          "name": "WrongNumberOfArguments",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 269
+        },
+        {
+          "name": "TooFewArguments",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 291
+        },
+        {
+          "name": "CallingNonFunction",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 313
+        },
+        {
+          "name": "AssignmentToNonLvalue",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 336
+        },
+        {
+          "name": "AssignmentToRvalue",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 362
+        },
+        {
+          "name": "MissingReturnStatement",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 395
+        },
+        {
+          "name": "ReturnValueInVoidFunction",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 425
+        },
+        {
+          "name": "UndefinedStructType",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 451
+        },
+        {
+          "name": "NonExistentStructMember",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 469
+        },
+        {
+          "name": "MemberAccessOnNonStruct",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 493
+        },
+        {
+          "name": "ArraySubscriptOnNonArray",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 516
+        },
+        {
+          "name": "DereferencingNonPointer",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 535
+        },
+        {
+          "name": "MultipleErrors",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 558
+        },
+        {
+          "name": "ErrorRecoveryContinues",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 580
+        },
+        {
+          "name": "TypeMismatchInNestedExpression",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_semantic_errors.cpp",
+          "line": 612
+        }
+      ]
+    }
+  ]
+}

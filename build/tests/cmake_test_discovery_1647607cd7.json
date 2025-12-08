@@ -1,0 +1,112 @@
+{
+  "tests": 20,
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "LexerOperatorTest",
+      "tests": 20,
+      "testsuite": [
+        {
+          "name": "RecognizesBasicArithmeticOperators",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 40
+        },
+        {
+          "name": "RecognizesComparisonOperators",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 57
+        },
+        {
+          "name": "RecognizesLogicalOperators",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 75
+        },
+        {
+          "name": "RecognizesBitwiseOperators",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 90
+        },
+        {
+          "name": "RecognizesSimpleAssignment",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 108
+        },
+        {
+          "name": "RecognizesCompoundAssignmentOperators",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 117
+        },
+        {
+          "name": "RecognizesIncrementDecrement",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 139
+        },
+        {
+          "name": "RecognizesTernaryOperator",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 153
+        },
+        {
+          "name": "DisambiguatesIncrementVsPlusPlus",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 173
+        },
+        {
+          "name": "DisambiguatesEqualityVsAssignAssign",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 195
+        },
+        {
+          "name": "DisambiguatesLeftShiftVsLessLess",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 217
+        },
+        {
+          "name": "DisambiguatesLeftShiftAssign",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 237
+        },
+        {
+          "name": "DisambiguatesLogicalAndVsBitwiseAnd",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 257
+        },
+        {
+          "name": "OperatorsInExpressionWithoutSpacing",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 285
+        },
+        {
+          "name": "ComparisonChain",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 309
+        },
+        {
+          "name": "IncrementDecrementInExpression",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 327
+        },
+        {
+          "name": "RecognizesMemberAccessOperators",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 342
+        },
+        {
+          "name": "DisambiguatesArrowVsMinusGreater",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 355
+        },
+        {
+          "name": "OperatorsInAssignment",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 379
+        },
+        {
+          "name": "OperatorsInConditional",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_operators.cpp",
+          "line": 407
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "tests": 20,
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "ParserStatementTest",
+      "tests": 20,
+      "testsuite": [
+        {
+          "name": "ParsesSimpleExpressionStatement",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 41
+        },
+        {
+          "name": "ParsesFunctionCallStatement",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 49
+        },
+        {
+          "name": "ParsesEmptyStatement",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 56
+        },
+        {
+          "name": "ParsesEmptyCompoundStatement",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 67
+        },
+        {
+          "name": "ParsesCompoundWithMultipleStatements",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 74
+        },
+        {
+          "name": "ParsesNestedCompoundStatements",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 89
+        },
+        {
+          "name": "ParsesIfWithoutElse",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 108
+        },
+        {
+          "name": "ParsesIfWithElse",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 120
+        },
+        {
+          "name": "ParsesIfElseIfChain",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 134
+        },
+        {
+          "name": "ParsesNestedIf",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 150
+        },
+        {
+          "name": "ParsesWhileLoop",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 169
+        },
+        {
+          "name": "ParsesWhileWithSingleStatement",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 182
+        },
+        {
+          "name": "ParsesNestedWhileLoops",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 194
+        },
+        {
+          "name": "ParsesForLoopComplete",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 213
+        },
+        {
+          "name": "ParsesForLoopWithDeclaration",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 226
+        },
+        {
+          "name": "ParsesForLoopInfinite",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 239
+        },
+        {
+          "name": "ParsesReturnWithValue",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 256
+        },
+        {
+          "name": "ParsesReturnWithExpression",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 267
+        },
+        {
+          "name": "ParsesReturnVoid",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 278
+        },
+        {
+          "name": "ParsesMixedStatements",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_statements.cpp",
+          "line": 293
+        }
+      ]
+    }
+  ]
+}

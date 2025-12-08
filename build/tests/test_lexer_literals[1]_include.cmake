@@ -1,0 +1,5 @@
+if(EXISTS "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_literals[1]_tests.cmake")
+  include("/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_lexer_literals[1]_tests.cmake")
+else()
+  add_test(test_lexer_literals_NOT_BUILT test_lexer_literals_NOT_BUILT)
+endif()

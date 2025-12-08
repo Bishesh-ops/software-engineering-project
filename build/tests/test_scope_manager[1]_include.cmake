@@ -1,0 +1,5 @@
+if(EXISTS "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_scope_manager[1]_tests.cmake")
+  include("/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_scope_manager[1]_tests.cmake")
+else()
+  add_test(test_scope_manager_NOT_BUILT test_scope_manager_NOT_BUILT)
+endif()

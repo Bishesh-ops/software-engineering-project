@@ -1,0 +1,197 @@
+{
+  "tests": 37,
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "ParserExpressionTest",
+      "tests": 37,
+      "testsuite": [
+        {
+          "name": "ParsesIntegerLiteral",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 48
+        },
+        {
+          "name": "ParsesFloatingPointLiteral",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 60
+        },
+        {
+          "name": "ParsesStringLiteral",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 71
+        },
+        {
+          "name": "ParsesCharacterLiteral",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 83
+        },
+        {
+          "name": "ParsesIdentifier",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 94
+        },
+        {
+          "name": "ParsesParenthesizedExpression",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 108
+        },
+        {
+          "name": "ParsesAddition",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 126
+        },
+        {
+          "name": "ParsesSubtraction",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 140
+        },
+        {
+          "name": "ParsesMultiplication",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 150
+        },
+        {
+          "name": "ParsesDivision",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 160
+        },
+        {
+          "name": "ParsesModulo",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 170
+        },
+        {
+          "name": "ParsesEquality",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 181
+        },
+        {
+          "name": "ParsesInequality",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 190
+        },
+        {
+          "name": "ParsesLessThan",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 197
+        },
+        {
+          "name": "ParsesLessThanOrEqual",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 204
+        },
+        {
+          "name": "ParsesGreaterThan",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 211
+        },
+        {
+          "name": "ParsesGreaterThanOrEqual",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 218
+        },
+        {
+          "name": "ParsesLogicalAnd",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 229
+        },
+        {
+          "name": "ParsesLogicalOr",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 236
+        },
+        {
+          "name": "RespectsPrecedenceMultiplicationOverAddition",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 253
+        },
+        {
+          "name": "RespectsPrecedenceDivisionOverSubtraction",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 275
+        },
+        {
+          "name": "RespectsPrecedenceArithmeticOverComparison",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 292
+        },
+        {
+          "name": "RespectsPrecedenceAndOverOr",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 309
+        },
+        {
+          "name": "RespectsLeftAssociativitySubtraction",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 330
+        },
+        {
+          "name": "ParsesUnaryMinus",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 353
+        },
+        {
+          "name": "ParsesUnaryPlus",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 364
+        },
+        {
+          "name": "ParsesLogicalNot",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 374
+        },
+        {
+          "name": "ParsesBitwiseNot",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 385
+        },
+        {
+          "name": "ParsesPrefixIncrement",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 395
+        },
+        {
+          "name": "ParsesPrefixDecrement",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 406
+        },
+        {
+          "name": "ParsesFunctionCallNoArgs",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 420
+        },
+        {
+          "name": "ParsesFunctionCallOneArg",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 431
+        },
+        {
+          "name": "ParsesFunctionCallMultipleArgs",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 443
+        },
+        {
+          "name": "ParsesComplexNestedExpression",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 462
+        },
+        {
+          "name": "ParsesMixedOperators",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 479
+        },
+        {
+          "name": "ParsesAssignment",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 494
+        },
+        {
+          "name": "ParsesCompoundAssignment",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/parser\/test_parser_expressions.cpp",
+          "line": 506
+        }
+      ]
+    }
+  ]
+}

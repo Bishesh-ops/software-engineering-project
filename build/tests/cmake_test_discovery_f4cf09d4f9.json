@@ -1,0 +1,112 @@
+{
+  "tests": 20,
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "LexerErrorRecoveryTest",
+      "tests": 20,
+      "testsuite": [
+        {
+          "name": "UnterminatedStringLiteral",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 46
+        },
+        {
+          "name": "UnterminatedStringContinuesLexing",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 56
+        },
+        {
+          "name": "UnterminatedCharacterLiteral",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 72
+        },
+        {
+          "name": "EmptyCharacterLiteral",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 84
+        },
+        {
+          "name": "UnterminatedMultiLineComment",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 105
+        },
+        {
+          "name": "InvalidCharacterInSource",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 125
+        },
+        {
+          "name": "MultipleInvalidCharacters",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 150
+        },
+        {
+          "name": "InvalidHexadecimalLiteral",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 170
+        },
+        {
+          "name": "MalformedFloatLiteral",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 182
+        },
+        {
+          "name": "MultipleErrorsReported",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 204
+        },
+        {
+          "name": "RecoveryAllowsValidCode",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 227
+        },
+        {
+          "name": "ErrorsIncludeLocationInfo",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 263
+        },
+        {
+          "name": "ManyErrorsDontHang",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 285
+        },
+        {
+          "name": "SourceEndsMidToken",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 312
+        },
+        {
+          "name": "StringWithUnescapedNewline",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 324
+        },
+        {
+          "name": "NullCharacterInSource",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 337
+        },
+        {
+          "name": "ErrorInIdentifierPosition",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 355
+        },
+        {
+          "name": "MixedValidInvalidExpression",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 374
+        },
+        {
+          "name": "ExtremelyMalformedInputNoCrash",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 406
+        },
+        {
+          "name": "RepeatedUnterminatedStringsNoCrash",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/lexer\/test_lexer_error_recovery.cpp",
+          "line": 420
+        }
+      ]
+    }
+  ]
+}

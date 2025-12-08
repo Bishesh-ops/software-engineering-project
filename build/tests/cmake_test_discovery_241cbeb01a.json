@@ -1,0 +1,137 @@
+{
+  "tests": 25,
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "TypeCheckingTest",
+      "tests": 25,
+      "testsuite": [
+        {
+          "name": "ValidVariableDeclarations",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 50
+        },
+        {
+          "name": "VariableInitializerTypeMatch",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 68
+        },
+        {
+          "name": "IncompatibleInitializerType",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 88
+        },
+        {
+          "name": "ArithmeticWithCompatibleTypes",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 112
+        },
+        {
+          "name": "MixedIntegerFloatArithmetic",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 137
+        },
+        {
+          "name": "ComparisonOperations",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 158
+        },
+        {
+          "name": "LogicalOperations",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 186
+        },
+        {
+          "name": "ValidAssignments",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 219
+        },
+        {
+          "name": "AssignmentWithNarrowing",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 244
+        },
+        {
+          "name": "InvalidAssignment",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 271
+        },
+        {
+          "name": "FunctionCallCorrectArguments",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 304
+        },
+        {
+          "name": "FunctionCallWrongArgumentCount",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 328
+        },
+        {
+          "name": "FunctionCallIncompatibleArguments",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 350
+        },
+        {
+          "name": "ReturnCorrectType",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 385
+        },
+        {
+          "name": "ReturnWrongType",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 410
+        },
+        {
+          "name": "VoidFunctionWithReturnValue",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 439
+        },
+        {
+          "name": "PointerArithmetic",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 466
+        },
+        {
+          "name": "ArrayAccessTypeCheck",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 487
+        },
+        {
+          "name": "ArrayAccessNonIntegerIndex",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 507
+        },
+        {
+          "name": "StructMemberAccess",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 539
+        },
+        {
+          "name": "StructMemberWrongType",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 565
+        },
+        {
+          "name": "IntegerPromotion",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 594
+        },
+        {
+          "name": "UsualArithmeticConversions",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 615
+        },
+        {
+          "name": "ComplexExpression",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 639
+        },
+        {
+          "name": "NestedFunctionCalls",
+          "file": "\/Users\/mac\/Desktop\/c-compiler\/software-engineering-project\/tests\/backend\/unit\/semantic\/test_type_checking.cpp",
+          "line": 661
+        }
+      ]
+    }
+  ]
+}

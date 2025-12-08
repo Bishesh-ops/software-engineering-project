@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="21" failures="5" disabled="0" errors="0" time="0.001" timestamp="2025-12-08T13:55:26.405" name="AllTests">
+  <testsuite name="IRCodegenTest" tests="21" failures="5" disabled="0" skipped="0" errors="0" time="0.001" timestamp="2025-12-08T13:55:26.405">
+    <testcase name="GeneratesIRForIntegerLiteral" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="77" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.405" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForIdentifier" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="88" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.405" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForBinaryAddition" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="100" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.405" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForBinarySubtraction" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="110" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.405" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForBinaryMultiplication" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="120" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.405" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForBinaryDivision" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="130" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.405" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForNestedExpressions" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="141" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.405" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForComparison" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="152" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.405" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForLogicalAnd" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="163" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.405" classname="IRCodegenTest">
+      <failure message="unknown file&#x0A;C++ exception with description &quot;Unknown operator: &amp;&amp;&quot; thrown in the test body.&#x0A;" type=""><![CDATA[unknown file
+C++ exception with description "Unknown operator: &&" thrown in the test body.
+]]></failure>
+    </testcase>
+    <testcase name="GeneratesIRForUnaryMinus" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="176" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForUnaryNot" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="188" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest">
+      <failure message="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp:191&#x0A;Value of: instructions.empty()&#x0A;  Actual: true&#x0A;Expected: false&#x0A;" type=""><![CDATA[/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp:191
+Value of: instructions.empty()
+  Actual: true
+Expected: false
+]]></failure>
+    </testcase>
+    <testcase name="GeneratesIRForAssignment" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="200" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest">
+      <failure message="unknown file&#x0A;C++ exception with description &quot;Unknown operator: =&quot; thrown in the test body.&#x0A;" type=""><![CDATA[unknown file
+C++ exception with description "Unknown operator: =" thrown in the test body.
+]]></failure>
+    </testcase>
+    <testcase name="GeneratesIRForReturnStatement" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="215" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForExpressionStatement" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="231" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForIfStatement" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="252" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForWhileLoop" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="271" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest">
+      <failure message="unknown file&#x0A;C++ exception with description &quot;Unknown operator: =&quot; thrown in the test body.&#x0A;" type=""><![CDATA[unknown file
+C++ exception with description "Unknown operator: =" thrown in the test body.
+]]></failure>
+    </testcase>
+    <testcase name="GeneratesIRForFunctionCall" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="295" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest" />
+    <testcase name="GeneratesIRForFunctionCallMultipleArgs" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="305" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest" />
+    <testcase name="GeneratesSSAFormForMultipleAssignments" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="320" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest">
+      <failure message="unknown file&#x0A;C++ exception with description &quot;Unknown operator: =&quot; thrown in the test body.&#x0A;" type=""><![CDATA[unknown file
+C++ exception with description "Unknown operator: =" thrown in the test body.
+]]></failure>
+    </testcase>
+    <testcase name="GeneratesSSAFormForComplexExpression" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="345" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest" />
+    <testcase name="CanResetAndReuse" file="/Users/mac/Desktop/c-compiler/software-engineering-project/tests/backend/unit/ir/test_ir_codegen.cpp" line="363" status="run" result="completed" time="0." timestamp="2025-12-08T13:55:26.406" classname="IRCodegenTest" />
+  </testsuite>
+</testsuites>
