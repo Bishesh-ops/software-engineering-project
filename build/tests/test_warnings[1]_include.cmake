@@ -1,5 +1,0 @@
-if(EXISTS "/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_warnings[1]_tests.cmake")
-  include("/Users/mac/Desktop/c-compiler/software-engineering-project/build/tests/test_warnings[1]_tests.cmake")
-else()
-  add_test(test_warnings_NOT_BUILT test_warnings_NOT_BUILT)
-endif()
