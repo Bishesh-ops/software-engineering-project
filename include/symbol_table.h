@@ -20,6 +20,8 @@ struct Symbol {
 
     // Function-specific fields
     std::vector<std::shared_ptr<Type>> parameter_types;  // Parameter types for functions
+    bool is_variadic;                    // true if function accepts variable arguments (...)
+    bool is_builtin;                     // true if this is a built-in C library function
 
     // Deprecated fields (kept for backward compatibility with tests)
     std::string type;           // Type string (deprecated, use symbol_type instead)
@@ -35,6 +37,8 @@ struct Symbol {
           is_function(false),
           used(false),
           declaration_location(),
+          is_variadic(false),
+          is_builtin(false),
           type(""),
           is_array(false),
           array_size(0),

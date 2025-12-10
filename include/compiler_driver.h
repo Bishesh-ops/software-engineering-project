@@ -34,6 +34,12 @@ public:
         bool emitObject = false;        // Stop after assembling
         bool linkWithCRT = true;        // Link with C runtime (for main)
         std::vector<std::string> linkLibraries;  // Additional libraries to link
+
+        // Data dump options for visualization/debugging
+        std::string dumpTokensPath;     // Dump token stream as JSON (empty = no dump)
+        std::string dumpAstPath;        // Dump AST as JSON (empty = no dump)
+        std::string dumpAsmPath;        // Dump assembly text (empty = no dump)
+        std::string dumpHexPath;        // Dump hex output (empty = no dump)
     };
 
 private:

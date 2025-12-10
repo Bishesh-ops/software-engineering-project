@@ -48,6 +48,22 @@ static std::string opcodeToString(IROpcode opcode) {
 }
 
 // ============================================================================
+// Virtual Destructors for Derived Classes
+// ============================================================================
+ArithmeticInst::~ArithmeticInst() = default;
+ComparisonInst::~ComparisonInst() = default;
+LabelInst::~LabelInst() = default;
+JumpInst::~JumpInst() = default;
+JumpIfFalseInst::~JumpIfFalseInst() = default;
+LoadInst::~LoadInst() = default;
+StoreInst::~StoreInst() = default;
+CallInst::~CallInst() = default;
+ReturnInst::~ReturnInst() = default;
+ParamInst::~ParamInst() = default;
+MoveInst::~MoveInst() = default;
+PhiInst::~PhiInst() = default;
+
+// ============================================================================
 // ArithmeticInst Implementation
 // ============================================================================
 std::string ArithmeticInst::toString() const {
