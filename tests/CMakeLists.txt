@@ -325,6 +325,90 @@ target_link_libraries(test_json_serializer
 gtest_discover_tests(test_json_serializer)
 
 # ==============================================================================
+# Backend Integration Tests - Lexer-Parser Pipeline
+# ==============================================================================
+
+add_executable(test_lexer_parser_integration
+    backend/integration/test_lexer_parser_integration.cpp
+    ${CMAKE_SOURCE_DIR}/src/parser/parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/lexer.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/token.cpp
+    ${CMAKE_SOURCE_DIR}/src/error/error_handler.cpp
+    ${CMAKE_SOURCE_DIR}/src/AST/ast_printer.cpp
+)
+target_link_libraries(test_lexer_parser_integration
+    GTest::gtest_main
+    test_helpers
+)
+gtest_discover_tests(test_lexer_parser_integration)
+
+# ==============================================================================
+# Backend Integration Tests - Parser-Semantic Pipeline
+# ==============================================================================
+
+add_executable(test_parser_semantic_integration
+    backend/integration/test_parser_semantic_integration.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/semantic_analyzer.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/symbol_table.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/scope_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/type.cpp
+    ${CMAKE_SOURCE_DIR}/src/parser/parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/lexer.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/token.cpp
+    ${CMAKE_SOURCE_DIR}/src/error/error_handler.cpp
+    ${CMAKE_SOURCE_DIR}/src/AST/ast_printer.cpp
+)
+target_link_libraries(test_parser_semantic_integration
+    GTest::gtest_main
+    test_helpers
+)
+gtest_discover_tests(test_parser_semantic_integration)
+
+# ==============================================================================
+# Backend Integration Tests - Full Frontend Pipeline
+# ==============================================================================
+
+add_executable(test_frontend_pipeline
+    backend/integration/test_frontend_pipeline.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/semantic_analyzer.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/symbol_table.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/scope_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/type.cpp
+    ${CMAKE_SOURCE_DIR}/src/parser/parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/lexer.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/token.cpp
+    ${CMAKE_SOURCE_DIR}/src/error/error_handler.cpp
+    ${CMAKE_SOURCE_DIR}/src/AST/ast_printer.cpp
+)
+target_link_libraries(test_frontend_pipeline
+    GTest::gtest_main
+    test_helpers
+)
+gtest_discover_tests(test_frontend_pipeline)
+
+# ==============================================================================
+# Backend Integration Tests - Error Propagation
+# ==============================================================================
+
+add_executable(test_error_propagation
+    backend/integration/test_error_propagation.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/semantic_analyzer.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/symbol_table.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/scope_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/type.cpp
+    ${CMAKE_SOURCE_DIR}/src/parser/parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/lexer.cpp
+    ${CMAKE_SOURCE_DIR}/src/lexer/token.cpp
+    ${CMAKE_SOURCE_DIR}/src/error/error_handler.cpp
+    ${CMAKE_SOURCE_DIR}/src/AST/ast_printer.cpp
+)
+target_link_libraries(test_error_propagation
+    GTest::gtest_main
+    test_helpers
+)
+gtest_discover_tests(test_error_propagation)
+
+# ==============================================================================
 # Test Summary Target
 # ==============================================================================
 
@@ -332,23 +416,33 @@ gtest_discover_tests(test_json_serializer)
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --verbose
     DEPENDS
+        # Unit Tests - Lexer
         test_lexer_basic
         test_lexer_keywords
         test_lexer_operators
         test_lexer_literals
         test_lexer_error_recovery
+        # Unit Tests - Parser
         test_parser_expressions
         test_parser_statements
         test_parser_declarations
+        # Unit Tests - Semantic
         test_type_checking
         test_symbol_table
         test_scope_manager
         test_semantic_errors
         test_warnings
+        # Unit Tests - Codegen
         test_ir_codegen
         test_codegen
+        # Unit Tests - Utilities
         test_error_handler
         test_json_serializer
+        # Integration Tests
+        test_lexer_parser_integration
+        test_parser_semantic_integration
+        test_frontend_pipeline
+        test_error_propagation
     COMMENT "Running all mycc compiler tests..."
 )
 
