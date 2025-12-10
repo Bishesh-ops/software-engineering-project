@@ -29,7 +29,9 @@ def test_configuration():
         config_info = Config.info()
         print(f"  - Compiler path: {config_info['compiler_path']}")
         print(f"  - Compiler exists: {config_info['compiler_exists']}")
-        print(f"  - Server: {config_info['server']['host']}:{config_info['server']['port']}")
+        print(
+            f"  - Server: {config_info['server']['host']}:{config_info['server']['port']}"
+        )
         return True
     except Exception as e:
         print(f"[ERROR] Configuration error: {e}")
@@ -58,7 +60,7 @@ def test_simple_compilation(compiler):
 
     try:
         result = compiler.compile(test_code, "test.c")
-        success = result['success']
+        success = result["success"]
 
         print(f"[OK] Compilation {'succeeded' if success else 'failed (expected)'}")
         print(f"  - Return code: {result['return_code']}")
@@ -66,8 +68,8 @@ def test_simple_compilation(compiler):
         print(f"  - AST: {'present' if result['ast'] else 'missing'}")
         print(f"  - Assembly: {'present' if result['assembly'] else 'missing'}")
 
-        if result['tokens']:
-            token_count = len(result['tokens'].get('tokens', []))
+        if result["tokens"]:
+            token_count = len(result["tokens"].get("tokens", []))
             print(f"  - Token count: {token_count}")
 
         return True
@@ -85,7 +87,9 @@ def test_empty_code(compiler):
         result = compiler.compile(test_code, "empty.c")
 
         # Empty code should fail gracefully
-        print(f"[OK] Empty code handled: {'success' if result['success'] else 'failed (expected)'}")
+        print(
+            f"[OK] Empty code handled: {'success' if result['success'] else 'failed (expected)'}"
+        )
         print(f"  - Return code: {result['return_code']}")
         print(f"  - Has errors: {len(result.get('errors', [])) > 0}")
 
@@ -106,9 +110,9 @@ def test_syntax_error(compiler):
     try:
         result = compiler.compile(test_code, "syntax_error.c")
 
-        has_tokens = result['tokens'] is not None
-        has_ast = result['ast'] is not None
-        failed = not result['success']
+        has_tokens = result["tokens"] is not None
+        has_ast = result["ast"] is not None
+        failed = not result["success"]
 
         print(f"[OK] Syntax error handled correctly")
         print(f"  - Failed as expected: {failed}")
@@ -117,7 +121,7 @@ def test_syntax_error(compiler):
         print(f"  - Error count: {len(result.get('errors', []))}")
 
         if has_tokens:
-            token_count = len(result['tokens'].get('tokens', []))
+            token_count = len(result["tokens"].get("tokens", []))
             print(f"  - Token count: {token_count} (lexer worked)")
 
         return True
@@ -166,8 +170,8 @@ def test_large_source(compiler):
         print(f"  - Success: {result['success']}")
         print(f"  - Source size: {len(test_code)} bytes")
 
-        if result['tokens']:
-            token_count = len(result['tokens'].get('tokens', []))
+        if result["tokens"]:
+            token_count = len(result["tokens"].get("tokens", []))
             print(f"  - Token count: {token_count}")
 
         return True
