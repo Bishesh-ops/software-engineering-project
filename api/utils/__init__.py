@@ -7,4 +7,4 @@ This package contains:
 
 from .compiler import CompilerInvoker
 
-__all__ = ['CompilerInvoker']
+__all__ = ["CompilerInvoker"]
