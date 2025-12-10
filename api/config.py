@@ -49,7 +49,8 @@ class Config:
     # Development: Allow React dev server
     # Production: Should use environment variable or specific domain
     import os as _os
-    CORS_ORIGINS = _os.getenv('CORS_ORIGINS', 'http://localhost:3000')
+
+    CORS_ORIGINS = _os.getenv("CORS_ORIGINS", "http://localhost:3000")
     # To allow multiple origins in development:
     # CORS_ORIGINS = ['http://localhost:3000', 'http://localhost:5173']
     # To allow all origins (not recommended): CORS_ORIGINS = "*"
@@ -73,9 +74,7 @@ class Config:
             )
 
         if not os.access(cls.COMPILER_PATH, os.X_OK):
-            raise PermissionError(
-                f"Compiler is not executable: {cls.COMPILER_PATH}"
-            )
+            raise PermissionError(f"Compiler is not executable: {cls.COMPILER_PATH}")
 
         if cls.COMPILE_TIMEOUT <= 0:
             raise ValueError("COMPILE_TIMEOUT must be positive")
@@ -101,12 +100,8 @@ class Config:
             "temp_dir": cls.TEMP_DIR,
             "compile_timeout": cls.COMPILE_TIMEOUT,
             "max_source_size": cls.MAX_SOURCE_SIZE,
-            "server": {
-                "host": cls.HOST,
-                "port": cls.PORT,
-                "debug": cls.DEBUG
-            },
-            "cors_origins": cls.CORS_ORIGINS
+            "server": {"host": cls.HOST, "port": cls.PORT, "debug": cls.DEBUG},
+            "cors_origins": cls.CORS_ORIGINS,
         }
 
 
