@@ -568,10 +568,13 @@ TEST_F(ParserSemanticIntegrationTest, StructTypeAnalysis)
  */
 TEST_F(ParserSemanticIntegrationTest, ControlFlowSemanticAnalysis)
 {
+    // Note: Using C89-style for-loop (variable declared before loop)
+    // because the compiler doesn't support C99-style for-loop declarations
     std::string source = R"(
         int main() {
             int x = 5;
             int result = 0;
+            int i;
 
             if (x > 0) {
                 int temp = x * 2;
@@ -581,7 +584,7 @@ TEST_F(ParserSemanticIntegrationTest, ControlFlowSemanticAnalysis)
                 result = temp;
             }
 
-            for (int i = 0; i < 10; i = i + 1) {
+            for (i = 0; i < 10; i = i + 1) {
                 result = result + i;
             }
 

@@ -181,19 +181,23 @@ TEST_F(FrontendPipelineTest, ComprehensiveProgramPassesAllStages)
  */
 TEST_F(FrontendPipelineTest, LoopConstructsPass)
 {
+    // Note: Using C89-style for-loop (variable declared before loop)
+    // because the compiler doesn't support C99-style for-loop declarations
     std::string source = R"(
         int main() {
             int sum = 0;
+            int i;
+            int j;
 
             // While loop
-            int i = 0;
+            i = 0;
             while (i < 5) {
                 sum = sum + i;
                 i = i + 1;
             }
 
             // For loop
-            for (int j = 0; j < 5; j = j + 1) {
+            for (j = 0; j < 5; j = j + 1) {
                 sum = sum + j;
             }
 
@@ -396,11 +400,15 @@ TEST_F(FrontendPipelineTest, CalculatorProgram)
  */
 TEST_F(FrontendPipelineTest, NestedControlStructures)
 {
+    // Note: Using C89-style for-loop (variable declared before loop)
+    // because the compiler doesn't support C99-style for-loop declarations
     std::string source = R"(
         int main() {
             int sum = 0;
-            for (int i = 0; i < 5; i = i + 1) {
-                for (int j = 0; j < 5; j = j + 1) {
+            int i;
+            int j;
+            for (i = 0; i < 5; i = i + 1) {
+                for (j = 0; j < 5; j = j + 1) {
                     if (i == j) {
                         sum = sum + 1;
                     } else {
