@@ -46,3 +46,10 @@
 Makefile
 bin
 build
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.pytest_cache/
+NUL
