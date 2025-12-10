@@ -37,10 +37,7 @@ class CompilerInvoker:
             raise PermissionError(f"Compiler not executable: {compiler_path}")
 
     def compile(
-        self,
-        source_code: str,
-        filename: str = "input.c",
-        timeout: int = 30
+        self, source_code: str, filename: str = "input.c", timeout: int = 30
     ) -> Dict[str, Any]:
         """
         Compile C source code and collect all visualization dumps.
@@ -79,16 +76,20 @@ class CompilerInvoker:
 
             # Detect if we're on ARM64 Mac (can't assemble x86-64)
             # In this case, skip hex dump since assembly will fail
-            is_arm64_mac = (platform.system() == "Darwin" and
-                           platform.machine() == "arm64")
+            is_arm64_mac = (
+                platform.system() == "Darwin" and platform.machine() == "arm64"
+            )
 
             # Build compiler command with absolute paths
             cmd = [
                 self.compiler_path,
                 str(source_file),
-                "--dump-tokens", str(tokens_file),
-                "--dump-ast", str(ast_file),
-                "--dump-asm", str(assembly_file),
+                "--dump-tokens",
+                str(tokens_file),
+                "--dump-ast",
+                str(ast_file),
+                "--dump-asm",
+                str(assembly_file),
             ]
 
             # Only request hex dump on platforms that can assemble x86-64
@@ -109,15 +110,11 @@ class CompilerInvoker:
             # Solution: Remove TMPDIR so compiler uses /tmp as default
             try:
                 env = os.environ.copy()
-                if 'TMPDIR' in env:
-                    del env['TMPDIR']  # Let compiler use default /tmp
+                if "TMPDIR" in env:
+                    del env["TMPDIR"]  # Let compiler use default /tmp
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                    env=env
+                    cmd, capture_output=True, text=True, timeout=timeout, env=env
                 )
 
                 # Parse outputs
@@ -147,7 +144,7 @@ class CompilerInvoker:
                     "errors": errors,
                     "stdout": result.stdout,
                     "stderr": result.stderr,
-                    "return_code": result.returncode
+                    "return_code": result.returncode,
                 }
 
             except subprocess.TimeoutExpired:
@@ -160,7 +157,7 @@ class CompilerInvoker:
                     "errors": [f"Compilation timeout after {timeout} seconds"],
                     "stdout": "",
                     "stderr": "",
-                    "return_code": -1
+                    "return_code": -1,
                 }
 
             except Exception as e:
@@ -173,7 +170,7 @@ class CompilerInvoker:
                     "errors": [f"Unexpected error: {str(e)}"],
                     "stdout": "",
                     "stderr": str(e),
-                    "return_code": -1
+                    "return_code": -1,
                 }
 
     def _read_json_file(self, filepath: Path) -> Optional[Dict]:
@@ -188,7 +185,7 @@ class CompilerInvoker:
         """
         try:
             if filepath.exists():
-                with open(filepath, 'r') as f:
+                with open(filepath, "r") as f:
                     return json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             print(f"Warning: Failed to read JSON file {filepath}: {e}")
@@ -227,6 +224,6 @@ class CompilerInvoker:
             return []
 
         # Split by lines and filter out empty lines
-        errors = [line.strip() for line in stderr.split('\n') if line.strip()]
+        errors = [line.strip() for line in stderr.split("\n") if line.strip()]
 
         return errors
