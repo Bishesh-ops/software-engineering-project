@@ -8,8 +8,10 @@
 // Utility Functions
 // ============================================================================
 
-std::string registerToString(X86Register reg) {
-  switch (reg) {
+std::string registerToString(X86Register reg)
+{
+  switch (reg)
+  {
   // General-purpose registers
   case X86Register::RAX:
     return "rax";
@@ -84,8 +86,10 @@ std::string registerToString(X86Register reg) {
   }
 }
 
-std::string getSizeSuffix(int bits) {
-  switch (bits) {
+std::string getSizeSuffix(int bits)
+{
+  switch (bits)
+  {
   case 8:
     return "b"; // byte
   case 16:
@@ -103,7 +107,8 @@ std::string getSizeSuffix(int bits) {
 // Linear Scan Register Allocator - Implementation
 // ============================================================================
 
-LinearScanAllocator::LinearScanAllocator() : nextSpillSlot(0) {
+LinearScanAllocator::LinearScanAllocator() : nextSpillSlot(0)
+{
   // Initialize available registers
   // System V AMD64 ABI:
   // - RAX, RCX, RDX, RSI, RDI, R8-R11 are caller-saved (volatile)
@@ -116,10 +121,11 @@ LinearScanAllocator::LinearScanAllocator() : nextSpillSlot(0) {
 
   availableRegisters = {X86Register::RAX, X86Register::RCX, X86Register::RDX,
                         X86Register::RSI, X86Register::RDI, X86Register::R8,
-                        X86Register::R9,  X86Register::R10, X86Register::R11};
+                        X86Register::R9, X86Register::R10, X86Register::R11};
 }
 
-void LinearScanAllocator::buildLiveIntervals(IRFunction *function) {
+void LinearScanAllocator::buildLiveIntervals(IRFunction *function)
+{
   intervals.clear();
   nextSpillSlot = 0;
 
@@ -130,32 +136,41 @@ void LinearScanAllocator::buildLiveIntervals(IRFunction *function) {
   int instructionIndex = 0;
 
   // First pass: Create intervals for all SSA values
-  for (const auto &block : function->getBasicBlocks()) {
-    for (const auto &inst : block->getInstructions()) {
+  for (const auto &block : function->getBasicBlocks())
+  {
+    for (const auto &inst : block->getInstructions())
+    {
       // If instruction defines a result, start a new interval
-      if (inst->getResult() != nullptr) {
+      if (inst->getResult() != nullptr)
+      {
         SSAValue *result = inst->getResult();
         std::string ssaName = result->getSSAName();
 
         // Check if interval already exists
         auto it = nameToInterval.find(ssaName);
-        if (it == nameToInterval.end()) {
+        if (it == nameToInterval.end())
+        {
           // Create new interval
           intervals.emplace_back(result, instructionIndex, instructionIndex);
           nameToInterval[ssaName] = intervals.size() - 1;
-        } else {
+        }
+        else
+        {
           // Extend existing interval
           intervals[it->second].end = instructionIndex;
         }
       }
 
       // For all operands used, extend their intervals
-      for (const auto &operand : inst->getOperands()) {
-        if (operand.isSSAValue()) {
+      for (const auto &operand : inst->getOperands())
+      {
+        if (operand.isSSAValue())
+        {
           const SSAValue &value = operand.getSSAValue();
           std::string ssaName = value.getSSAName();
           auto it = nameToInterval.find(ssaName);
-          if (it != nameToInterval.end()) {
+          if (it != nameToInterval.end())
+          {
             // Extend interval to this use
             intervals[it->second].end = instructionIndex;
           }
@@ -170,32 +185,41 @@ void LinearScanAllocator::buildLiveIntervals(IRFunction *function) {
   std::sort(intervals.begin(), intervals.end());
 }
 
-void LinearScanAllocator::expireOldIntervals(LiveInterval *current) {
+void LinearScanAllocator::expireOldIntervals(LiveInterval *current)
+{
   // Remove intervals from active list that no longer overlap with current
   auto it = active.begin();
-  while (it != active.end()) {
+  while (it != active.end())
+  {
     LiveInterval *interval = *it;
 
     // If interval ends before current starts, it's expired
-    if (interval->end < current->start) {
+    if (interval->end < current->start)
+    {
       // Free the register
       freeRegister(interval);
       it = active.erase(it);
-    } else {
+    }
+    else
+    {
       ++it;
     }
   }
 }
 
-void LinearScanAllocator::freeRegister(LiveInterval *interval) {
-  if (interval->assignedReg != X86Register::NONE) {
+void LinearScanAllocator::freeRegister(LiveInterval *interval)
+{
+  if (interval->assignedReg != X86Register::NONE)
+  {
     // Add register back to available pool
     availableRegisters.push_back(interval->assignedReg);
   }
 }
 
-bool LinearScanAllocator::allocateFreeRegister(LiveInterval *interval) {
-  if (availableRegisters.empty()) {
+bool LinearScanAllocator::allocateFreeRegister(LiveInterval *interval)
+{
+  if (availableRegisters.empty())
+  {
     return false;
   }
 
@@ -207,34 +231,42 @@ bool LinearScanAllocator::allocateFreeRegister(LiveInterval *interval) {
   return true;
 }
 
-void LinearScanAllocator::spillInterval(LiveInterval *interval) {
+void LinearScanAllocator::spillInterval(LiveInterval *interval)
+{
   // Assign a stack slot for spilling
   interval->spillSlot = nextSpillSlot++;
   interval->assignedReg = X86Register::NONE;
 }
 
-void LinearScanAllocator::allocate() {
+void LinearScanAllocator::allocate()
+{
   active.clear();
 
-  for (auto &interval : intervals) {
+  for (auto &interval : intervals)
+  {
     // Expire old intervals that are no longer live
     expireOldIntervals(&interval);
 
     // Try to allocate a free register
-    if (allocateFreeRegister(&interval)) {
+    if (allocateFreeRegister(&interval))
+    {
       // Success! Add to active list
       active.push_back(&interval);
-    } else {
+    }
+    else
+    {
       // No free registers, must spill
       // Strategy: Spill the interval that ends last (farthest use)
 
       // Find interval in active with latest end
       auto spillCandidate = std::max_element(
           active.begin(), active.end(),
-          [](LiveInterval *a, LiveInterval *b) { return a->end < b->end; });
+          [](LiveInterval *a, LiveInterval *b)
+          { return a->end < b->end; });
 
       if (spillCandidate != active.end() &&
-          (*spillCandidate)->end > interval.end) {
+          (*spillCandidate)->end > interval.end)
+      {
         // Spill the candidate and use its register for current interval
         X86Register reg = (*spillCandidate)->assignedReg;
         spillInterval(*spillCandidate);
@@ -243,7 +275,9 @@ void LinearScanAllocator::allocate() {
 
         // Replace spilled interval with current in active list
         *spillCandidate = &interval;
-      } else {
+      }
+      else
+      {
         // Spill current interval
         spillInterval(&interval);
       }
@@ -251,49 +285,63 @@ void LinearScanAllocator::allocate() {
   }
 }
 
-X86Register LinearScanAllocator::getRegister(const SSAValue *value) const {
+X86Register LinearScanAllocator::getRegister(const SSAValue *value) const
+{
   // Compare by SSA name since operands contain copies, not original pointers
   std::string targetName = value->getSSAName();
-  for (const auto &interval : intervals) {
-    if (interval.value->getSSAName() == targetName) {
+  for (const auto &interval : intervals)
+  {
+    if (interval.value->getSSAName() == targetName)
+    {
       return interval.assignedReg;
     }
   }
   return X86Register::NONE;
 }
 
-bool LinearScanAllocator::isSpilled(const SSAValue *value) const {
+bool LinearScanAllocator::isSpilled(const SSAValue *value) const
+{
   // Compare by SSA name since operands contain copies, not original pointers
   std::string targetName = value->getSSAName();
-  for (const auto &interval : intervals) {
-    if (interval.value->getSSAName() == targetName) {
+  for (const auto &interval : intervals)
+  {
+    if (interval.value->getSSAName() == targetName)
+    {
       return interval.spillSlot != -1;
     }
   }
   return false;
 }
 
-int LinearScanAllocator::getSpillSlot(const SSAValue *value) const {
+int LinearScanAllocator::getSpillSlot(const SSAValue *value) const
+{
   // Compare by SSA name since operands contain copies, not original pointers
   std::string targetName = value->getSSAName();
-  for (const auto &interval : intervals) {
-    if (interval.value->getSSAName() == targetName) {
+  for (const auto &interval : intervals)
+  {
+    if (interval.value->getSSAName() == targetName)
+    {
       return interval.spillSlot;
     }
   }
   return -1;
 }
 
-void LinearScanAllocator::printAllocation() const {
+void LinearScanAllocator::printAllocation() const
+{
   std::cout << "Register Allocation:\n";
   std::cout << "====================\n";
 
-  for (const auto &interval : intervals) {
+  for (const auto &interval : intervals)
+  {
     std::cout << std::setw(20) << interval.value->getSSAName() << " -> ";
 
-    if (interval.assignedReg != X86Register::NONE) {
+    if (interval.assignedReg != X86Register::NONE)
+    {
       std::cout << "%" << registerToString(interval.assignedReg);
-    } else {
+    }
+    else
+    {
       std::cout << "SPILL[" << interval.spillSlot << "]";
     }
 
@@ -309,18 +357,21 @@ PeepholeOptimizer::PeepholeOptimizer() : optimizationEnabled(true) {}
 
 void PeepholeOptimizer::reset() { instructions.clear(); }
 
-void PeepholeOptimizer::addInstruction(const std::string &inst) {
+void PeepholeOptimizer::addInstruction(const std::string &inst)
+{
   instructions.push_back(inst);
 }
 
-bool PeepholeOptimizer::isRedundantMove(const std::string &inst) const {
+bool PeepholeOptimizer::isRedundantMove(const std::string &inst) const
+{
   // Pattern: movq %rax, %rax (moving register to itself)
   // Instructions may have leading whitespace
   std::string trimmed = inst;
   trimmed.erase(0, trimmed.find_first_not_of(" \t"));
 
   if (trimmed.find("movq ") != 0 && trimmed.find("movl ") != 0 &&
-      trimmed.find("movw ") != 0 && trimmed.find("movb ") != 0) {
+      trimmed.find("movw ") != 0 && trimmed.find("movb ") != 0)
+  {
     return false;
   }
 
@@ -342,57 +393,68 @@ bool PeepholeOptimizer::isRedundantMove(const std::string &inst) const {
   return src == dst;
 }
 
-bool PeepholeOptimizer::isArithmeticWithZero(const std::string &inst) const {
+bool PeepholeOptimizer::isArithmeticWithZero(const std::string &inst) const
+{
   // Pattern: addq $0, %rax or subq $0, %rax
   std::string trimmed = inst;
   trimmed.erase(0, trimmed.find_first_not_of(" \t"));
 
   if (trimmed.find("addq $0,") == 0 || trimmed.find("subq $0,") == 0 ||
-      trimmed.find("addl $0,") == 0 || trimmed.find("subl $0,") == 0) {
+      trimmed.find("addl $0,") == 0 || trimmed.find("subl $0,") == 0)
+  {
     return true;
   }
   return false;
 }
 
 bool PeepholeOptimizer::isMultiplyByPowerOfTwo(const std::string &inst,
-                                               int &shiftAmount) const {
+                                               int &shiftAmount) const
+{
   // Pattern: imulq $N, %reg where N is a power of 2
   std::string trimmed = inst;
   trimmed.erase(0, trimmed.find_first_not_of(" \t"));
 
-  if (trimmed.find("imulq $") != 0 && trimmed.find("imull $") != 0) {
+  if (trimmed.find("imulq $") != 0 && trimmed.find("imull $") != 0)
+  {
     return false;
   }
 
   // Extract the constant
   size_t dollarPos = trimmed.find('$');
   size_t commaPos = trimmed.find(',');
-  if (dollarPos == std::string::npos || commaPos == std::string::npos) {
+  if (dollarPos == std::string::npos || commaPos == std::string::npos)
+  {
     return false;
   }
 
   std::string constStr =
       trimmed.substr(dollarPos + 1, commaPos - dollarPos - 1);
-  try {
+  try
+  {
     int value = std::stoi(constStr);
 
     // Check if power of 2 (only one bit set)
-    if (value > 0 && (value & (value - 1)) == 0) {
+    if (value > 0 && (value & (value - 1)) == 0)
+    {
       // Calculate shift amount
       shiftAmount = 0;
-      while ((1 << shiftAmount) != value) {
+      while ((1 << shiftAmount) != value)
+      {
         shiftAmount++;
       }
       return true;
     }
-  } catch (...) {
+  }
+  catch (...)
+  {
     return false;
   }
 
   return false;
 }
 
-bool PeepholeOptimizer::isPushPopPair(size_t index) const {
+bool PeepholeOptimizer::isPushPopPair(size_t index) const
+{
   // Pattern: pushq %rax followed by popq %rax
   if (index + 1 >= instructions.size())
     return false;
@@ -404,7 +466,8 @@ bool PeepholeOptimizer::isPushPopPair(size_t index) const {
   inst1.erase(0, inst1.find_first_not_of(" \t"));
   inst2.erase(0, inst2.find_first_not_of(" \t"));
 
-  if (inst1.find("pushq ") != 0 || inst2.find("popq ") != 0) {
+  if (inst1.find("pushq ") != 0 || inst2.find("popq ") != 0)
+  {
     return false;
   }
 
@@ -421,7 +484,8 @@ bool PeepholeOptimizer::isPushPopPair(size_t index) const {
   return reg1 == reg2;
 }
 
-bool PeepholeOptimizer::isRedundantComparison(size_t index) const {
+bool PeepholeOptimizer::isRedundantComparison(size_t index) const
+{
   // Pattern: cmpq followed immediately by another cmpq (second one overwrites
   // flags)
   if (index + 1 >= instructions.size())
@@ -436,7 +500,8 @@ bool PeepholeOptimizer::isRedundantComparison(size_t index) const {
 
   // Both must be compare instructions
   if ((inst1.find("cmpq ") != 0 && inst1.find("cmpl ") != 0) ||
-      (inst2.find("cmpq ") != 0 && inst2.find("cmpl ") != 0)) {
+      (inst2.find("cmpq ") != 0 && inst2.find("cmpl ") != 0))
+  {
     return false;
   }
 
@@ -446,7 +511,8 @@ bool PeepholeOptimizer::isRedundantComparison(size_t index) const {
 }
 
 std::string PeepholeOptimizer::optimizeMultiplyToShift(const std::string &inst,
-                                                       int shiftAmount) const {
+                                                       int shiftAmount) const
+{
   // Convert: imulq $8, %rax -> shlq $3, %rax
   // Preserve leading whitespace
   size_t firstNonSpace = inst.find_first_not_of(" \t");
@@ -460,20 +526,25 @@ std::string PeepholeOptimizer::optimizeMultiplyToShift(const std::string &inst,
   return leadingSpace + prefix + " $" + std::to_string(shiftAmount) + destReg;
 }
 
-void PeepholeOptimizer::removeInstruction(size_t index) {
-  if (index < instructions.size()) {
+void PeepholeOptimizer::removeInstruction(size_t index)
+{
+  if (index < instructions.size())
+  {
     instructions.erase(instructions.begin() + index);
   }
 }
 
 void PeepholeOptimizer::replaceInstruction(size_t index,
-                                           const std::string &newInst) {
-  if (index < instructions.size()) {
+                                           const std::string &newInst)
+{
+  if (index < instructions.size())
+  {
     instructions[index] = newInst;
   }
 }
 
-void PeepholeOptimizer::optimize() {
+void PeepholeOptimizer::optimize()
+{
   if (!optimizationEnabled)
     return;
 
@@ -481,35 +552,46 @@ void PeepholeOptimizer::optimize() {
   int passes = 0;
   const int MAX_PASSES = 5; // Prevent infinite loops
 
-  while (changed && passes < MAX_PASSES) {
+  while (changed && passes < MAX_PASSES)
+  {
     changed = false;
     passes++;
 
     // Pass 1: Remove redundant moves
-    for (size_t i = 0; i < instructions.size();) {
-      if (isRedundantMove(instructions[i])) {
+    for (size_t i = 0; i < instructions.size();)
+    {
+      if (isRedundantMove(instructions[i]))
+      {
         removeInstruction(i);
         changed = true;
         // Don't increment i, check the same position again
-      } else {
+      }
+      else
+      {
         i++;
       }
     }
 
     // Pass 2: Remove arithmetic with zero
-    for (size_t i = 0; i < instructions.size();) {
-      if (isArithmeticWithZero(instructions[i])) {
+    for (size_t i = 0; i < instructions.size();)
+    {
+      if (isArithmeticWithZero(instructions[i]))
+      {
         removeInstruction(i);
         changed = true;
-      } else {
+      }
+      else
+      {
         i++;
       }
     }
 
     // Pass 3: Convert multiply by power of 2 to shift
-    for (size_t i = 0; i < instructions.size(); i++) {
+    for (size_t i = 0; i < instructions.size(); i++)
+    {
       int shiftAmount;
-      if (isMultiplyByPowerOfTwo(instructions[i], shiftAmount)) {
+      if (isMultiplyByPowerOfTwo(instructions[i], shiftAmount))
+      {
         std::string newInst =
             optimizeMultiplyToShift(instructions[i], shiftAmount);
         replaceInstruction(i, newInst);
@@ -518,34 +600,45 @@ void PeepholeOptimizer::optimize() {
     }
 
     // Pass 4: Remove push/pop pairs
-    for (size_t i = 0; i < instructions.size();) {
-      if (isPushPopPair(i)) {
+    for (size_t i = 0; i < instructions.size();)
+    {
+      if (isPushPopPair(i))
+      {
         removeInstruction(i); // Remove push
         removeInstruction(i); // Remove pop (now at same index)
         changed = true;
-      } else {
+      }
+      else
+      {
         i++;
       }
     }
 
     // Pass 5: Remove redundant comparisons
-    for (size_t i = 0; i + 1 < instructions.size();) {
-      if (isRedundantComparison(i)) {
+    for (size_t i = 0; i + 1 < instructions.size();)
+    {
+      if (isRedundantComparison(i))
+      {
         removeInstruction(i); // Keep the second comparison
         changed = true;
-      } else {
+      }
+      else
+      {
         i++;
       }
     }
   }
 }
 
-std::string PeepholeOptimizer::getOptimizedCode() const {
+std::string PeepholeOptimizer::getOptimizedCode() const
+{
   std::ostringstream result;
-  for (const auto &inst : instructions) {
+  for (const auto &inst : instructions)
+  {
     result << inst;
     // Instructions should already have newlines
-    if (!inst.empty() && inst.back() != '\n') {
+    if (!inst.empty() && inst.back() != '\n')
+    {
       result << "\n";
     }
   }
@@ -561,7 +654,8 @@ CodeGenerator::CodeGenerator()
       stringLiteralCounter(0), debugMode(false), currentSourceLine(0),
       peepholeOptimizationEnabled(true) {}
 
-void CodeGenerator::reset() {
+void CodeGenerator::reset()
+{
   output.str("");
   output.clear();
   dataSection.str("");
@@ -579,7 +673,8 @@ void CodeGenerator::reset() {
   peepholeOptimizer.reset();
 }
 
-std::string CodeGenerator::getRegisterName(X86Register reg, int size) const {
+std::string CodeGenerator::getRegisterName(X86Register reg, int size) const
+{
   // Convert register to appropriate size variant
   // For AT&T syntax: %rax (64-bit), %eax (32-bit), %ax (16-bit), %al (8-bit)
   // XMM registers don't have size variants - always use base name
@@ -587,39 +682,52 @@ std::string CodeGenerator::getRegisterName(X86Register reg, int size) const {
   std::string base = registerToString(reg);
 
   // XMM registers are always 128-bit, just return with % prefix
-  if (base.substr(0, 3) == "xmm") {
+  if (base.substr(0, 3) == "xmm")
+  {
     return "%" + base;
   }
 
-  if (size == 64) {
+  if (size == 64)
+  {
     return "%" + base;
-  } else if (size == 32) {
+  }
+  else if (size == 32)
+  {
     // Convert r?? to e?? for legacy registers
     if (base[0] == 'r' && base.length() > 1 && base[1] != 's' &&
-        base[1] != 'b') {
+        base[1] != 'b')
+    {
       return "%e" + base.substr(1);
     }
     return "%" + base; // r8-r15 stay the same
-  } else if (size == 16) {
-    if (base[0] == 'r' && base.length() > 1) {
+  }
+  else if (size == 16)
+  {
+    if (base[0] == 'r' && base.length() > 1)
+    {
       return "%" + base.substr(1);
     }
     return "%" + base;
-  } else {
+  }
+  else
+  {
     // 8-bit: al, bl, cl, dl, etc.
-    if (base[0] == 'r' && base.length() == 3) {
+    if (base[0] == 'r' && base.length() == 3)
+    {
       return "%" + std::string(1, base[1]) + "l";
     }
     return "%" + base;
   }
 }
 
-std::string CodeGenerator::get8BitRegisterName(const std::string &reg64) const {
+std::string CodeGenerator::get8BitRegisterName(const std::string &reg64) const
+{
   // Convert 64-bit register name to 8-bit variant for System V AMD64 ABI
   // Input format: "%rax", "%rbx", etc.
   // Output format: "%al", "%bl", etc.
 
-  if (reg64.length() < 2 || reg64[0] != '%') {
+  if (reg64.length() < 2 || reg64[0] != '%')
+  {
     return reg64; // Not a valid register name
   }
 
@@ -667,10 +775,12 @@ std::string CodeGenerator::get8BitRegisterName(const std::string &reg64) const {
   return reg64;
 }
 
-std::string CodeGenerator::getRegisterForValue(const SSAValue *value) const {
+std::string CodeGenerator::getRegisterForValue(const SSAValue *value) const
+{
   X86Register reg = allocator.getRegister(value);
 
-  if (reg == X86Register::NONE) {
+  if (reg == X86Register::NONE)
+  {
     // Value is spilled, shouldn't call this directly
     return "<SPILLED>";
   }
@@ -678,34 +788,42 @@ std::string CodeGenerator::getRegisterForValue(const SSAValue *value) const {
   return getRegisterName(reg, 64);
 }
 
-std::string CodeGenerator::getOperandString(const IROperand &operand) {
-  if (operand.isConstant()) {
+std::string CodeGenerator::getOperandString(const IROperand &operand)
+{
+  if (operand.isConstant())
+  {
     std::string constVal = operand.getConstant();
 
     // Check if this is a string literal (not a number)
     // String literals contain spaces, or are not valid numbers
     bool isStringLiteral = false;
-    if (!constVal.empty()) {
+    if (!constVal.empty())
+    {
       // Check if it's NOT a valid number (integer or negative)
       bool isNumber = true;
       size_t start = 0;
-      if (constVal[0] == '-') {
+      if (constVal[0] == '-')
+      {
         start = 1; // Skip negative sign
       }
-      for (size_t i = start; i < constVal.size(); ++i) {
-        if (!isdigit(constVal[i])) {
+      for (size_t i = start; i < constVal.size(); ++i)
+      {
+        if (!isdigit(constVal[i]))
+        {
           isNumber = false;
           break;
         }
       }
       // Empty after stripping negative is not a number
-      if (start >= constVal.size()) {
+      if (start >= constVal.size())
+      {
         isNumber = false;
       }
       isStringLiteral = !isNumber;
     }
 
-    if (isStringLiteral) {
+    if (isStringLiteral)
+    {
       // This is a string literal - add to data section and return label
       // reference
       std::string label =
@@ -713,20 +831,27 @@ std::string CodeGenerator::getOperandString(const IROperand &operand) {
       // Use LEA (load effective address) to get the address of the string
       // Mark with special prefix that caller needs to handle with leaq
       return "$" + label; // Will be handled specially as an address constant
-    } else {
+    }
+    else
+    {
       // Immediate value in AT&T syntax: $123
       return "$" + constVal;
     }
-  } else if (operand.isSSAValue()) {
+  }
+  else if (operand.isSSAValue())
+  {
     const SSAValue &value = operand.getSSAValue();
 
     // Check if spilled
-    if (allocator.isSpilled(&value)) {
+    if (allocator.isSpilled(&value))
+    {
       // Return stack location: -8(%rbp) for first spill slot
       int slot = allocator.getSpillSlot(&value);
       int offset = -(slot + 1) * 8; // Each slot is 8 bytes
       return std::to_string(offset) + "(%rbp)";
-    } else {
+    }
+    else
+    {
       return getRegisterForValue(&value);
     }
   }
@@ -736,47 +861,74 @@ std::string CodeGenerator::getOperandString(const IROperand &operand) {
 
 std::string CodeGenerator::getDestinationForResult(const SSAValue *result,
                                                    bool &needsSpillStore,
-                                                   int &spillOffset) {
+                                                   int &spillOffset)
+{
   // Check if result is spilled
-  if (allocator.isSpilled(result)) {
+  if (allocator.isSpilled(result))
+  {
     // Use R11 as scratch register for spilled destinations
     needsSpillStore = true;
     int slot = allocator.getSpillSlot(result);
     spillOffset = -(slot + 1) * 8;
     return "%r11";
-  } else {
+  }
+  else
+  {
     needsSpillStore = false;
     spillOffset = 0;
     return getRegisterForValue(result);
   }
 }
 
-void CodeGenerator::emit(const std::string &instruction) {
+void CodeGenerator::emit(const std::string &instruction)
+{
   // When peephole optimization is enabled, collect instructions for
   // optimization Comments, labels, and directives go directly to output
   if (peepholeOptimizationEnabled &&
       instruction.find('#') == std::string::npos && // Not a comment
       instruction.find(':') == std::string::npos && // Not a label
-      instruction.find('.') != 0) {                 // Not a directive
+      instruction.find('.') != 0)
+  { // Not a directive
     peepholeOptimizer.addInstruction("    " + instruction + "\n");
-  } else {
+  }
+  else
+  {
     output << "    " << instruction << "\n";
   }
 }
 
-void CodeGenerator::emitComment(const std::string &comment) {
-  output << "    # " << comment << "\n";
+void CodeGenerator::emitComment(const std::string &comment)
+{
+  // Comments should stay with the instructions they describe
+  if (peepholeOptimizationEnabled)
+  {
+    peepholeOptimizer.addInstruction("    # " + comment + "\n");
+  }
+  else
+  {
+    output << "    # " << comment << "\n";
+  }
 }
 
-void CodeGenerator::emitLabel(const std::string &label) {
-  output << label << ":\n";
+void CodeGenerator::emitLabel(const std::string &label)
+{
+  // Labels must stay interleaved with instructions for correct control flow
+  if (peepholeOptimizationEnabled)
+  {
+    peepholeOptimizer.addInstruction(label + ":\n");
+  }
+  else
+  {
+    output << label << ":\n";
+  }
 }
 
 // ============================================================================
 // ABI Compliance Helper Methods
 // ============================================================================
 
-bool CodeGenerator::isCalleeSaved(X86Register reg) const {
+bool CodeGenerator::isCalleeSaved(X86Register reg) const
+{
   // System V AMD64 ABI callee-saved (non-volatile) registers:
   // RBX, R12, R13, R14, R15, RBP
   return (reg == X86Register::RBX || reg == X86Register::R12 ||
@@ -784,46 +936,56 @@ bool CodeGenerator::isCalleeSaved(X86Register reg) const {
           reg == X86Register::R15 || reg == X86Register::RBP);
 }
 
-void CodeGenerator::determineCalleeSavedRegisters() {
+void CodeGenerator::determineCalleeSavedRegisters()
+{
   // Scan all allocated registers to see which callee-saved ones are used
   calleeSavedUsed.clear();
 
   // Check all live intervals to see what registers are allocated
-  for (const auto &interval : allocator.intervals) {
+  for (const auto &interval : allocator.intervals)
+  {
     X86Register reg = interval.assignedReg;
-    if (reg != X86Register::NONE && isCalleeSaved(reg)) {
+    if (reg != X86Register::NONE && isCalleeSaved(reg))
+    {
       calleeSavedUsed.insert(reg);
     }
   }
 }
 
-void CodeGenerator::saveCalleeSavedRegisters() {
+void CodeGenerator::saveCalleeSavedRegisters()
+{
   if (calleeSavedUsed.empty())
     return;
 
   emitComment("Save callee-saved registers");
-  for (X86Register reg : calleeSavedUsed) {
-    if (reg != X86Register::RBP) { // RBP already saved in prologue
+  for (X86Register reg : calleeSavedUsed)
+  {
+    if (reg != X86Register::RBP)
+    { // RBP already saved in prologue
       emit("pushq " + getRegisterName(reg, 64));
     }
   }
 }
 
-void CodeGenerator::restoreCalleeSavedRegisters() {
+void CodeGenerator::restoreCalleeSavedRegisters()
+{
   if (calleeSavedUsed.empty())
     return;
 
   emitComment("Restore callee-saved registers");
   // Restore in reverse order
   std::vector<X86Register> regs(calleeSavedUsed.begin(), calleeSavedUsed.end());
-  for (auto it = regs.rbegin(); it != regs.rend(); ++it) {
-    if (*it != X86Register::RBP) { // RBP restored in epilogue
+  for (auto it = regs.rbegin(); it != regs.rend(); ++it)
+  {
+    if (*it != X86Register::RBP)
+    { // RBP restored in epilogue
       emit("popq " + getRegisterName(*it, 64));
     }
   }
 }
 
-void CodeGenerator::alignStackForCall(int numStackArgs) {
+void CodeGenerator::alignStackForCall(int numStackArgs)
+{
   // System V AMD64 ABI requires 16-byte stack alignment before call
   // When we enter a function, RSP is misaligned by 8 (return address)
   // After push RBP, it's aligned to 16
@@ -833,8 +995,10 @@ void CodeGenerator::alignStackForCall(int numStackArgs) {
   // After prologue: RSP = RBP - stackFrameSize
   // Each callee-saved register adds 8 bytes
   int calleeSavedBytes = 0;
-  for (X86Register reg : calleeSavedUsed) {
-    if (reg != X86Register::RBP) {
+  for (X86Register reg : calleeSavedUsed)
+  {
+    if (reg != X86Register::RBP)
+    {
       calleeSavedBytes += 8;
     }
   }
@@ -849,7 +1013,8 @@ void CodeGenerator::alignStackForCall(int numStackArgs) {
   // we need (totalOffset + 8) to be aligned to 16
   int misalignment = (totalOffset + 8) % 16;
 
-  if (misalignment != 0) {
+  if (misalignment != 0)
+  {
     // Need to adjust stack
     int adjustment = 16 - misalignment;
     emit("subq $" + std::to_string(adjustment) + ", %rsp");
@@ -858,20 +1023,24 @@ void CodeGenerator::alignStackForCall(int numStackArgs) {
   }
 }
 
-void CodeGenerator::cleanupStackAfterCall(int numStackArgs) {
+void CodeGenerator::cleanupStackAfterCall(int numStackArgs)
+{
   // Remove stack arguments
-  if (numStackArgs > 0) {
+  if (numStackArgs > 0)
+  {
     emit("addq $" + std::to_string(numStackArgs * 8) + ", %rsp");
   }
 
   // Remove alignment adjustment if any
-  if (needsStackAlignment) {
+  if (needsStackAlignment)
+  {
     // Alignment is already cleaned up in epilogue
     needsStackAlignment = false;
   }
 }
 
-void CodeGenerator::emitPrologue() {
+void CodeGenerator::emitPrologue()
+{
   emitComment("Function prologue - System V AMD64 ABI");
 
   // Emit CFI directives for debugging
@@ -879,7 +1048,8 @@ void CodeGenerator::emitPrologue() {
 
   emit("pushq %rbp");
 
-  if (debugMode) {
+  if (debugMode)
+  {
     // CFI: Indicate that RBP was pushed
     output << "    .cfi_def_cfa_offset 16\n";
     output << "    .cfi_offset %rbp, -16\n";
@@ -887,7 +1057,8 @@ void CodeGenerator::emitPrologue() {
 
   emit("movq %rsp, %rbp");
 
-  if (debugMode) {
+  if (debugMode)
+  {
     // CFI: CFA (Canonical Frame Address) is now at RBP
     output << "    .cfi_def_cfa_register %rbp\n";
   }
@@ -900,10 +1071,12 @@ void CodeGenerator::emitPrologue() {
 
   // Reserve stack space for spills
   int spillSlots = allocator.getSpillSlotCount();
-  if (spillSlots > 0) {
+  if (spillSlots > 0)
+  {
     stackFrameSize = spillSlots * 8;
     // Align to 16 bytes (System V ABI requirement)
-    if (stackFrameSize % 16 != 0) {
+    if (stackFrameSize % 16 != 0)
+    {
       stackFrameSize = ((stackFrameSize / 16) + 1) * 16;
     }
     emit("subq $" + std::to_string(stackFrameSize) + ", %rsp");
@@ -911,7 +1084,8 @@ void CodeGenerator::emitPrologue() {
   output << "\n";
 }
 
-void CodeGenerator::emitEpilogue() {
+void CodeGenerator::emitEpilogue()
+{
   emitComment("Function epilogue - System V AMD64 ABI");
 
   // Restore stack pointer (deallocate local variables and spills)
@@ -927,26 +1101,30 @@ void CodeGenerator::emitEpilogue() {
   emit("ret");
 
   // End CFI directives
-  if (debugMode) {
+  if (debugMode)
+  {
     output << "    .cfi_endproc\n";
   }
 }
 
-void CodeGenerator::emitSpillLoad(const SSAValue *value, X86Register tempReg) {
+void CodeGenerator::emitSpillLoad(const SSAValue *value, X86Register tempReg)
+{
   int slot = allocator.getSpillSlot(value);
   int offset = -(slot + 1) * 8;
   std::string tempRegStr = getRegisterName(tempReg, 64);
   emit("movq " + std::to_string(offset) + "(%rbp), " + tempRegStr);
 }
 
-void CodeGenerator::emitSpillStore(const SSAValue *value, X86Register tempReg) {
+void CodeGenerator::emitSpillStore(const SSAValue *value, X86Register tempReg)
+{
   int slot = allocator.getSpillSlot(value);
   int offset = -(slot + 1) * 8;
   std::string tempRegStr = getRegisterName(tempReg, 64);
   emit("movq " + tempRegStr + ", " + std::to_string(offset) + "(%rbp)");
 }
 
-void CodeGenerator::emitArithmeticInst(const IRInstruction *inst) {
+void CodeGenerator::emitArithmeticInst(const IRInstruction *inst)
+{
   const auto &operands = inst->getOperands();
   if (operands.size() != 2)
     return;
@@ -958,7 +1136,8 @@ void CodeGenerator::emitArithmeticInst(const IRInstruction *inst) {
   std::string op;
   IROpcode opcode = inst->getOpcode();
 
-  switch (opcode) {
+  switch (opcode)
+  {
   case IROpcode::ADD:
     op = "addq";
     break;
@@ -991,7 +1170,8 @@ void CodeGenerator::emitArithmeticInst(const IRInstruction *inst) {
   // For binary ops: dest = dest op source
 
   // Load first operand into destination
-  if (src1 != dest) {
+  if (src1 != dest)
+  {
     emit("movq " + src1 + ", " + dest);
   }
 
@@ -999,12 +1179,14 @@ void CodeGenerator::emitArithmeticInst(const IRInstruction *inst) {
   emit(op + " " + src2 + ", " + dest);
 
   // Store to spill slot if needed
-  if (needsSpillStore) {
+  if (needsSpillStore)
+  {
     emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
   }
 }
 
-void CodeGenerator::emitDivisionInst(const IRInstruction *inst) {
+void CodeGenerator::emitDivisionInst(const IRInstruction *inst)
+{
   const auto &operands = inst->getOperands();
   if (operands.size() != 2)
     return;
@@ -1041,16 +1223,19 @@ void CodeGenerator::emitDivisionInst(const IRInstruction *inst) {
   bool src1IsRdx = (src1 == "%rdx");
 
   // Save RAX to R10 if we need it later and it's not the destination
-  if (!destIsRax && !src1IsRax) {
+  if (!destIsRax && !src1IsRax)
+  {
     emit("movq %rax, %r10");
   }
   // Save RDX to R11 if we need it later and it's not the destination
-  if (!destIsRdx && !src1IsRdx) {
+  if (!destIsRdx && !src1IsRdx)
+  {
     emit("movq %rdx, %r11");
   }
 
   // Step 2: Load dividend into RAX
-  if (!src1IsRax) {
+  if (!src1IsRax)
+  {
     emit("movq " + src1 + ", %rax");
   }
 
@@ -1060,13 +1245,17 @@ void CodeGenerator::emitDivisionInst(const IRInstruction *inst) {
   // Step 4: Perform division
   // Note: idivq requires divisor in register or memory, not immediate
   std::string divisor = src2;
-  if (src2[0] == '$') {
+  if (src2[0] == '$')
+  {
     // Load immediate into a temporary register
     // Check if we can use a register that won't be clobbered
-    if (dest != "%rcx" && src1 != "%rcx") {
+    if (dest != "%rcx" && src1 != "%rcx")
+    {
       emit("movq " + src2 + ", %rcx");
       divisor = "%rcx";
-    } else {
+    }
+    else
+    {
       // Use stack-relative addressing as fallback
       emit("pushq " + src2);
       divisor = "(%rsp)";
@@ -1075,38 +1264,48 @@ void CodeGenerator::emitDivisionInst(const IRInstruction *inst) {
   emit("idivq " + divisor);
 
   // Clean up if we pushed the divisor
-  if (src2[0] == '$' && divisor == "(%rsp)") {
+  if (src2[0] == '$' && divisor == "(%rsp)")
+  {
     emit("addq $8, %rsp");
   }
 
   // Step 5: Move result to destination
-  if (opcode == IROpcode::DIV) {
+  if (opcode == IROpcode::DIV)
+  {
     // Quotient is in RAX
-    if (!destIsRax) {
+    if (!destIsRax)
+    {
       emit("movq %rax, " + dest);
     }
-  } else {
+  }
+  else
+  {
     // Remainder (MOD) is in RDX
-    if (!destIsRdx) {
+    if (!destIsRdx)
+    {
       emit("movq %rdx, " + dest);
     }
   }
 
   // Step 6: Restore RAX and RDX from scratch registers if we saved them
-  if (!destIsRax && !src1IsRax) {
+  if (!destIsRax && !src1IsRax)
+  {
     emit("movq %r10, %rax");
   }
-  if (!destIsRdx && !src1IsRdx) {
+  if (!destIsRdx && !src1IsRdx)
+  {
     emit("movq %r11, %rdx");
   }
 
   // Store to spill slot if needed
-  if (needsSpillStore) {
+  if (needsSpillStore)
+  {
     emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
   }
 }
 
-void CodeGenerator::emitComparisonInst(const IRInstruction *inst) {
+void CodeGenerator::emitComparisonInst(const IRInstruction *inst)
+{
   const auto &operands = inst->getOperands();
   if (operands.size() != 2)
     return;
@@ -1118,7 +1317,8 @@ void CodeGenerator::emitComparisonInst(const IRInstruction *inst) {
   std::string setcc;
   IROpcode opcode = inst->getOpcode();
 
-  switch (opcode) {
+  switch (opcode)
+  {
   case IROpcode::EQ:
     setcc = "sete";
     break;
@@ -1169,12 +1369,14 @@ void CodeGenerator::emitComparisonInst(const IRInstruction *inst) {
   emit("movzbq " + dest8bit + ", " + dest);
 
   // Store to spill slot if needed
-  if (needsSpillStore) {
+  if (needsSpillStore)
+  {
     emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
   }
 }
 
-void CodeGenerator::emitMoveInst(const IRInstruction *inst) {
+void CodeGenerator::emitMoveInst(const IRInstruction *inst)
+{
   const auto &operands = inst->getOperands();
   if (operands.size() != 1)
     return;
@@ -1192,24 +1394,30 @@ void CodeGenerator::emitMoveInst(const IRInstruction *inst) {
   emitComment(result->getSSAName() + " = " + operands[0].toString());
 
   // Don't emit move if source and dest are the same
-  if (src != dest) {
+  if (src != dest)
+  {
     // Check if source is a string label address (starts with $.STR)
-    if (src.substr(0, 5) == "$.STR") {
+    if (src.substr(0, 5) == "$.STR")
+    {
       // Use leaq to load address of string literal
       std::string label = src.substr(1); // Remove $ prefix
       emit("leaq " + label + "(%rip), " + dest);
-    } else {
+    }
+    else
+    {
       emit("movq " + src + ", " + dest);
     }
   }
 
   // Store to spill slot if needed
-  if (needsSpillStore) {
+  if (needsSpillStore)
+  {
     emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
   }
 }
 
-void CodeGenerator::emitJumpInst(const IRInstruction *inst) {
+void CodeGenerator::emitJumpInst(const IRInstruction *inst)
+{
   const auto &operands = inst->getOperands();
   if (operands.size() != 1)
     return;
@@ -1219,7 +1427,8 @@ void CodeGenerator::emitJumpInst(const IRInstruction *inst) {
   emit("jmp " + target);
 }
 
-void CodeGenerator::emitBranchInst(const IRInstruction *inst) {
+void CodeGenerator::emitBranchInst(const IRInstruction *inst)
+{
   // JumpIfFalseInst has 2 operands: condition and target label
   // Jumps to target if condition is FALSE (equals zero)
   const auto &operands = inst->getOperands();
@@ -1236,18 +1445,23 @@ void CodeGenerator::emitBranchInst(const IRInstruction *inst) {
   emit("je " + falseLabel); // Jump if equal to zero (condition is false)
 }
 
-void CodeGenerator::emitReturnInst(const IRInstruction *inst) {
+void CodeGenerator::emitReturnInst(const IRInstruction *inst)
+{
   const auto &operands = inst->getOperands();
 
-  if (!operands.empty()) {
+  if (!operands.empty())
+  {
     // Return value convention: result in RAX
     std::string src = getOperandString(operands[0]);
     emitComment("Return " + operands[0].toString());
 
-    if (src != "%rax") {
+    if (src != "%rax")
+    {
       emit("movq " + src + ", %rax");
     }
-  } else {
+  }
+  else
+  {
     emitComment("Return void");
   }
 
@@ -1255,13 +1469,22 @@ void CodeGenerator::emitReturnInst(const IRInstruction *inst) {
   emitEpilogue();
 }
 
-void CodeGenerator::emitLabelInst(const IRInstruction *inst) {
+void CodeGenerator::emitLabelInst(const IRInstruction *inst)
+{
   const auto &operands = inst->getOperands();
   if (operands.empty())
     return;
 
   std::string labelName = operands[0].getConstant();
-  output << "\n";
+  // Add newline before label - must go through peephole buffer for correct ordering
+  if (peepholeOptimizationEnabled)
+  {
+    peepholeOptimizer.addInstruction("\n");
+  }
+  else
+  {
+    output << "\n";
+  }
   emitLabel(labelName);
 }
 
@@ -1269,23 +1492,28 @@ void CodeGenerator::emitLabelInst(const IRInstruction *inst) {
 // External Symbols & Data Section Helper Methods
 // ============================================================================
 
-void CodeGenerator::markExternalSymbol(const std::string &symbol) {
+void CodeGenerator::markExternalSymbol(const std::string &symbol)
+{
   // Only mark as external if it's not a function we're defining
-  if (definedFunctions.find(symbol) == definedFunctions.end()) {
+  if (definedFunctions.find(symbol) == definedFunctions.end())
+  {
     externalSymbols.insert(symbol);
   }
 }
 
-void CodeGenerator::markDefinedFunction(const std::string &funcName) {
+void CodeGenerator::markDefinedFunction(const std::string &funcName)
+{
   definedFunctions.insert(funcName);
   // Remove from external symbols if it was marked there
   externalSymbols.erase(funcName);
 }
 
-std::string CodeGenerator::addStringLiteral(const std::string &str) {
+std::string CodeGenerator::addStringLiteral(const std::string &str)
+{
   // Check if this string already exists
   auto it = stringLiterals.find(str);
-  if (it != stringLiterals.end()) {
+  if (it != stringLiterals.end())
+  {
     return it->second;
   }
 
@@ -1298,8 +1526,10 @@ std::string CodeGenerator::addStringLiteral(const std::string &str) {
   dataSection << "    .asciz \"";
 
   // Escape special characters
-  for (char c : str) {
-    switch (c) {
+  for (char c : str)
+  {
+    switch (c)
+    {
     case '\n':
       dataSection << "\\n";
       break;
@@ -1325,21 +1555,26 @@ std::string CodeGenerator::addStringLiteral(const std::string &str) {
   return label;
 }
 
-void CodeGenerator::emitExternalDeclarations() {
-  if (externalSymbols.empty()) {
+void CodeGenerator::emitExternalDeclarations()
+{
+  if (externalSymbols.empty())
+  {
     return;
   }
 
   output << "# External function declarations\n";
-  for (const auto &symbol : externalSymbols) {
+  for (const auto &symbol : externalSymbols)
+  {
     output << ".extern " << symbol << "\n";
   }
   output << "\n";
 }
 
-void CodeGenerator::emitDataSection() {
+void CodeGenerator::emitDataSection()
+{
   std::string dataStr = dataSection.str();
-  if (dataStr.empty()) {
+  if (dataStr.empty())
+  {
     return;
   }
 
@@ -1353,12 +1588,14 @@ void CodeGenerator::emitDataSection() {
 // Debug Information Helper Methods
 // ============================================================================
 
-void CodeGenerator::emitFileDirective(const std::string &filename) {
+void CodeGenerator::emitFileDirective(const std::string &filename)
+{
   if (!debugMode)
     return;
 
   // Only emit .file directive once per file
-  if (emittedFiles.find(filename) != emittedFiles.end()) {
+  if (emittedFiles.find(filename) != emittedFiles.end())
+  {
     return;
   }
 
@@ -1366,7 +1603,8 @@ void CodeGenerator::emitFileDirective(const std::string &filename) {
   output << ".file 1 \"" << filename << "\"\n";
 }
 
-void CodeGenerator::emitLocationDirective(int line, int column) {
+void CodeGenerator::emitLocationDirective(int line, int column)
+{
   if (!debugMode)
     return;
   if (line == currentSourceLine)
@@ -1376,14 +1614,18 @@ void CodeGenerator::emitLocationDirective(int line, int column) {
 
   // .loc file_number line [column]
   // file_number is 1 (from .file directive)
-  if (column > 0) {
+  if (column > 0)
+  {
     output << "    .loc 1 " << line << " " << column << "\n";
-  } else {
+  }
+  else
+  {
     output << "    .loc 1 " << line << "\n";
   }
 }
 
-void CodeGenerator::emitFunctionDebugInfo(const std::string &funcName) {
+void CodeGenerator::emitFunctionDebugInfo(const std::string &funcName)
+{
   if (!debugMode)
     return;
 
@@ -1391,7 +1633,8 @@ void CodeGenerator::emitFunctionDebugInfo(const std::string &funcName) {
   output << "    .type " << funcName << ", @function\n";
 }
 
-void CodeGenerator::emitCFIDirectives() {
+void CodeGenerator::emitCFIDirectives()
+{
   if (!debugMode)
     return;
 
@@ -1402,7 +1645,8 @@ void CodeGenerator::emitCFIDirectives() {
   output << "    .cfi_startproc\n";
 }
 
-void CodeGenerator::emitCallInst(const IRInstruction *inst) {
+void CodeGenerator::emitCallInst(const IRInstruction *inst)
+{
   // Get function name from CallInst
   const CallInst *callInst = dynamic_cast<const CallInst *>(inst);
   if (!callInst)
@@ -1427,7 +1671,7 @@ void CodeGenerator::emitCallInst(const IRInstruction *inst) {
   // Example: func(int a, double b, int c) uses RDI for a, XMM0 for b, RSI for c
 
   std::vector<std::string> intParamRegs = {"%rdi", "%rsi", "%rdx",
-                                           "%rcx", "%r8",  "%r9"};
+                                           "%rcx", "%r8", "%r9"};
   std::vector<std::string> floatParamRegs = {
       "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7"};
 
@@ -1442,7 +1686,8 @@ void CodeGenerator::emitCallInst(const IRInstruction *inst) {
 
   // Count how many arguments will go on stack
   int stackArgs = 0;
-  if (operands.size() > 6) { // First 6 integer args in registers
+  if (operands.size() > 6)
+  { // First 6 integer args in registers
     stackArgs = static_cast<int>(operands.size()) - 6;
   }
 
@@ -1453,26 +1698,32 @@ void CodeGenerator::emitCallInst(const IRInstruction *inst) {
   // Note: Stack arguments are pushed in reverse order (right-to-left)
   std::vector<std::string> stackArgValues;
 
-  for (size_t i = 0; i < operands.size(); i++) {
+  for (size_t i = 0; i < operands.size(); i++)
+  {
     std::string argValue = getOperandString(operands[i]);
 
     // TODO: Check operand type for float/double to use XMM registers
     // For now, all arguments use integer registers
-    if (intArgIndex < static_cast<int>(intParamRegs.size())) {
+    if (intArgIndex < static_cast<int>(intParamRegs.size()))
+    {
       // Use register for parameter
       std::string reg = intParamRegs[intArgIndex];
-      if (argValue != reg) {
+      if (argValue != reg)
+      {
         emit("movq " + argValue + ", " + reg);
       }
       intArgIndex++;
-    } else {
+    }
+    else
+    {
       // Collect stack arguments (will push in reverse)
       stackArgValues.push_back(argValue);
     }
   }
 
   // Push stack arguments in reverse order (right-to-left per ABI)
-  for (auto it = stackArgValues.rbegin(); it != stackArgValues.rend(); ++it) {
+  for (auto it = stackArgValues.rbegin(); it != stackArgValues.rend(); ++it)
+  {
     emit("pushq " + *it);
   }
 
@@ -1486,22 +1737,26 @@ void CodeGenerator::emitCallInst(const IRInstruction *inst) {
   // - Integer/pointer return value is in RAX
   // - Floating-point return value is in XMM0
   // TODO: Check return type to use appropriate register
-  if (inst->getResult()) {
+  if (inst->getResult())
+  {
     bool needsSpillStore = false;
     int spillOffset = 0;
     std::string dest = getDestinationForResult(inst->getResult(),
                                                needsSpillStore, spillOffset);
-    if (dest != "%rax") {
+    if (dest != "%rax")
+    {
       emit("movq %rax, " + dest);
     }
     // Store to spill slot if needed
-    if (needsSpillStore) {
+    if (needsSpillStore)
+    {
       emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
     }
   }
 }
 
-void CodeGenerator::emitLoadInst(const IRInstruction *inst) {
+void CodeGenerator::emitLoadInst(const IRInstruction *inst)
+{
   const auto &operands = inst->getOperands();
   if (operands.empty())
     return;
@@ -1521,22 +1776,27 @@ void CodeGenerator::emitLoadInst(const IRInstruction *inst) {
               operands[0].toString() + ")");
 
   // Load from address (assuming address is in a register or memory location)
-  if (address[0] == '%') {
+  if (address[0] == '%')
+  {
     // Address is in a register, dereference it
     emit("movq (" + address + "), " + dest);
-  } else {
+  }
+  else
+  {
     // Address is a memory location or constant
     emit("movq " + address + ", %r11");
     emit("movq (%r11), " + dest);
   }
 
   // Store to spill slot if needed
-  if (needsSpillStore) {
+  if (needsSpillStore)
+  {
     emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
   }
 }
 
-void CodeGenerator::emitStoreInst(const IRInstruction *inst) {
+void CodeGenerator::emitStoreInst(const IRInstruction *inst)
+{
   const auto &operands = inst->getOperands();
   if (operands.size() < 2)
     return;
@@ -1548,28 +1808,38 @@ void CodeGenerator::emitStoreInst(const IRInstruction *inst) {
               ") = " + operands[0].toString());
 
   // Store value to address
-  if (address[0] == '%') {
+  if (address[0] == '%')
+  {
     // Address is in a register, dereference it
-    if (value[0] == '$') {
+    if (value[0] == '$')
+    {
       // Immediate value, need to use a temp register
       emit("movq " + value + ", %r11");
       emit("movq %r11, (" + address + ")");
-    } else {
+    }
+    else
+    {
       emit("movq " + value + ", (" + address + ")");
     }
-  } else {
+  }
+  else
+  {
     // Address is a memory location
     emit("movq " + address + ", %r11");
-    if (value[0] == '$') {
+    if (value[0] == '$')
+    {
       emit("movq " + value + ", %r10");
       emit("movq %r10, (%r11)");
-    } else {
+    }
+    else
+    {
       emit("movq " + value + ", (%r11)");
     }
   }
 }
 
-void CodeGenerator::emitParamInst(const IRInstruction *inst) {
+void CodeGenerator::emitParamInst(const IRInstruction *inst)
+{
   // PARAM instructions are typically handled during function prologue
   // They map parameters from calling convention registers to local variables
   const auto &operands = inst->getOperands();
@@ -1586,20 +1856,24 @@ void CodeGenerator::emitParamInst(const IRInstruction *inst) {
   int paramIndex = std::stoi(operands[0].getConstant());
 
   std::vector<std::string> paramRegs = {"%rdi", "%rsi", "%rdx",
-                                        "%rcx", "%r8",  "%r9"};
+                                        "%rcx", "%r8", "%r9"};
 
   bool needsSpillStore = false;
   int spillOffset = 0;
   std::string dest =
       getDestinationForResult(result, needsSpillStore, spillOffset);
 
-  if (paramIndex < (int)paramRegs.size()) {
+  if (paramIndex < (int)paramRegs.size())
+  {
     // Parameter is in a register
     std::string srcReg = paramRegs[paramIndex];
-    if (dest != srcReg) {
+    if (dest != srcReg)
+    {
       emit("movq " + srcReg + ", " + dest);
     }
-  } else {
+  }
+  else
+  {
     // Parameter is on stack (above return address and saved RBP)
     int stackOffset =
         16 + (paramIndex - 6) * 8; // 8 for ret addr + 8 for saved RBP
@@ -1607,19 +1881,22 @@ void CodeGenerator::emitParamInst(const IRInstruction *inst) {
   }
 
   // Store to spill slot if needed
-  if (needsSpillStore) {
+  if (needsSpillStore)
+  {
     emit("movq " + dest + ", " + std::to_string(spillOffset) + "(%rbp)");
   }
 }
 
-std::string CodeGenerator::generateFunction(IRFunction *function) {
+std::string CodeGenerator::generateFunction(IRFunction *function)
+{
   currentFunction = function;
 
   // Mark this function as defined in this module
   markDefinedFunction(function->getName());
 
   // Reset peephole optimizer for this function
-  if (peepholeOptimizationEnabled) {
+  if (peepholeOptimizationEnabled)
+  {
     peepholeOptimizer.reset();
     peepholeOptimizer.setEnabled(true);
   }
@@ -1644,18 +1921,30 @@ std::string CodeGenerator::generateFunction(IRFunction *function) {
   emitPrologue();
 
   // Emit instructions for each basic block
-  for (const auto &block : function->getBasicBlocks()) {
+  for (const auto &block : function->getBasicBlocks())
+  {
     // Emit block label (if not entry)
-    if (block->getLabel() != "entry") {
-      output << "\n";
+    if (block->getLabel() != "entry")
+    {
+      // Newline before block label must go through peephole buffer for correct ordering
+      if (peepholeOptimizationEnabled)
+      {
+        peepholeOptimizer.addInstruction("\n");
+      }
+      else
+      {
+        output << "\n";
+      }
       emitLabel(block->getLabel());
     }
 
     // Emit each instruction
-    for (const auto &inst : block->getInstructions()) {
+    for (const auto &inst : block->getInstructions())
+    {
       IROpcode opcode = inst->getOpcode();
 
-      switch (opcode) {
+      switch (opcode)
+      {
       case IROpcode::ADD:
       case IROpcode::SUB:
       case IROpcode::MUL:
@@ -1722,7 +2011,8 @@ std::string CodeGenerator::generateFunction(IRFunction *function) {
   }
 
   // Step 4: Apply peephole optimizations if enabled
-  if (peepholeOptimizationEnabled) {
+  if (peepholeOptimizationEnabled)
+  {
     peepholeOptimizer.optimize();
     output << peepholeOptimizer.getOptimizedCode();
   }
@@ -1731,7 +2021,8 @@ std::string CodeGenerator::generateFunction(IRFunction *function) {
 }
 
 std::string CodeGenerator::generateProgram(
-    const std::vector<std::unique_ptr<IRFunction>> &functions) {
+    const std::vector<std::unique_ptr<IRFunction>> &functions)
+{
   reset();
 
   // Emit assembly header with platform info
@@ -1740,7 +2031,8 @@ std::string CodeGenerator::generateProgram(
   output << "# Platform: macOS/Linux compatible\n";
   output << "# Generated by C Compiler - Code Generation Phase\n";
   output << "# Supports external library integration (printf, malloc, etc.)\n";
-  if (debugMode) {
+  if (debugMode)
+  {
     output << "# Debug symbols enabled for gdb/lldb debugging\n";
   }
   output << "\n";
@@ -1756,7 +2048,8 @@ std::string CodeGenerator::generateProgram(
   output << "\n";
 
   // Emit file directive for debug information
-  if (debugMode && !sourceFileName.empty()) {
+  if (debugMode && !sourceFileName.empty())
+  {
     emitFileDirective(sourceFileName);
   }
 
@@ -1767,10 +2060,14 @@ std::string CodeGenerator::generateProgram(
   output.str("");
   output.clear();
 
-  for (const auto &function : functions) {
-    if (function->getIsExtern()) {
+  for (const auto &function : functions)
+  {
+    if (function->getIsExtern())
+    {
       markExternalSymbol(function->getName());
-    } else {
+    }
+    else
+    {
       generateFunction(function.get());
     }
   }

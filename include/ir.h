@@ -22,7 +22,8 @@ class TempVarGenerator;
 // ============================================================================
 // SSA Value - Represents a value in SSA form
 // ============================================================================
-class SSAValue {
+class SSAValue
+{
 private:
   std::string name; // SSA variable name (e.g., "x_1", "temp_0")
   std::string type; // Type of the value (e.g., "int", "float", "int*")
@@ -37,7 +38,8 @@ public:
   int getVersion() const { return version; }
 
   // Returns the full SSA name with version (e.g., "x_1")
-  std::string getSSAName() const {
+  std::string getSSAName() const
+  {
     return name + "_" + std::to_string(version);
   }
 };
@@ -45,9 +47,11 @@ public:
 // ============================================================================
 // IR Operand - Represents an operand in an instruction
 // ============================================================================
-class IROperand {
+class IROperand
+{
 public:
-  enum class OperandType {
+  enum class OperandType
+  {
     SSA_VALUE, // SSA variable reference
     CONSTANT,  // Constant value (integer, float, string)
     LABEL      // Label reference (for jumps)
@@ -74,7 +78,8 @@ public:
 
   const SSAValue &getSSAValue() const { return std::get<SSAValue>(value); }
 
-  const std::string &getConstant() const {
+  const std::string &getConstant() const
+  {
     return std::get<std::string>(value);
   }
 
@@ -86,7 +91,8 @@ public:
 // ============================================================================
 // IR Instruction Types (Opcodes)
 // ============================================================================
-enum class IROpcode {
+enum class IROpcode
+{
   // Arithmetic operations
   ADD, // result = op1 + op2
   SUB, // result = op1 - op2
@@ -126,11 +132,12 @@ enum class IROpcode {
 // ============================================================================
 // IR Instruction Base Class
 // ============================================================================
-class IRInstruction {
+class IRInstruction
+{
 protected:
   IROpcode opcode;
   SSAValue
-      *result; // Result value (can be nullptr for instructions without results)
+      *result;                     // Result value (can be nullptr for instructions without results)
   std::vector<IROperand> operands; // Instruction operands
 
 public:
@@ -151,11 +158,13 @@ public:
 // ============================================================================
 // Arithmetic Instructions
 // ============================================================================
-class ArithmeticInst : public IRInstruction {
+class ArithmeticInst : public IRInstruction
+{
 public:
   ArithmeticInst(IROpcode op, SSAValue *result, const IROperand &left,
                  const IROperand &right)
-      : IRInstruction(op, result) {
+      : IRInstruction(op, result)
+  {
     operands.push_back(left);
     operands.push_back(right);
   }
@@ -171,11 +180,13 @@ public:
 // ============================================================================
 // Comparison Instructions
 // ============================================================================
-class ComparisonInst : public IRInstruction {
+class ComparisonInst : public IRInstruction
+{
 public:
   ComparisonInst(IROpcode op, SSAValue *result, const IROperand &left,
                  const IROperand &right)
-      : IRInstruction(op, result) {
+      : IRInstruction(op, result)
+  {
     operands.push_back(left);
     operands.push_back(right);
   }
@@ -191,13 +202,18 @@ public:
 // ============================================================================
 // Control Flow Instructions
 // ============================================================================
-class LabelInst : public IRInstruction {
+class LabelInst : public IRInstruction
+{
 private:
   std::string labelName;
 
 public:
   LabelInst(const std::string &name)
-      : IRInstruction(IROpcode::LABEL), labelName(name) {}
+      : IRInstruction(IROpcode::LABEL), labelName(name)
+  {
+    // Add label to operands so emitLabelInst can access it
+    operands.push_back(IROperand(name, IROperand::OperandType::LABEL));
+  }
 
   ~LabelInst() override;
 
@@ -206,13 +222,15 @@ public:
   std::string toString() const override;
 };
 
-class JumpInst : public IRInstruction {
+class JumpInst : public IRInstruction
+{
 private:
   std::string targetLabel;
 
 public:
   JumpInst(const std::string &target)
-      : IRInstruction(IROpcode::JUMP), targetLabel(target) {
+      : IRInstruction(IROpcode::JUMP), targetLabel(target)
+  {
     operands.push_back(IROperand(target, IROperand::OperandType::LABEL));
   }
 
@@ -223,13 +241,15 @@ public:
   std::string toString() const override;
 };
 
-class JumpIfFalseInst : public IRInstruction {
+class JumpIfFalseInst : public IRInstruction
+{
 private:
   std::string targetLabel;
 
 public:
   JumpIfFalseInst(const IROperand &condition, const std::string &target)
-      : IRInstruction(IROpcode::JUMP_IF_FALSE), targetLabel(target) {
+      : IRInstruction(IROpcode::JUMP_IF_FALSE), targetLabel(target)
+  {
     operands.push_back(condition);
     operands.push_back(IROperand(target, IROperand::OperandType::LABEL));
   }
@@ -245,10 +265,12 @@ public:
 // ============================================================================
 // Memory Instructions
 // ============================================================================
-class LoadInst : public IRInstruction {
+class LoadInst : public IRInstruction
+{
 public:
   LoadInst(SSAValue *result, const IROperand &address)
-      : IRInstruction(IROpcode::LOAD, result) {
+      : IRInstruction(IROpcode::LOAD, result)
+  {
     operands.push_back(address);
   }
 
@@ -259,10 +281,12 @@ public:
   std::string toString() const override;
 };
 
-class StoreInst : public IRInstruction {
+class StoreInst : public IRInstruction
+{
 public:
   StoreInst(const IROperand &value, const IROperand &address)
-      : IRInstruction(IROpcode::STORE) {
+      : IRInstruction(IROpcode::STORE)
+  {
     operands.push_back(value);
     operands.push_back(address);
   }
@@ -278,7 +302,8 @@ public:
 // ============================================================================
 // Function Instructions
 // ============================================================================
-class CallInst : public IRInstruction {
+class CallInst : public IRInstruction
+{
 private:
   std::string functionName;
 
@@ -295,10 +320,12 @@ public:
   std::string toString() const override;
 };
 
-class ReturnInst : public IRInstruction {
+class ReturnInst : public IRInstruction
+{
 public:
   // Constructor for return with value
-  ReturnInst(const IROperand &value) : IRInstruction(IROpcode::RETURN) {
+  ReturnInst(const IROperand &value) : IRInstruction(IROpcode::RETURN)
+  {
     operands.push_back(value);
   }
 
@@ -313,7 +340,8 @@ public:
   std::string toString() const override;
 };
 
-class ParamInst : public IRInstruction {
+class ParamInst : public IRInstruction
+{
 private:
   std::string paramName;
   int paramIndex;
@@ -334,10 +362,12 @@ public:
 // ============================================================================
 // Assignment Instruction
 // ============================================================================
-class MoveInst : public IRInstruction {
+class MoveInst : public IRInstruction
+{
 public:
   MoveInst(SSAValue *result, const IROperand &source)
-      : IRInstruction(IROpcode::MOVE, result) {
+      : IRInstruction(IROpcode::MOVE, result)
+  {
     operands.push_back(source);
   }
 
@@ -353,7 +383,8 @@ public:
 // ============================================================================
 // PHI nodes are used in SSA form to merge values from different control flow
 // paths
-class PhiInst : public IRInstruction {
+class PhiInst : public IRInstruction
+{
 private:
   // Each PHI operand is paired with the label of the basic block it comes from
   std::vector<std::pair<IROperand, std::string>> incomingValues;
@@ -363,13 +394,15 @@ public:
 
   ~PhiInst() override;
 
-  void addIncoming(const IROperand &value, const std::string &blockLabel) {
+  void addIncoming(const IROperand &value, const std::string &blockLabel)
+  {
     incomingValues.push_back({value, blockLabel});
     operands.push_back(value);
   }
 
   const std::vector<std::pair<IROperand, std::string>> &
-  getIncomingValues() const {
+  getIncomingValues() const
+  {
     return incomingValues;
   }
 
@@ -381,7 +414,8 @@ public:
 // ============================================================================
 // A basic block is a sequence of instructions with a single entry and exit
 // point
-class IRBasicBlock {
+class IRBasicBlock
+{
 private:
   std::string label;
   std::vector<std::unique_ptr<IRInstruction>> instructions;
@@ -394,11 +428,13 @@ public:
 
   const std::string &getLabel() const { return label; }
 
-  void addInstruction(std::unique_ptr<IRInstruction> inst) {
+  void addInstruction(std::unique_ptr<IRInstruction> inst)
+  {
     instructions.push_back(std::move(inst));
   }
 
-  const std::vector<std::unique_ptr<IRInstruction>> &getInstructions() const {
+  const std::vector<std::unique_ptr<IRInstruction>> &getInstructions() const
+  {
     return instructions;
   }
 
@@ -406,10 +442,12 @@ public:
 
   void addSuccessor(IRBasicBlock *block) { successors.push_back(block); }
 
-  const std::vector<IRBasicBlock *> &getPredecessors() const {
+  const std::vector<IRBasicBlock *> &getPredecessors() const
+  {
     return predecessors;
   }
-  const std::vector<IRBasicBlock *> &getSuccessors() const {
+  const std::vector<IRBasicBlock *> &getSuccessors() const
+  {
     return successors;
   }
 
@@ -420,7 +458,8 @@ public:
 // IR Function
 // ============================================================================
 // Represents a function in IR form
-class IRFunction {
+class IRFunction
+{
 private:
   std::string name;
   std::string returnType;
@@ -439,12 +478,14 @@ public:
 
   void addParameter(const SSAValue &param) { parameters.push_back(param); }
 
-  void addBasicBlock(std::unique_ptr<IRBasicBlock> block) {
+  void addBasicBlock(std::unique_ptr<IRBasicBlock> block)
+  {
     basicBlocks.push_back(std::move(block));
   }
 
   const std::vector<SSAValue> &getParameters() const { return parameters; }
-  const std::vector<std::unique_ptr<IRBasicBlock>> &getBasicBlocks() const {
+  const std::vector<std::unique_ptr<IRBasicBlock>> &getBasicBlocks() const
+  {
     return basicBlocks;
   }
 
@@ -456,7 +497,8 @@ public:
 // ============================================================================
 // Generates unique temporary variable names for intermediate values
 // Format: t0, t1, t2, t3, ...
-class TempVarGenerator {
+class TempVarGenerator
+{
 private:
   int tempCount;      // Counter for temporary variables
   std::string prefix; // Prefix for temp variable names (default: "t")
@@ -471,7 +513,8 @@ public:
 
   // Generate a new SSA temporary value with type
   // Returns: SSAValue with name "t0", "t1", etc.
-  SSAValue newTempSSA(const std::string &type) {
+  SSAValue newTempSSA(const std::string &type)
+  {
     std::string name = newTemp();
     return SSAValue(name, type, 0);
   }
@@ -494,7 +537,8 @@ public:
 // ============================================================================
 // Generates unique label names for basic blocks
 // Format: L0, L1, L2, L3, ...
-class LabelGenerator {
+class LabelGenerator
+{
 private:
   int labelCount;     // Counter for labels
   std::string prefix; // Prefix for label names (default: "L")
@@ -509,7 +553,8 @@ public:
 
   // Generate a named label with counter
   // Returns: "loop_0", "if_1", etc.
-  std::string newLabel(const std::string &name) {
+  std::string newLabel(const std::string &name)
+  {
     return name + "_" + std::to_string(labelCount++);
   }
 
