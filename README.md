@@ -5,20 +5,26 @@ A C compiler (`mycc`) with a React-based visualization tool that shows the compi
 ## Quick Start
 
 ```bash
-# Build the compiler
+# Build the compiler (runs in Docker automatically)
 make
 
 # Run with visualization dumps
-./bin/mycc program.c --dump-tokens tokens.json --dump-ast ast.json --dump-asm output.s -o program
+./mycc program.c --dump-tokens tokens.json --dump-ast ast.json --dump-asm output.s -o program
 
-# Start the API server
-cd api && source venv/bin/activate && python app.py
+# Get hex dump (works on Mac M1 via Docker)
+./mycc program.c --dump-hex output.hex -o program
 
-# Start the frontend (separate terminal)
-cd frontend && npm run dev
+# Start the API and frontend servers
+make docker-dev
 ```
 
 Open `http://localhost:5173` to use the visualization tool.
+
+### Alternative: Local Build (Mac native - no hex dump support)
+```bash
+make native
+./bin/mycc program.c --dump-tokens tokens.json --dump-ast ast.json -o program
+```
 
 ## Project Structure
 
@@ -52,6 +58,15 @@ React Frontend → Flask API → mycc Compiler → JSON Dumps
 
 ## Requirements
 
-- **Compiler:** g++/clang++ with C++17
-- **API:** Python 3.8+, Flask
-- **Frontend:** Node.js 18+
+- **Docker** (recommended - provides hex dump support on Mac M1)
+- **Alternative:** g++/clang++ with C++17, Python 3.8+, Node.js 18+
+
+## Useful Commands
+
+```bash
+make                  # Build compiler in Docker
+make clean            # Clean build files
+make docker-shell     # Open interactive shell in Docker container
+make docker-dev       # Start API + frontend servers
+./mycc <file>         # Run compiler (via Docker)
+```

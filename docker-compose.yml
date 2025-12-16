@@ -1,0 +1,47 @@
+services:
+  api:
+    build: .
+    platform: linux/amd64
+    container_name: mycc-api
+    volumes:
+      - ./src:/app/src
+      - ./include:/app/include
+      - ./api:/app/api
+      - ./bin:/app/bin
+      - ./build:/app/build
+    ports:
+      - "5001:5000"  # API server (host:container)
+    working_dir: /app
+    command: python3 api/app.py
+    environment:
+      - FLASK_ENV=development
+    stdin_open: true
+    tty: true
+
+  frontend:
+    build: .
+    platform: linux/amd64
+    container_name: mycc-frontend
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+    ports:
+      - "3000:3000"  # Frontend dev server
+    working_dir: /app/frontend
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - api
+    stdin_open: true
+    tty: true
+
+  compiler:
+    build: .
+    platform: linux/amd64
+    volumes:
+      - ./src:/app/src
+      - ./include:/app/include
+      - ./bin:/app/bin
+      - ./build:/app/build
+    working_dir: /app
+    profiles:
+      - tools

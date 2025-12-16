@@ -1,0 +1,15 @@
+node_modules
+frontend/node_modules
+frontend/dist
+build
+bin
+*.o
+*.exe
+.git
+.gitignore
+.env
+venv
+api/venv
+__pycache__
+*.pyc
+.DS_Store

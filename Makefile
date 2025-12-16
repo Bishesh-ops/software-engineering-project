@@ -28,12 +28,30 @@ OBJS = $(BUILD_DIR)/error_handler.o \
        $(BUILD_DIR)/ast_serializer.o \
        $(BUILD_DIR)/hex_dump.o
 
-.PHONY: all clean dirs dev-frontend dev-api dev build-frontend install-frontend install-api
+.PHONY: all clean dirs dev-frontend dev-api dev build-frontend install-frontend install-api docker-build docker-shell
 
-all: dirs $(COMPILER_EXE)
+# Default target now builds in Docker
+all: docker-build
+
+# Docker build - builds compiler in Docker container
+docker-build:
+	@echo "========================================"
+	@echo "Building compiler in Docker..."
+	@echo "========================================"
+	@docker-compose build --quiet
+	@docker-compose run --rm compiler make native
 	@echo "========================================"
 	@echo "Build complete: $(COMPILER_EXE)"
+	@echo "Creating wrapper script..."
 	@echo "========================================"
+	@echo '#!/bin/bash' > mycc
+	@echo 'docker-compose run --rm compiler /app/bin/mycc "$$@"' >> mycc
+	@chmod +x mycc
+	@echo "✓ You can now run: ./mycc program.c --dump-hex output.hex -o program"
+
+# Native build (runs inside Docker or locally)
+native: dirs $(COMPILER_EXE)
+	@echo "Native build complete"
 
 # Development commands
 dev: dev-api dev-frontend
@@ -137,4 +155,13 @@ $(BUILD_DIR)/hex_dump.o: $(SRC_DIR)/serializers/hex_dump.cpp | dirs
 # Clean
 clean:
 	@rm -rf $(BUILD_DIR) $(BIN_DIR)
+	@rm -f mycc
 	@echo "Cleaned build directories"
+
+# Docker shell - opens interactive shell in Docker container
+docker-shell:
+	@docker-compose run --rm compiler bash
+
+# Docker dev - starts API and frontend in Docker
+docker-dev:
+	@docker-compose up
