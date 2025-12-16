@@ -3,7 +3,6 @@
 #include <sstream>
 #include <stack>
 
-
 using json = nlohmann::json;
 
 // ============================================================================
@@ -43,6 +42,10 @@ private:
       return "MEMBER_ACCESS_EXPR";
     case ASTNodeType::TYPE_CAST_EXPR:
       return "TYPE_CAST_EXPR";
+    case ASTNodeType::SIZEOF_EXPR:
+      return "SIZEOF_EXPR";
+    case ASTNodeType::TERNARY_EXPR:
+      return "TERNARY_EXPR";
 
     // Statement types
     case ASTNodeType::IF_STMT:
@@ -276,6 +279,42 @@ public:
     } else {
       j["operand"] = nullptr;
     }
+
+    nodeStack.push(j);
+  }
+
+  void visit(SizeOfExpr &node) override {
+    json j;
+    j["node_type"] = nodeTypeToString(node.getNodeType());
+    addLocation(j, node);
+    j["target_type"] = node.getTargetType();
+    j["is_type_size"] = node.isTypeSize();
+
+    if (node.getOperand()) {
+      node.getOperand()->accept(*this);
+      j["operand"] = getResult();
+    } else {
+      j["operand"] = nullptr;
+    }
+    nodeStack.push(j);
+  }
+
+  void visit(TernaryExpr &node) override {
+    json j;
+    j["node_type"] = nodeTypeToString(node.getNodeType());
+    addLocation(j, node);
+
+    // Condition
+    node.getCondition()->accept(*this);
+    j["condition"] = getResult();
+
+    // True Branch
+    node.getTrueExpr()->accept(*this);
+    j["true_expr"] = getResult();
+
+    // False Branch
+    node.getFalseExpr()->accept(*this);
+    j["false_expr"] = getResult();
 
     nodeStack.push(j);
   }

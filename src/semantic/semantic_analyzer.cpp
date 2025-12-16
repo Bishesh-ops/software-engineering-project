@@ -1286,6 +1286,41 @@ void SemanticAnalyzer::visit(ArrayAccessExpr &node) {
   }
 }
 
+void SemanticAnalyzer::visit(TernaryExpr &node) {
+  // 1. Analyze condition
+  node.getCondition()->accept(*this);
+  // (In full C, check if scalar)
+
+  // 2. Analyze true/false branches
+  node.getTrueExpr()->accept(*this);
+  node.getFalseExpr()->accept(*this);
+
+  auto trueType = get_expression_type(node.getTrueExpr());
+  auto falseType = get_expression_type(node.getFalseExpr());
+
+  // 3. Determine result type (simplified: match true branch)
+  if (trueType && falseType) {
+    if (!trueType->equals(*falseType)) {
+      // In a full compiler, we would check for common type (integer promotion,
+      // etc.) For now, if they don't match, just warn if conversion isn't
+      // obvious
+      if (!falseType->canConvertTo(*trueType)) {
+        // add_warning("Type mismatch in ternary operator", node.getLocation());
+      }
+    }
+    set_expression_type(&node, trueType);
+  } else {
+    set_expression_type(&node, Type::makeInt()); // Fallback
+  }
+}
+
+void SemanticAnalyzer::visit(SizeOfExpr &node) {
+  if (!node.isTypeSize()) {
+    node.getOperand()->accept(*this);
+  }
+  set_expression_type(&node, Type::makeInt()); // sizeof returns int
+}
+
 void SemanticAnalyzer::visit(MemberAccessExpr &node) {
   // USER STORY #13: Validate struct member access
 

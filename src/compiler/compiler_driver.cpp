@@ -340,6 +340,11 @@ bool CompilerDriver::compile(const std::string &sourceCode,
   reportInfo("Stage 4: IR Generation (SSA Form)");
 
   IRCodeGenerator irCodeGen;
+
+  // USER STORY #13: Pass type information to IR Generator
+  irCodeGen.setTypeMaps(semanticAnalyzer.get_expression_types(),
+                        semanticAnalyzer.get_struct_types());
+
   std::vector<std::unique_ptr<IRFunction>> irFunctions;
 
   for (const auto &decl : ast) {

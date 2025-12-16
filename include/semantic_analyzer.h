@@ -11,7 +11,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 // SemanticAnalyzer - Visitor that walks the AST and performs semantic analysis
 // Responsibilities:
 // - Register all declarations in appropriate scopes
@@ -114,6 +113,8 @@ public:
   void visit(ArrayAccessExpr &node) override;
   void visit(MemberAccessExpr &node) override;
   void visit(TypeCastExpr &node) override;
+  void visit(SizeOfExpr &node) override;
+  void visit(TernaryExpr &node) override;
 
   // Statement visitors
   void visit(IfStmt &node) override;
@@ -132,6 +133,17 @@ public:
   void visit(StructDecl &node) override;
   void visit(FunctionDecl &node) override;
   void visit(ParameterDecl &node) override;
+
+  // USER STORY #13: Expose type information for IR generation
+  const std::unordered_map<const Expression *, std::shared_ptr<Type>> &
+  get_expression_types() const {
+    return expression_types_;
+  }
+
+  const std::unordered_map<std::string, std::shared_ptr<Type>> &
+  get_struct_types() const {
+    return struct_types_;
+  }
 };
 
 #endif // SEMANTIC_ANALYZER_H

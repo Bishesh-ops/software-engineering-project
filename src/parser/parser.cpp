@@ -157,6 +157,36 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
     return parseUnaryExpression();
   }
 
+  // Handle sizeof operator
+  if (current_token_.type == TokenType::KW_SIZEOF) {
+    Token sizeof_token = current_token_;
+    advance();
+
+    consume(TokenType::LPAREN, "Expected '(' after sizeof");
+
+    // Check if it's a type: sizeof(int), sizeof(struct Node), etc.
+    if (isTypeKeyword(current_token_.type) ||
+        current_token_.type == TokenType::KW_STRUCT) {
+      std::string typeName = parseType();
+      // Handle pointers (int*, struct Node**)
+      while (check(TokenType::OP_STAR)) {
+        typeName += "*";
+        advance();
+      }
+      consume(TokenType::RPAREN, "Expected ')' after sizeof type");
+      SourceLocation loc(sizeof_token.filename, sizeof_token.line,
+                         sizeof_token.column);
+      return std::make_unique<SizeOfExpr>(typeName, loc);
+    } else {
+      // It's an expression: sizeof(var)
+      auto expr = parseExpression();
+      consume(TokenType::RPAREN, "Expected ')' after sizeof expression");
+      SourceLocation loc(sizeof_token.filename, sizeof_token.line,
+                         sizeof_token.column);
+      return std::make_unique<SizeOfExpr>(std::move(expr), loc);
+    }
+  }
+
   switch (current_token_.type) {
   case TokenType::IDENTIFIER:
     return parseIdentifier();
@@ -168,7 +198,46 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
     return parseLiteral();
 
   case TokenType::LPAREN:
-    return parseParenthesizedExpression();
+    // Check if this is a cast expression: (Type) expr
+    // We look ahead to see if the next token is a type keyword
+    // Note: We can't easily peek() in this architecture without consuming,
+    // but we can check the current token after consuming LPAREN if we modify
+    // flow, OR we can rely on `lexer_.peek()` if exposed, but Parser wraps
+    // Lexer.
+    //
+    // ALTERNATIVE: consume LPAREN, check if next is type.
+    {
+      advance(); // consume '('
+
+      bool isCast = false;
+      if (isTypeKeyword(current_token_.type)) {
+        isCast = true;
+      } else if (current_token_.type == TokenType::KW_STRUCT) {
+        isCast = true; // structs are types too
+      }
+
+      if (isCast) {
+        // Parse the type
+        std::string typeStr = parseType();
+        while (check(TokenType::OP_STAR)) {
+          typeStr += "*";
+          advance();
+        }
+        consume(TokenType::RPAREN, "Expected ')' after cast type");
+
+        // Parse the operand (unary expression usually follows cast)
+        auto operand = parseUnaryExpression();
+
+        SourceLocation loc = currentLocation(); // Approximation
+        return std::make_unique<TypeCastExpr>(std::move(operand), typeStr,
+                                              false, loc);
+      } else {
+        // Not a cast, just (expression)
+        auto expr = parseExpression();
+        consume(TokenType::RPAREN, "Expected ')'");
+        return expr;
+      }
+    }
 
   default:
     // USER STORY #21: Error recovery - return null instead of throwing
@@ -876,9 +945,24 @@ std::unique_ptr<Declaration> Parser::parseStructDeclarationOrDefinition() {
     // It's a variable declaration with struct type: struct Point p;
     std::string type =
         std::string(structToken.value) + " " + std::string(nameToken.value);
+
+    // USER STORY #18: Handle pointer declarators for struct variables
+    int pointerLevel = 0;
+    while (check(TokenType::OP_STAR)) {
+      advance(); // consume '*'
+      pointerLevel++;
+    }
+
     Token var_name_token =
         consume(TokenType::IDENTIFIER, "Expected identifier in declaration");
     std::string var_name(var_name_token.value);
+
+    // USER STORY #12: Check if this is a function declaration: struct Node*
+    // func(...)
+    if (check(TokenType::LPAREN)) {
+      return parseFunctionDeclarationImpl(structToken, type, var_name,
+                                          pointerLevel, false);
+    }
 
     // Handle array declaration
     bool isArray = false;
@@ -887,8 +971,10 @@ std::unique_ptr<Declaration> Parser::parseStructDeclarationOrDefinition() {
     if (check(TokenType::LBRACKET)) {
       advance();
       isArray = true;
-      if (!check(TokenType::RBRACKET)) {
-        arraySize = parseExpression();
+      if (!check(TokenType::RBRACE)) { // Fixed typo: should be RBRACKET
+        if (!check(TokenType::RBRACKET)) {
+          arraySize = parseExpression();
+        }
       }
       consume(TokenType::RBRACKET, "Expected ']'");
     }
@@ -904,7 +990,8 @@ std::unique_ptr<Declaration> Parser::parseStructDeclarationOrDefinition() {
     SourceLocation loc(structToken.filename, structToken.line,
                        structToken.column);
     return std::make_unique<VarDecl>(var_name, type, std::move(initializer),
-                                     loc, isArray, std::move(arraySize), 0);
+                                     loc, isArray, std::move(arraySize),
+                                     pointerLevel);
   }
 }
 

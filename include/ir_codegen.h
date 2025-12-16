@@ -3,8 +3,11 @@
 
 #include "ast.h"
 #include "ir.h"
+#include "type.h"
 #include <memory>
 #include <stack>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 // ============================================================================
@@ -39,6 +42,13 @@ private:
 
   // All generated instructions (for standalone expression generation)
   std::vector<std::unique_ptr<IRInstruction>> instructions;
+
+  // USER STORY #13: Type information from Semantic Analyzer
+  std::unordered_map<const Expression *, std::shared_ptr<Type>> expressionTypes;
+  std::unordered_map<std::string, std::shared_ptr<Type>> structTypes;
+
+  // Helper: Get type of an expression
+  std::shared_ptr<Type> getExprType(const Expression *expr);
 
   // Helper: Create a constant operand
   IROperand makeConstant(const std::string &value);
@@ -94,6 +104,12 @@ public:
   // Lower a type cast expression to IR
   void visit(TypeCastExpr &node) override;
 
+  // Lower a sizeof expression to IR
+  void visit(SizeOfExpr &node) override;
+
+  // Lower a ternary expression to IR
+  void visit(TernaryExpr &node) override;
+
   // ========================================================================
   // Statement lowering methods (stubs for now)
   // ========================================================================
@@ -141,6 +157,15 @@ public:
 
   // Get the result SSA value from the last expression evaluation
   SSAValue *getResultSSAValue();
+
+  // Set type maps from Semantic Analyzer
+  void setTypeMaps(const std::unordered_map<const Expression *,
+                                            std::shared_ptr<Type>> &exprTypes,
+                   const std::unordered_map<std::string, std::shared_ptr<Type>>
+                       &structDefs) {
+    expressionTypes = exprTypes;
+    structTypes = structDefs;
+  }
 
   // Reset the code generator state
   void reset();

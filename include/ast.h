@@ -19,6 +19,8 @@ class AssignmentExpr;
 class ArrayAccessExpr;
 class MemberAccessExpr;
 class TypeCastExpr;
+class SizeOfExpr;
+class TernaryExpr;
 class IfStmt;
 class WhileStmt;
 class ForStmt;
@@ -51,6 +53,8 @@ enum class ASTNodeType {
   ARRAY_ACCESS_EXPR,
   MEMBER_ACCESS_EXPR,
   TYPE_CAST_EXPR,
+  SIZEOF_EXPR,
+  TERNARY_EXPR,
 
   // Statement types
   IF_STMT,
@@ -114,6 +118,8 @@ public:
   virtual void visit(ArrayAccessExpr &node) = 0;
   virtual void visit(MemberAccessExpr &node) = 0; // USER STORY #20
   virtual void visit(TypeCastExpr &node) = 0;     // USER STORY #11
+  virtual void visit(TernaryExpr &node) = 0;
+  virtual void visit(SizeOfExpr &node) = 0; // New: sizeof visitor
 
   // Statement visitors
   virtual void visit(IfStmt &node) = 0;
@@ -209,6 +215,30 @@ public:
   Expression *getOperand() const { return operand.get(); }
   const std::string &getOperator() const { return op; }
   bool isPrefixOp() const { return prefixOp; }
+};
+
+// SizeOf Expression (e.g., sizeof(int) or sizeof(var))
+class SizeOfExpr : public Expression {
+private:
+  std::string targetType;              // For sizeof(type)
+  std::unique_ptr<Expression> operand; // For sizeof(expr)
+
+public:
+  // Constructor for sizeof(type)
+  SizeOfExpr(const std::string &type, const SourceLocation &loc)
+      : Expression(ASTNodeType::SIZEOF_EXPR, loc), targetType(type),
+        operand(nullptr) {}
+
+  // Constructor for sizeof(expression)
+  SizeOfExpr(std::unique_ptr<Expression> expr, const SourceLocation &loc)
+      : Expression(ASTNodeType::SIZEOF_EXPR, loc), targetType(""),
+        operand(std::move(expr)) {}
+
+  void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+  const std::string &getTargetType() const { return targetType; }
+  Expression *getOperand() const { return operand.get(); }
+  bool isTypeSize() const { return !targetType.empty(); }
 };
 
 // Literal Expression (e.g., 42, 3.14, "hello", 'c')
@@ -346,6 +376,27 @@ public:
   }
   const std::string &getTargetType() const { return targetType; }
   bool getIsImplicit() const { return isImplicit; }
+};
+
+// Ternary Expression (cond ? true : false)
+class TernaryExpr : public Expression {
+private:
+  std::unique_ptr<Expression> condition;
+  std::unique_ptr<Expression> trueExpr;
+  std::unique_ptr<Expression> falseExpr;
+
+public:
+  TernaryExpr(std::unique_ptr<Expression> cond,
+              std::unique_ptr<Expression> trueE,
+              std::unique_ptr<Expression> falseE, const SourceLocation &loc)
+      : Expression(ASTNodeType::TERNARY_EXPR, loc), condition(std::move(cond)),
+        trueExpr(std::move(trueE)), falseExpr(std::move(falseE)) {}
+
+  void accept(ASTVisitor &visitor) override { visitor.visit(*this); }
+
+  Expression *getCondition() const { return condition.get(); }
+  Expression *getTrueExpr() const { return trueExpr.get(); }
+  Expression *getFalseExpr() const { return falseExpr.get(); }
 };
 
 // ============================================================================
