@@ -999,7 +999,12 @@ std::unique_ptr<Declaration> Parser::parseStructDeclarationOrDefinition() {
 // Handles: int foo(int x) { ... }  OR  int foo(int x);
 std::unique_ptr<Declaration> Parser::parseFunctionDeclarationImpl(
     const Token &start_token, const std::string &type, const std::string &name,
-    int /* pointerLevel */, bool isExtern) {
+    int pointerLevel, bool isExtern) {
+  // Append pointers to type string
+  std::string fullType = type;
+  for (int i = 0; i < pointerLevel; i++) {
+    fullType += "*";
+  }
   // Parse parameter list
   consume(TokenType::LPAREN, "Expected '(' after function name");
   std::vector<std::unique_ptr<ParameterDecl>> parameters = parseParameterList();
