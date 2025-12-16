@@ -11,7 +11,6 @@
 #include <iostream>
 #include <sstream>
 
-
 #ifndef _WIN32
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -425,9 +424,9 @@ bool CompilerDriver::compile(const std::string &sourceCode,
   // Check if we're in "dump only" mode - all visualization dumps requested but
   // no real executable needed This is typically used by the web visualization
   // frontend where we don't need to run as/ld
-  bool dumpOnlyMode = !options.dumpTokensPath.empty() &&
-                      !options.dumpAstPath.empty() &&
-                      !options.dumpAsmPath.empty();
+  bool dumpOnlyMode =
+      !options.dumpTokensPath.empty() && !options.dumpAstPath.empty() &&
+      !options.dumpAsmPath.empty() && options.dumpHexPath.empty();
 
   if (dumpOnlyMode) {
     reportInfo("========================================");

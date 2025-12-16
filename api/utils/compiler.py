@@ -69,7 +69,9 @@ class CompilerInvoker:
             ast_file = temp_path / "ast.json"
             assembly_file = temp_path / "assembly.s"
             hex_file = temp_path / "executable.hex"
-            output_exe = temp_path / "output"
+            # Define output executable name (add .exe on Windows for consistency)
+            exe_name = "output.exe" if platform.system() == "Windows" else "output"
+            output_exe = temp_path / exe_name
 
             # Write source code to file
             source_file.write_text(source_code)
@@ -126,7 +128,12 @@ class CompilerInvoker:
                 if is_arm64_mac:
                     hex_dump = None  # Not available on ARM64 Mac
                 else:
-                    hex_dump = self._read_text_file(hex_file)
+                    if hex_file.exists():
+                        hex_dump = self._read_text_file(hex_file)
+                    else:
+                        # Debug: List files to understand why hex dump failed
+                        print(f"Debug: Hex file missing. Temp dir contents: {[str(p.name) for p in temp_path.glob('*')]}")
+                        hex_dump = None
 
                 # Determine success
                 # On ARM64 Mac, success means tokens + AST + assembly were generated
