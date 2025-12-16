@@ -7,14 +7,13 @@ services:
       - ./src:/app/src
       - ./include:/app/include
       - ./api:/app/api
-      - ./bin:/app/bin
-      - ./build:/app/build
     ports:
-      - "5001:5000"  # API server (host:container)
+      - "5001:5001"  # API server (host:container)
     working_dir: /app
     command: python3 api/app.py
     environment:
       - FLASK_ENV=development
+      - CORS_ORIGINS=*
     stdin_open: true
     tty: true
 
@@ -29,6 +28,8 @@ services:
       - "3000:3000"  # Frontend dev server
     working_dir: /app/frontend
     command: npm run dev -- --host 0.0.0.0
+    environment:
+      - VITE_API_URL=http://localhost:5001
     depends_on:
       - api
     stdin_open: true
@@ -40,8 +41,6 @@ services:
     volumes:
       - ./src:/app/src
       - ./include:/app/include
-      - ./bin:/app/bin
-      - ./build:/app/build
     working_dir: /app
     profiles:
       - tools

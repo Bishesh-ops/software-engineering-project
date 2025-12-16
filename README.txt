@@ -8,14 +8,14 @@ A C compiler (`mycc`) with a React-based visualization tool that shows the compi
 # Build the compiler (runs in Docker automatically)
 make
 
+# Start the API and frontend servers
+make docker-dev
+
 # Run with visualization dumps
 ./mycc program.c --dump-tokens tokens.json --dump-ast ast.json --dump-asm output.s -o program
 
 # Get hex dump (works on Mac M1 via Docker)
 ./mycc program.c --dump-hex output.hex -o program
-
-# Start the API and frontend servers
-make docker-dev
 ```
 
 Open `http://localhost:5173` to use the visualization tool.

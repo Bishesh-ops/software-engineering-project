@@ -41,15 +41,23 @@
 *.dwo
 
 # IDE files
-.vscode
+.vscode/
 
-Makefile
-bin
-build
+# Build artifacts
+bin/
+build/
 
 # Python
 __pycache__/
 *.pyc
 venv/
 .pytest_cache/
-NUL
+
+# Temporary files
+tmp/
+*.tmp
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db
